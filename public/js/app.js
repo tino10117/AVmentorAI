@@ -180,6 +180,49 @@ const UserHelper = {
 function today() { return new Date().toISOString().split("T")[0]; }
 function esc(str) { return String(str).replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 function nl2br(str) { return esc(str).replace(/\n/g, "<br>"); }
+
+// Markdown ligero — convierte la salida de la IA a HTML lindo (negritas, títulos, listas, código).
+// No es un parser completo, pero cubre lo que la IA suele devolver.
+function mdRender(str) {
+  if (!str) return "";
+  let html = String(str);
+
+  // 1) Escapar HTML primero
+  html = html.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  // 2) Code blocks ``` ```
+  html = html.replace(/```([\s\S]*?)```/g, (m, code) =>
+    `<pre style="background:rgba(0,0,0,.3);padding:10px;border-radius:8px;overflow-x:auto;font-size:12px;border:1px solid rgba(255,255,255,.1)"><code>${code.trim()}</code></pre>`
+  );
+
+  // 3) Inline code `code`
+  html = html.replace(/`([^`\n]+)`/g, '<code style="background:rgba(168,85,247,.18);padding:2px 6px;border-radius:4px;font-size:.92em;color:#e9d5ff">$1</code>');
+
+  // 4) Headers ### ## #
+  html = html.replace(/^### (.+)$/gm, '<h4 style="margin:14px 0 6px;color:var(--gold);font-family:\'Syne\',sans-serif;font-size:15px">$1</h4>');
+  html = html.replace(/^## (.+)$/gm, '<h3 style="margin:16px 0 8px;color:var(--gold);font-family:\'Syne\',sans-serif;font-size:17px">$1</h3>');
+  html = html.replace(/^# (.+)$/gm, '<h2 style="margin:18px 0 10px;color:var(--gold);font-family:\'Syne\',sans-serif;font-size:19px">$1</h2>');
+
+  // 5) Bold **texto**
+  html = html.replace(/\*\*([^\*\n]+)\*\*/g, '<strong style="color:var(--text);font-weight:700">$1</strong>');
+
+  // 6) Italic *texto* (cuidando no chocar con el **)
+  html = html.replace(/(^|[^\*])\*([^\*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+
+  // 7) Listas con guiones o asteriscos al inicio de línea
+  html = html.replace(/^[\-\*] (.+)$/gm, '<li style="margin:3px 0">$1</li>');
+  // Envolver grupos de <li> en <ul>
+  html = html.replace(/(<li[^>]*>.*?<\/li>(?:\s*<li[^>]*>.*?<\/li>)*)/gs, '<ul style="padding-left:20px;margin:6px 0">$1</ul>');
+
+  // 8) Listas numeradas: 1. 2. 3.
+  html = html.replace(/^(\d+)\. (.+)$/gm, '<div style="margin:4px 0;padding-left:4px"><strong style="color:var(--gold)">$1.</strong> $2</div>');
+
+  // 9) Saltos de línea simples (los que no son de elementos de bloque)
+  html = html.replace(/\n{2,}/g, '<br><br>');
+  html = html.replace(/(?<!>)\n(?!<)/g, '<br>');
+
+  return html;
+}
 function autoResize(ta) {
   ta.style.height = "auto";
   ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
@@ -217,16 +260,11 @@ function navigateTo(tabId) {
   App.currentTab = tabId;
   document.querySelectorAll(".tab-content").forEach(t => {
     t.classList.remove("active");
-    t.classList.add("hidden");
-    t.style.display = "";
+    t.style.display = "none";
   });
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
   const tabEl = document.getElementById("tab-" + tabId);
-  if (tabEl) {
-    tabEl.classList.add("active");
-    tabEl.classList.remove("hidden");
-    tabEl.style.display = "";
-  }
+  if (tabEl) { tabEl.classList.add("active"); tabEl.style.display = "block"; }
   const navEl = document.querySelector(`[data-tab="${tabId}"]`);
   if (navEl) navEl.classList.add("active");
   document.getElementById("sidebar")?.classList.remove("open");
@@ -238,6 +276,7 @@ function navigateTo(tabId) {
   if (tabId === "mate") { renderMateLecciones(); setSubnav("mate","lecciones"); }
   if (tabId === "herramientas") { renderHerramientas(); setSubnav("herr","competencia"); }
 }
+
 function setSubnav(section, value) {
   App.currentSubnav[section] = value;
   document.querySelectorAll(`[data-subnav="${section}"]`).forEach(b => {
