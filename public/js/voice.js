@@ -1,10 +1,12 @@
-// js/voice.js — Modo voz: micrófono → Whisper → respuesta IA → TTS
-// Auto-injecta botones 🎤 en todos los chats. No requiere modificar otros JS.
+// js/voice.js — v2: Modo voz con micrófono + botón 🔊 manual por mensaje
+// Inyecta automáticamente:
+//   - Botón 🎤 al lado del enviar (graba → transcribe → envía)
+//   - Botón 🔊 en cada mensaje de la IA (al tocar, la IA "lee" ese mensaje)
 
 (function () {
   // Voces por contexto
   const VOICES = {
-    english: "alloy",   // Alex: joven, energética, clean
+    english: "alloy",   // Alex: joven, energética
     negocio: "onyx",    // Mentor: profesional, autoridad
     mate: "echo",       // Bruno: cálido, profe
     default: "alloy",
@@ -17,6 +19,11 @@
     activeBtn: null,
     contextType: "default",
     stream: null,
+    currentAudio: null, // para parar audio si tocan otro 🔊
+
+    // ────────────────────────────────────────────────
+    // GRABACIÓN (micrófono → Whisper → input → enviar)
+    // ────────────────────────────────────────────────
 
     async startRecording(btn, contextType) {
       try {
@@ -81,9 +88,6 @@
 
         if (text && text.trim()) {
           inputEl.value = text.trim();
-          // Preparar listener antes de enviar
-          this.listenForReply(row);
-          // Enviar
           sendBtn.click();
         }
       } catch (err) {
@@ -120,10 +124,24 @@
       return data.text;
     },
 
-    async speak(text, contextType) {
-      if (!text || text.length < 2) return;
+    // ────────────────────────────────────────────────
+    // REPRODUCCIÓN (botón 🔊 manual por mensaje)
+    // ────────────────────────────────────────────────
+
+    async speakMessage(btn, text, contextType) {
+      // Si ya hay audio reproduciéndose, pararlo
+      if (this.currentAudio) {
+        try { this.currentAudio.pause(); } catch (e) {}
+        this.currentAudio = null;
+      }
+
+      const originalText = btn.textContent;
+      btn.textContent = "⏳";
+      btn.disabled = true;
+
       const voice = VOICES[contextType] || VOICES.default;
       const token = localStorage.getItem("av_token") || "";
+
       try {
         const r = await fetch("/api/voice?action=speak", {
           method: "POST",
@@ -133,55 +151,44 @@
           },
           body: JSON.stringify({ text, voice }),
         });
-        if (!r.ok) return;
+        if (!r.ok) {
+          const data = await r.json().catch(() => ({}));
+          throw new Error(data.error || "Error al generar audio");
+        }
         const blob = await r.blob();
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
+        this.currentAudio = audio;
+
+        btn.textContent = "🔊";
+        btn.classList.add("playing");
+        btn.disabled = false;
+
         audio.play().catch(() => {});
-        audio.onended = () => URL.revokeObjectURL(url);
+        audio.onended = () => {
+          URL.revokeObjectURL(url);
+          btn.textContent = originalText;
+          btn.classList.remove("playing");
+          if (this.currentAudio === audio) this.currentAudio = null;
+        };
       } catch (err) {
-        console.error("TTS error:", err);
+        btn.textContent = originalText;
+        btn.disabled = false;
+        alert(err.message || "Error al reproducir");
       }
     },
 
-    listenForReply(row) {
-      // Buscar el chat-wrap más cercano (el del mismo contexto)
-      const container =
-        row.closest(".tab-content") ||
-        row.closest("[data-subpanel]") ||
-        document.body;
-      const wrap = container.querySelector(".chat-wrap");
-      if (!wrap) return;
-
-      const aiSelector = ".msg-ai, .msg-english, .msg-mate";
-      const initialCount = wrap.querySelectorAll(aiSelector).length;
-      let triggered = false;
-
-      const observer = new MutationObserver(() => {
-        const msgs = wrap.querySelectorAll(aiSelector);
-        if (msgs.length > initialCount && !triggered) {
-          const last = msgs[msgs.length - 1];
-          // Esperar a que termine de renderizarse el typing
-          setTimeout(() => {
-            if (triggered) return;
-            const text = (last.textContent || "").trim();
-            // Evitar reproducir el "typing..."
-            if (text && text.length > 5 && !/\.{3,}$/.test(text)) {
-              triggered = true;
-              this.speak(text, this.contextType);
-              observer.disconnect();
-            }
-          }, 1200);
-        }
-      });
-      observer.observe(wrap, { childList: true, subtree: true, characterData: true });
-      // Timeout de seguridad: 60 seg
-      setTimeout(() => observer.disconnect(), 60000);
-    },
-
     detectContextType(btn) {
+      // Por contenedor del mensaje o input
+      const wrap = btn.closest(".chat-wrap");
+      if (wrap) {
+        const id = wrap.id || "";
+        if (id.includes("english") || id.includes("roleplay")) return "english";
+        if (id.includes("mate")) return "mate";
+        if (id.includes("negocio")) return "negocio";
+      }
       const row = btn.parentElement;
-      const inputEl = row?.querySelector("textarea");
+      const inputEl = row?.querySelector?.("textarea");
       const inputId = inputEl?.id || "";
       if (inputId.startsWith("eng") || inputId === "rp-input") return "english";
       if (inputId.startsWith("mate")) return "mate";
@@ -189,7 +196,21 @@
       return "default";
     },
 
-    injectButtons() {
+    extractMessageText(msgEl) {
+      // Clonar y limpiar elementos no deseados (avatares, botones, headers)
+      const clone = msgEl.cloneNode(true);
+      clone.querySelectorAll(".chat-tts-btn, button, .msg-avatar, .msg-name").forEach((el) => el.remove());
+      let text = (clone.textContent || "").trim();
+      // Limpiar el nombre del personaje si quedó al inicio
+      text = text.replace(/^(AV MentorAI|Alex — Profesor de Inglés|Bruno — Matemáticas)\s*/i, "");
+      return text;
+    },
+
+    // ────────────────────────────────────────────────
+    // INYECCIÓN DE BOTONES
+    // ────────────────────────────────────────────────
+
+    injectMicButtons() {
       document.querySelectorAll(".chat-input-row").forEach((row) => {
         if (row.querySelector(".chat-mic-btn")) return;
         const sendBtn = row.querySelector(".chat-send-btn");
@@ -215,10 +236,45 @@
       });
     },
 
+    injectSpeakButtons() {
+      // Solo mensajes de IA dentro de chat-wrap (NO el header de la página)
+      const selector = ".chat-wrap .msg-ai, .chat-wrap .msg-english, .chat-wrap .msg-mate";
+      document.querySelectorAll(selector).forEach((msgEl) => {
+        if (msgEl.querySelector(".chat-tts-btn")) return; // ya tiene botón
+        // Evitar agregar botón a mensajes de "typing" (puntos suspensivos solos)
+        const txt = (msgEl.textContent || "").trim();
+        if (!txt || txt.length < 5 || /^\.{3,}$/.test(txt)) return;
+
+        const btn = document.createElement("button");
+        btn.className = "chat-tts-btn";
+        btn.type = "button";
+        btn.textContent = "🔊";
+        btn.title = "Escuchar mensaje";
+
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const text = this.extractMessageText(msgEl);
+          if (!text) return;
+          const ctx = this.detectContextType(btn);
+          this.speakMessage(btn, text, ctx);
+        });
+
+        msgEl.appendChild(btn);
+        msgEl.classList.add("has-tts");
+      });
+    },
+
+    injectAll() {
+      this.injectMicButtons();
+      this.injectSpeakButtons();
+    },
+
     init() {
-      // Estilo del botón mic
+      // Estilos
       const style = document.createElement("style");
       style.textContent = `
+        /* Botón micrófono (al lado del enviar) */
         .chat-mic-btn {
           background: linear-gradient(90deg, #a855f7, #6366f1);
           border: none;
@@ -241,14 +297,44 @@
           0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239,68,68,.5); }
           50% { transform: scale(1.08); box-shadow: 0 0 0 8px rgba(239,68,68,0); }
         }
+
+        /* Botón altavoz (en cada mensaje IA) */
+        .chat-wrap .has-tts { position: relative; }
+        .chat-tts-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          margin-top: 8px;
+          margin-left: 0;
+          background: rgba(168, 85, 247, .15);
+          border: 1px solid rgba(168, 85, 247, .4);
+          border-radius: 8px;
+          padding: 4px 10px;
+          cursor: pointer;
+          font-size: 13px;
+          color: #c4b5fd;
+          transition: all .2s;
+        }
+        .chat-tts-btn:hover { background: rgba(168, 85, 247, .3); color: white; }
+        .chat-tts-btn:disabled { opacity: .6; cursor: wait; }
+        .chat-tts-btn.playing {
+          background: rgba(34, 197, 94, .25);
+          border-color: rgba(34, 197, 94, .5);
+          color: #86efac;
+          animation: avtts-pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes avtts-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,.4); }
+          50% { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+        }
       `;
       document.head.appendChild(style);
 
-      // Inyectar al inicio
-      this.injectButtons();
+      // Primera inyección
+      this.injectAll();
 
-      // Re-inyectar cuando se generen chats dinámicamente
-      const observer = new MutationObserver(() => this.injectButtons());
+      // Re-inyectar cuando aparezcan chats nuevos o mensajes nuevos
+      const observer = new MutationObserver(() => this.injectAll());
       observer.observe(document.body, { childList: true, subtree: true });
     },
   };
