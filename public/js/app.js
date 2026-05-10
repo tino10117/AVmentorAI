@@ -217,11 +217,16 @@ function navigateTo(tabId) {
   App.currentTab = tabId;
   document.querySelectorAll(".tab-content").forEach(t => {
     t.classList.remove("active");
-    t.style.display = "none";
+    t.classList.add("hidden");
+    t.style.display = "";
   });
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
   const tabEl = document.getElementById("tab-" + tabId);
-  if (tabEl) { tabEl.classList.add("active"); tabEl.style.display = "block"; }
+  if (tabEl) {
+    tabEl.classList.add("active");
+    tabEl.classList.remove("hidden");
+    tabEl.style.display = "";
+  }
   const navEl = document.querySelector(`[data-tab="${tabId}"]`);
   if (navEl) navEl.classList.add("active");
   document.getElementById("sidebar")?.classList.remove("open");
@@ -233,7 +238,6 @@ function navigateTo(tabId) {
   if (tabId === "mate") { renderMateLecciones(); setSubnav("mate","lecciones"); }
   if (tabId === "herramientas") { renderHerramientas(); setSubnav("herr","competencia"); }
 }
-
 function setSubnav(section, value) {
   App.currentSubnav[section] = value;
   document.querySelectorAll(`[data-subnav="${section}"]`).forEach(b => {
