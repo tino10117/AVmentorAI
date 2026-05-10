@@ -759,38 +759,133 @@ async function personalizarPlantilla(){
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
 }
 function renderMarca(){
+  const userName = App.user?.nombre || "";
   document.getElementById("herr-marca").innerHTML=`
     <h3 style="margin-bottom:8px">🎨 Creador de marca personal</h3>
-    <p class="text-muted mb-3">La IA te ayuda a crear tu identidad completa para Instagram y tu negocio.</p>
+    <p class="text-muted mb-3">La IA te crea una identidad de marca completa, lista para publicar hoy.</p>
+
     <div class="grid-2 mb-3">
-      <div><label class="label">¿Qué vendés?</label><input class="input" id="mrub" placeholder="vendo ropa de mujer, soy fotógrafo…"></div>
-      <div><label class="label">¿A quién le vendés?</label><input class="input" id="mpub" placeholder="mujeres jóvenes, empresas pequeñas…"></div>
+      <div><label class="label">Tu nombre o apodo</label>
+        <input class="input" id="mname" placeholder="Valentino, Vale, Tino…" value="${esc(userName)}"></div>
+      <div><label class="label">Tipo de marca</label>
+        <select class="select" id="mtype">
+          <option value="comercial">Nombre comercial (negocio)</option>
+          <option value="personal">Marca personal (con tu nombre)</option>
+          <option value="hibrida">Las dos opciones</option>
+        </select></div>
     </div>
+
+    <div class="mb-3">
+      <label class="label">¿Qué vendés? (sé específico)</label>
+      <input class="input" id="mrub" placeholder="máquinas de afeitar premium importadas, bafles bluetooth…">
+    </div>
+
+    <div class="grid-2 mb-3">
+      <div><label class="label">¿A quién le vendés?</label>
+        <input class="input" id="mpub" placeholder="hombres 25-40 que cuidan su look, oficinistas…"></div>
+      <div><label class="label">Rango de precios</label>
+        <select class="select" id="mprice">
+          <option value="economico">Económico (accesible)</option>
+          <option value="medio" selected>Medio (calidad/precio)</option>
+          <option value="premium">Premium (exclusivo)</option>
+        </select></div>
+    </div>
+
     <div class="grid-2 mb-3">
       <div><label class="label">Estilo de tu marca</label>
-        <select class="select" id="mest"><option>Moderno y minimalista</option><option>Divertido y colorido</option>
-        <option>Elegante y premium</option><option>Cercano y familiar</option><option>Joven y urbano</option></select></div>
-      <div><label class="label">¿De dónde sos?</label><input class="input" id="mciu" placeholder="Buenos Aires, Córdoba…"></div>
+        <select class="select" id="mest">
+          <option>Moderno y minimalista</option>
+          <option>Divertido y colorido</option>
+          <option>Elegante y premium</option>
+          <option>Cercano y familiar</option>
+          <option>Joven y urbano</option>
+          <option>Disruptivo y rebelde</option>
+          <option>Profesional y confiable</option>
+        </select></div>
+      <div><label class="label">¿De dónde sos?</label>
+        <input class="input" id="mciu" placeholder="Buenos Aires, Córdoba, Formosa…"></div>
     </div>
+
+    <div class="mb-3">
+      <label class="label">Tu diferencial (¿por qué te eligen y no a la competencia?)</label>
+      <textarea class="input" id="mdiff" rows="2" placeholder="entrego en el día, todo importado original, atención por WhatsApp 24/7…"></textarea>
+    </div>
+
+    <div class="mb-3">
+      <label class="label">Personalidad de la marca (elegí 1 a 3)</label>
+      <div id="mpersonality" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+        ${["Divertido","Profesional","Disruptivo","Cálido","Premium","Joven","Confiable","Auténtico","Sofisticado","Energético"].map(p=>
+          `<button type="button" class="btn btn-ghost btn-sm" data-pers="${p}" onclick="toggleMarcaPers(this)">${p}</button>`
+        ).join("")}
+      </div>
+    </div>
+
     <button class="btn btn-purple" onclick="doMarca()">🎨 Crear mi marca</button>
     <div id="marca-result" class="mt-3"></div>`;
 }
+
+function toggleMarcaPers(btn){
+  const active = btn.classList.toggle("btn-purple");
+  btn.classList.toggle("btn-ghost", !active);
+  // Limitar a 3
+  const selected = document.querySelectorAll('#mpersonality .btn-purple');
+  if(selected.length > 3){
+    btn.classList.remove("btn-purple");
+    btn.classList.add("btn-ghost");
+    Toast.error("Máximo 3 personalidades");
+  }
+}
+
 async function doMarca(){
   const rub=document.getElementById("mrub").value.trim();
-  if(!rub){Toast.error("Describí a qué te dedicás.");return;}
-  const r=document.getElementById("marca-result");
-  r.innerHTML=`<div class="loading-row"><div class="spinner"></div>Creando tu marca…</div>`;
+  if(!rub){Toast.error("Contame qué vendés.");return;}
+  const name=document.getElementById("mname").value.trim();
+  const type=document.getElementById("mtype").value;
   const pub=document.getElementById("mpub").value.trim();
+  const price=document.getElementById("mprice").value;
   const est=document.getElementById("mest").value;
   const ciu=document.getElementById("mciu").value.trim();
+  const diff=document.getElementById("mdiff").value.trim();
+  const personalities=Array.from(document.querySelectorAll('#mpersonality .btn-purple')).map(b=>b.dataset.pers).join(", ");
+
+  const r=document.getElementById("marca-result");
+  r.innerHTML=`<div class="loading-row"><div class="spinner"></div>Creando tu marca…</div>`;
+
+  const typeLabels = { comercial: "nombre comercial (no marca personal)", personal: `marca personal usando el nombre "${name||'el del usuario'}"`, hibrida: "una marca comercial y también una opción de marca personal" };
+  const priceLabels = { economico: "rango económico/accesible", medio: "rango medio (buena relación calidad/precio)", premium: "rango premium/exclusivo" };
+
+  const userPrompt = `Creá una identidad de marca completa siguiendo la estructura indicada.
+
+DATOS DEL USUARIO:
+- Nombre del fundador: ${name || "no proporcionado"}
+- Tipo de marca a crear: ${typeLabels[type]}
+- Qué vende: ${rub}
+- Público objetivo: ${pub || "no especificado, deducí del rubro"}
+- Rango de precio: ${priceLabels[price]}
+- Estilo deseado: ${est}
+- Ubicación: ${ciu || "Argentina"}
+- Diferencial: ${diff || "no especificado"}
+- Personalidad: ${personalities || "deducí del estilo y rubro"}
+
+Generá la identidad completa AHORA, en formato Markdown, siguiendo todas las secciones obligatorias.`;
+
   try{
-    const d=await API.chat({type:"brand",messages:[{role:"user",content:`Creá una identidad de marca completa. Rubro: ${rub}. Público: ${pub||"general"}. Estilo: ${est}. Ciudad: ${ciu||"Argentina"}. Dame: 5 nombres creativos, bio Instagram (español e inglés), 3 colores con hex, estilo visual, 10 hashtags español + 5 inglés, frase de marca, tono de comunicación.`}]});
+    const d=await API.chat({type:"brand",messages:[{role:"user",content:userPrompt}]});
     r.innerHTML=`<div class="card card-purple">
-      <div style="white-space:pre-wrap;font-size:14px;line-height:1.7;margin-bottom:12px">${nl2br(d.reply)}</div>
-      <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent).then(()=>Toast.success('Copiado'))">📋 Copiar mi marca</button>
+      <div class="md-output" style="font-size:14px;line-height:1.7;margin-bottom:12px">${mdRender(d.reply)}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="copyMarcaText(this)">📋 Copiar todo</button>
+        <button class="btn btn-purple btn-sm" onclick="doMarca()">🔄 Generar otra versión</button>
+      </div>
     </div>`;
     UserHelper.sumarXP(15);
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
+}
+
+function copyMarcaText(btn){
+  const card = btn.closest('.card');
+  const txt = card.querySelector('.md-output').innerText;
+  navigator.clipboard.writeText(txt).then(()=>Toast.success('Copiado al portapapeles'));
 }
 function renderFinanzas(){
   document.getElementById("herr-finanzas").innerHTML=`
