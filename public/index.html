@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AV MentorAI — Tu mentor premium</title>
+<meta name="description" content="Mentor de negocios, inglés, matemáticas y herramientas con IA para LATAM">
+<meta name="theme-color" content="#020617">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ── TOAST ── -->
+<div id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- LOGIN SCREEN                                    -->
+<!-- ═══════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div style="text-align:center;padding:20px 0 28px">
+    <div style="font-family:'Syne',sans-serif;font-size:48px;font-weight:900;background:linear-gradient(90deg,#facc15,#f97316,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px">⚡ AV MentorAI</div>
+    <div style="font-size:16px;color:#cbd5e1;margin-bottom:6px">Tu mentor personal premium para negocios, ventas y crecimiento.</div>
+    <div style="font-size:13px;color:#64748b">Mentor de negocios · Inglés · Matemáticas · Herramientas · Todo con IA</div>
+  </div>
+
+  <div class="stats-row" style="max-width:500px;margin:0 auto 24px">
+    <div class="stat-pill"><span class="sv">14</span><span class="sl">Modos mentor</span></div>
+    <div class="stat-pill" style="background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.25)"><span class="sv" style="color:#a855f7">22</span><span class="sl">Lecciones</span></div>
+    <div class="stat-pill" style="background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.25)"><span class="sv" style="color:#22c55e">6</span><span class="sl">Herramientas IA</span></div>
+    <div class="stat-pill" style="background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.25)"><span class="sv" style="color:#38bdf8">8</span><span class="sl">Roleplay</span></div>
+  </div>
+
+  <div class="feature-grid" style="max-width:500px;margin:0 auto 24px">
+    <div class="feature-item" style="background:linear-gradient(135deg,rgba(250,204,21,.1),rgba(249,115,22,.06));border:1px solid rgba(250,204,21,.25);"><b style="color:#facc15">🧠 Mentor de Negocios</b><span>14 modos: ventas, marketing, e-commerce. Con búsqueda en internet 🌐</span></div>
+    <div class="feature-item" style="background:linear-gradient(135deg,rgba(168,85,247,.1),rgba(99,102,241,.06));border:1px solid rgba(168,85,247,.25);"><b style="color:#a855f7">📚 Inglés con Alex</b><span>12 lecciones, quiz, roleplay, traductor, diario y certificado PDF</span></div>
+    <div class="feature-item" style="background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(16,185,129,.06));border:1px solid rgba(34,197,94,.25);"><b style="color:#22c55e">🔢 Mate con Bruno</b><span>10 lecciones, calculadora de negocios, ROI, punto de equilibrio</span></div>
+    <div class="feature-item" style="background:linear-gradient(135deg,rgba(249,115,22,.1),rgba(239,68,68,.06));border:1px solid rgba(249,115,22,.25);"><b style="color:#f97316">✍️ Generar Contenido</b><span>Posts Instagram, WhatsApp, Mercado Libre listos para publicar</span></div>
+    <div class="feature-item" style="background:linear-gradient(135deg,rgba(56,189,248,.1),rgba(99,102,241,.06));border:1px solid rgba(56,189,248,.25);"><b style="color:#38bdf8">🔍 Analizar Competencia</b><span>Plan de 5 pasos para superar a cualquier competidor</span></div>
+    <div class="feature-item" style="background:linear-gradient(135deg,rgba(250,204,21,.1),rgba(34,197,94,.06));border:1px solid rgba(250,204,21,.25);"><b style="color:#facc15">🔥 Gamificación</b><span>XP, rachas, niveles, desafíos diarios y logros desbloqueables</span></div>
+  </div>
+
+  <div class="login-box" style="margin:0 auto">
+    <div class="login-tabs">
+      <button class="login-tab active" onclick="setLoginTab('login')">Iniciar sesión</button>
+      <button class="login-tab" onclick="setLoginTab('register')">Crear cuenta</button>
+    </div>
+
+    <div id="panel-login">
+      <div class="mb-3"><label class="label">Gmail</label><input class="input" id="login-email" type="email" placeholder="tuemail@gmail.com"></div>
+      <div class="mb-3"><label class="label">Contraseña</label><input class="input" id="login-pass" type="password" placeholder="Tu contraseña"></div>
+      <div id="login-error" class="alert alert-error hidden"></div>
+      <button class="btn btn-primary btn-full btn-lg" onclick="doLogin()">⚡ Entrar</button>
+    </div>
+
+    <div id="panel-register" class="hidden">
+      <div class="mb-3"><label class="label">Tu nombre</label><input class="input" id="reg-nombre" type="text" placeholder="Valentino"></div>
+      <div class="mb-3"><label class="label">Gmail</label><input class="input" id="reg-email" type="email" placeholder="tuemail@gmail.com"></div>
+      <div class="mb-3"><label class="label">Contraseña (mín. 6 caracteres)</label><input class="input" id="reg-pass" type="password" placeholder="Creá tu contraseña"></div>
+      <div id="reg-error" class="alert alert-error hidden"></div>
+      <button class="btn btn-primary btn-full btn-lg" onclick="doRegister()">🚀 Crear cuenta gratis</button>
+    </div>
+
+    <p style="text-align:center;font-size:12px;color:#475569;margin-top:14px">Sin tarjeta de crédito · Demo privada v4.0</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- ONBOARDING                                      -->
+<!-- ═══════════════════════════════════════════════ -->
+<div id="onboarding" class="hidden">
+  <div class="onboarding-inner">
+    <div class="hero-card mb-3"><div class="av-logo">⚡ AV MentorAI</div><div class="av-subtitle">Configurá tu mentor en 1 minuto</div></div>
+    <div class="card mb-3">
+      <div class="mb-3"><label class="label">¿Cuál es tu objetivo principal?</label><textarea class="textarea" id="ob-objetivo" placeholder="Ej: vender más, crear un negocio, generar ingresos extra…"></textarea></div>
+      <div class="mb-3"><label class="label">¿Tenés un negocio o idea?</label><input class="input" id="ob-negocio" type="text" placeholder="Ej: tienda de ropa, supermercado, servicios…"></div>
+      <div class="grid-2 mb-3">
+        <div><label class="label">Tipo de negocio</label>
+          <select class="select" id="ob-tipo">
+            <option>Todavía no tengo negocio</option><option>Supermercado / mayorista</option>
+            <option>E-commerce</option><option>Reventa</option><option>Restaurante / comida</option>
+            <option>Servicios</option><option>Inmobiliaria</option><option>Otro</option>
+          </select>
+        </div>
+        <div><label class="label">Tu nivel</label>
+          <select class="select" id="ob-nivel">
+            <option>Principiante</option><option>Intermedio</option><option>Avanzado</option>
+          </select>
+        </div>
+      </div>
+      <div class="mb-3"><label class="label">Tiempo disponible por día</label>
+        <select class="select" id="ob-tiempo">
+          <option>15 minutos</option><option>30 minutos</option><option>1 hora</option><option>Más de 1 hora</option>
+        </select>
+      </div>
+      <div class="mb-3"><label class="label">¿Qué te cuesta más en tu negocio?</label><textarea class="textarea" id="ob-dificultad" placeholder="Ej: conseguir clientes, organizar las finanzas, saber qué publicar…"></textarea></div>
+      <button class="btn btn-primary btn-full btn-lg" onclick="saveOnboarding()">🚀 Entrar a AV MentorAI</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- MAIN APP                                        -->
+<!-- ═══════════════════════════════════════════════ -->
+<div id="app" class="hidden">
+
+  <!-- Hamburger -->
+  <button id="hamburger" onclick="toggleSidebar()">☰</button>
+  <div id="overlay" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div class="sidebar-logo">⚡ AV MentorAI</div>
+    <div class="nav-section">APRENDIZAJE</div>
+    <button class="nav-btn active" data-tab="mentor" onclick="navigateTo('mentor')"><span class="nav-icon">🧠</span> Mentor</button>
+    <button class="nav-btn" data-tab="english" onclick="navigateTo('english')"><span class="nav-icon">📚</span> Inglés</button>
+    <button class="nav-btn" data-tab="mate" onclick="navigateTo('mate')"><span class="nav-icon">🔢</span> Mate</button>
+    <div class="nav-section">HERRAMIENTAS</div>
+    <button class="nav-btn" data-tab="herramientas" onclick="navigateTo('herramientas')"><span class="nav-icon">🛠️</span> Herramientas</button>
+    <div class="nav-section">MI PROGRESO</div>
+    <button class="nav-btn" data-tab="progreso" onclick="navigateTo('progreso')"><span class="nav-icon">📈</span> Progreso</button>
+    <button class="nav-btn" data-tab="desafios" onclick="navigateTo('desafios')"><span class="nav-icon">🔥</span> Desafíos</button>
+    <button class="nav-btn" data-tab="ranking" onclick="navigateTo('ranking')"><span class="nav-icon">🏆</span> Ranking</button>
+    <div class="nav-section">CUENTA</div>
+    <button class="nav-btn" data-tab="premium" onclick="navigateTo('premium')"><span class="nav-icon">💎</span> Premium</button>
+    <button class="nav-btn" data-tab="config" onclick="navigateTo('config')"><span class="nav-icon">⚙️</span> Configuración</button>
+    <button class="nav-btn" onclick="doLogout()" style="margin-top:auto;color:#ef4444"><span class="nav-icon">🚪</span> Cerrar sesión</button>
+  </nav>
+
+  <!-- Main Content -->
+  <main id="main-content">
+
+    <!-- HEADER -->
+    <div class="hero-card mb-3">
+      <div class="av-logo">⚡ AV MentorAI</div>
+      <div class="av-subtitle" id="header-subtitle">Tu mentor personal premium para negocios, ventas y crecimiento.</div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="grid-4 mb-3" id="header-metrics">
+      <div class="metric-chip" style="background:linear-gradient(135deg,rgba(250,204,21,.15),rgba(250,204,21,.05));border-color:rgba(250,204,21,.35)">
+        <div style="font-size:24px">👤</div><div class="metric-val text-gold" id="m-nombre">—</div><div class="metric-lbl">Usuario</div>
+      </div>
+      <div class="metric-chip" style="background:linear-gradient(135deg,rgba(249,115,22,.15),rgba(249,115,22,.05));border-color:rgba(249,115,22,.35)">
+        <div style="font-size:24px">⭐</div><div class="metric-val" style="color:#f97316" id="m-xp">0</div><div class="metric-lbl">XP Total</div>
+      </div>
+      <div class="metric-chip" style="background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(239,68,68,.05));border-color:rgba(239,68,68,.35)">
+        <div style="font-size:24px">🔥</div><div class="metric-val" style="color:#ef4444" id="m-racha">0 días</div><div class="metric-lbl">Racha</div>
+      </div>
+      <div class="metric-chip" style="background:linear-gradient(135deg,rgba(56,189,248,.15),rgba(56,189,248,.05));border-color:rgba(56,189,248,.35)">
+        <div style="font-size:24px">💎</div><div class="metric-val text-sky" id="m-plan">Gratis</div><div class="metric-lbl">Plan</div>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="card mb-3" style="padding:14px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-weight:700;font-size:13px" id="nivel-txt">Nivel 1 — Inicial</span>
+        <span style="color:var(--gold);font-size:13px;font-weight:700" id="nivel-pct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="nivel-bar" style="width:0%"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--text3)">
+        <span id="stat-lecciones">📚 0 lecciones</span>
+        <span id="stat-diario">📓 0 entradas diario</span>
+        <span id="stat-objetivos">🎯 0 objetivos</span>
+      </div>
+    </div>
+
+    <!-- ─── TABS ─── -->
+
+    <!-- TAB: MENTOR -->
+    <div id="tab-mentor" class="tab-content active">
+      <div style="margin-bottom:10px;font-size:14px;font-weight:700;color:var(--text2)">
+        🧠 Modo: <select id="modo-selector" class="select" style="width:auto;display:inline-block;padding:4px 10px;font-size:13px" onchange="App.modo=this.value">
+          <option>Mentor de Negocios</option><option>Entrenador de Ventas</option>
+          <option>Marketing LATAM</option><option>Disciplina y Hábitos</option>
+          <option>Ideas de Negocio</option><option>Simulación con Cliente Difícil</option>
+          <option>Planificador de Objetivos</option><option>Modo Empresario Exigente</option>
+          <option>Modo Mentor Millonario</option><option>Especialista Supermercados</option>
+          <option>Especialista E-commerce</option><option>Especialista Reventa</option>
+          <option>Especialista Restaurante</option><option>Especialista Inmobiliaria</option>
+        </select>
+      </div>
+
+      <!-- Quick buttons -->
+      <div class="quick-btns mb-2">
+        <div class="qbtn qbtn-gold" onclick="sendQuickNeg('Dame una idea de negocio rentable para empezar con pocos recursos.')">💡 Idea</div>
+        <div class="qbtn qbtn-green" onclick="sendQuickNeg('Quiero vender más. Dame un plan práctico para empezar hoy.')">📈 Vender</div>
+        <div class="qbtn qbtn-indigo" onclick="sendQuickNeg('Quiero aprender marketing desde cero para vender por redes sociales.')">📱 Marketing</div>
+        <div class="qbtn qbtn-red" onclick="sendQuickNeg('Hagamos una simulación. Vos sos un cliente difícil y yo tengo que venderte.')">🎭 Cliente</div>
+        <div class="qbtn qbtn-purple" id="btn-desafio">🔥 Desafío</div>
+        <div class="qbtn qbtn-sky" onclick="sendQuickNeg('Háblame como mentor exigente y decime qué debería mejorar hoy.')">💎 Mentor</div>
+      </div>
+      <p style="font-size:11px;color:#64748b;margin-bottom:4px">🌐 Con búsqueda en internet:</p>
+      <div class="quick-btns mb-3">
+        <div class="qbtn qbtn-gold" style="font-size:11px" onclick="sendWebSearch('tendencias')">📊 Tendencias del rubro</div>
+        <div class="qbtn qbtn-sky" style="font-size:11px" onclick="sendWebSearch('competencia')">🔍 Info de competencia</div>
+        <div class="qbtn qbtn-green" style="font-size:11px" onclick="sendWebSearch('precios')">💹 Precios del mercado</div>
+      </div>
+
+      <div id="chat-negocio" class="chat-wrap" style="min-height:200px;max-height:60vh;overflow-y:auto"></div>
+      <div class="chat-input-wrap">
+        <div class="chat-input-row">
+          <textarea id="neg-input" placeholder="✍️ Escribí tu pregunta acá..." rows="1"></textarea>
+          <button class="chat-send-btn" id="neg-send">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: INGLÉS -->
+    <div id="tab-english" class="tab-content hidden">
+      <div class="card-blue card mb-3"><h2 style="font-family:'Syne',sans-serif">📚 Aprender Inglés</h2><p class="text-muted">Lecciones offline · Quiz · Roleplay · Traductor · Diario · Certificado</p></div>
+      <div class="subnav">
+        <button class="subnav-btn active" data-subnav="english" data-value="lecciones" onclick="setSubnav('english','lecciones')">📖 Lecciones</button>
+        <button class="subnav-btn" data-subnav="english" data-value="roleplay" onclick="setSubnav('english','roleplay')">🎭 Roleplay</button>
+        <button class="subnav-btn" data-subnav="english" data-value="traductor" onclick="setSubnav('english','traductor')">📖 Traductor</button>
+        <button class="subnav-btn" data-subnav="english" data-value="diario" onclick="setSubnav('english','diario')">📓 Diario</button>
+        <button class="subnav-btn" data-subnav="english" data-value="certificado" onclick="setSubnav('english','certificado')">🏆 Certificado</button>
+        <button class="subnav-btn" data-subnav="english" data-value="chat" onclick="setSubnav('english','chat');initEnglishChat()">💬 Chat Alex</button>
+      </div>
+      <div id="english-lecciones" data-subpanel="english" data-value="lecciones"></div>
+      <div id="english-roleplay" data-subpanel="english" data-value="roleplay" style="display:none"></div>
+      <div id="english-traductor" data-subpanel="english" data-value="traductor" style="display:none"></div>
+      <div id="english-diario" data-subpanel="english" data-value="diario" style="display:none"></div>
+      <div id="english-certificado" data-subpanel="english" data-value="certificado" style="display:none"></div>
+      <div id="english-chat" data-subpanel="english" data-value="chat" style="display:none"></div>
+    </div>
+
+    <!-- TAB: MATE -->
+    <div id="tab-mate" class="tab-content hidden">
+      <div class="card-green card mb-3"><h2 style="font-family:'Syne',sans-serif">🔢 Aprender Matemáticas</h2><p class="text-muted">Lecciones · Quiz · Calculadora de negocios · Certificado</p></div>
+      <div class="subnav">
+        <button class="subnav-btn active" data-subnav="mate" data-value="lecciones" onclick="setSubnav('mate','lecciones')">📖 Lecciones</button>
+        <button class="subnav-btn" data-subnav="mate" data-value="calculadora" onclick="setSubnav('mate','calculadora')">🧮 Calculadora</button>
+        <button class="subnav-btn" data-subnav="mate" data-value="chat" onclick="setSubnav('mate','chat');initMateChat()">💬 Chat Bruno</button>
+      </div>
+      <div id="mate-lecciones" data-subpanel="mate" data-value="lecciones"></div>
+      <div id="mate-calculadora" data-subpanel="mate" data-value="calculadora" style="display:none"></div>
+      <div id="mate-chat" data-subpanel="mate" data-value="chat" style="display:none"></div>
+    </div>
+
+    <!-- TAB: HERRAMIENTAS -->
+    <div id="tab-herramientas" class="tab-content hidden">
+      <div class="hero-card mb-3"><h2>🛠️ Herramientas</h2><p class="av-subtitle">Analizá tu competencia, generá contenido y más.</p></div>
+      <div class="subnav">
+        <button class="subnav-btn active" data-subnav="herr" data-value="competencia" onclick="setSubnav('herr','competencia')">🔍 Competencia</button>
+        <button class="subnav-btn" data-subnav="herr" data-value="contenido" onclick="setSubnav('herr','contenido')">✍️ Contenido</button>
+        <button class="subnav-btn" data-subnav="herr" data-value="plantillas" onclick="setSubnav('herr','plantillas')">📋 Plantillas</button>
+        <button class="subnav-btn" data-subnav="herr" data-value="marca" onclick="setSubnav('herr','marca')">🎨 Marca personal</button>
+        <button class="subnav-btn" data-subnav="herr" data-value="finanzas" onclick="setSubnav('herr','finanzas')">💰 Finanzas</button>
+      </div>
+      <div id="herr-competencia" data-subpanel="herr" data-value="competencia"></div>
+      <div id="herr-contenido" data-subpanel="herr" data-value="contenido" style="display:none"></div>
+      <div id="herr-plantillas" data-subpanel="herr" data-value="plantillas" style="display:none"></div>
+      <div id="herr-marca" data-subpanel="herr" data-value="marca" style="display:none"></div>
+      <div id="herr-finanzas" data-subpanel="herr" data-value="finanzas" style="display:none"></div>
+    </div>
+
+    <!-- TAB: PROGRESO -->
+    <div id="tab-progreso" class="tab-content hidden">
+      <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">📈 Mi Progreso</h2>
+      <div id="progreso-content"></div>
+    </div>
+
+    <!-- TAB: DESAFÍOS -->
+    <div id="tab-desafios" class="tab-content hidden">
+      <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">🔥 Desafíos</h2>
+      <div id="desafios-content"></div>
+    </div>
+
+    <!-- TAB: RANKING -->
+    <div id="tab-ranking" class="tab-content hidden">
+      <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">🏆 Ranking</h2>
+      <div id="ranking-content"><div class="loading-row"><div class="spinner"></div>Cargando ranking…</div></div>
+    </div>
+
+    <!-- TAB: PREMIUM -->
+    <div id="tab-premium" class="tab-content hidden">
+      <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">💎 Planes</h2>
+      <div class="grid-3" id="planes-content"></div>
+    </div>
+
+    <!-- TAB: CONFIG -->
+    <div id="tab-config" class="tab-content hidden">
+      <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">⚙️ Configuración</h2>
+      <div id="config-content"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Scripts -->
+<script src="js/lessons.js"></script>
+<script src="js/app.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+{"name":"av-mentorai","version":"4.1.0","private":true,"dependencies":{"openai":"^4.28.0","bcryptjs":"^2.4.3","jsonwebtoken":"^9.0.2","@upstash/redis":"^1.28.0"},"engines":{"node":">=18"}}
