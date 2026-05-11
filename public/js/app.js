@@ -66,10 +66,10 @@ const API = {
     return this.req("/api/ranking");
   },
 
-  async chat({ type, messages, modo, desafio, leccion, englishModo, mateModo, useWebSearch }) {
+  async chat({ type, messages, modo, desafio, leccion, englishModo, mateModo, useWebSearch, image }) {
     return this.req("/api/chat", "POST", {
       type, messages, user: App.user, modo: modo || App.modo,
-      desafio: desafio || App.desafio, leccion, englishModo, mateModo, useWebSearch,
+      desafio: desafio || App.desafio, leccion, englishModo, mateModo, useWebSearch, image,
     });
   },
 };
