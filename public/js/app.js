@@ -361,21 +361,64 @@ const Chat = {
       fileInputEl.value = "";
       return;
     }
-    // Validación de tamaño (5 MB)
-    if (file.size > 5 * 1024 * 1024) {
-      Toast.error("La imagen es demasiado grande (máximo 5 MB).");
+    // Validación de tamaño máximo original (20 MB para evitar fotos extremas)
+    if (file.size > 20 * 1024 * 1024) {
+      Toast.error("La imagen es demasiado grande (máximo 20 MB).");
       fileInputEl.value = "";
       return;
     }
-    // Leer como base64
+
+    // Procesar imagen: comprimir si es >2MB, sino mandar tal cual
+    const needsCompression = file.size > 2 * 1024 * 1024;
+
     const reader = new FileReader();
     reader.onload = (e) => {
-      this._pendingImage = e.target.result;
-      this._pendingImageInputId = previewContainerId;
-      this._showImagePreview(previewContainerId, e.target.result);
+      if (!needsCompression) {
+        // Imagen chica, la usamos tal cual
+        this._pendingImage = e.target.result;
+        this._pendingImageInputId = previewContainerId;
+        this._showImagePreview(previewContainerId, e.target.result);
+        return;
+      }
+      // Imagen grande: comprimir con canvas
+      this._compressImage(e.target.result, (compressedDataUrl) => {
+        this._pendingImage = compressedDataUrl;
+        this._pendingImageInputId = previewContainerId;
+        this._showImagePreview(previewContainerId, compressedDataUrl);
+        Toast.info("📸 Imagen optimizada");
+      });
     };
     reader.readAsDataURL(file);
     fileInputEl.value = "";
+  },
+
+  _compressImage(dataUrl, callback) {
+    const img = new Image();
+    img.onload = () => {
+      const MAX_SIDE = 1600;
+      let { width, height } = img;
+      if (width > MAX_SIDE || height > MAX_SIDE) {
+        if (width >= height) {
+          height = Math.round(height * (MAX_SIDE / width));
+          width = MAX_SIDE;
+        } else {
+          width = Math.round(width * (MAX_SIDE / height));
+          height = MAX_SIDE;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+      // JPEG calidad 0.85 da buen balance tamaño/calidad
+      const compressed = canvas.toDataURL("image/jpeg", 0.85);
+      callback(compressed);
+    };
+    img.onerror = () => {
+      Toast.error("No se pudo procesar la imagen. Probá con otra.");
+    };
+    img.src = dataUrl;
   },
 
   _showImagePreview(containerId, dataUrl) {
