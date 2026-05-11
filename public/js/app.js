@@ -181,11 +181,57 @@ function today() { return new Date().toISOString().split("T")[0]; }
 function esc(str) { return String(str).replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 function nl2br(str) { return esc(str).replace(/\n/g, "<br>"); }
 
+// Limpia links Markdown largos: [texto](https://url) → 🔗 texto
+// También quita parámetros tipo ?utm_source y dominios completos huérfanos en paréntesis.
+function cleanLinks(str) {
+  if (!str) return "";
+  let s = String(str);
+  // 1) [texto](url) → 🔗 texto (si el texto parece dominio, queda como dominio)
+  s = s.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s\)]+)\)/g, (m, txt, url) => {
+    const cleanTxt = txt.trim();
+    return `🔗 ${cleanTxt}`;
+  });
+  // 2) URLs sueltas tipo (https://...) → quitarlas
+  s = s.replace(/\(\s*https?:\/\/[^\s\)]+\s*\)/g, "");
+  // 3) URLs sin paréntesis al final de oración
+  s = s.replace(/https?:\/\/[^\s\)]+/g, "");
+  // 4) Limpiar paréntesis vacíos sobrantes
+  s = s.replace(/\(\s*\)/g, "");
+  return s;
+}
+
+// Convierte texto con Markdown/emojis a texto plano para TTS (lectura por voz).
+// Quita asteriscos, headers, emojis, links, símbolos raros.
+function stripForVoice(str) {
+  if (!str) return "";
+  let s = String(str);
+  // Primero limpiar links
+  s = cleanLinks(s);
+  // Quitar code blocks
+  s = s.replace(/```[\s\S]*?```/g, "");
+  // Quitar inline code (mantener el contenido)
+  s = s.replace(/`([^`\n]+)`/g, "$1");
+  // Quitar headers (mantener texto)
+  s = s.replace(/^#{1,6}\s+/gm, "");
+  // Quitar negritas e itálicas (mantener texto)
+  s = s.replace(/\*\*([^\*\n]+)\*\*/g, "$1");
+  s = s.replace(/\*([^\*\n]+)\*/g, "$1");
+  // Quitar emojis y símbolos no básicos (rango unicode común de emojis)
+  s = s.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F2FF}]/gu, "");
+  // Quitar el símbolo 🔗 que queda de cleanLinks (por si el regex anterior no lo borra)
+  s = s.replace(/🔗/g, "");
+  // Espacios múltiples → 1 solo, líneas vacías múltiples → 1
+  s = s.replace(/[ \t]+/g, " ");
+  s = s.replace(/\n{3,}/g, "\n\n");
+  return s.trim();
+}
+
 // Markdown ligero — convierte la salida de la IA a HTML lindo (negritas, títulos, listas, código).
 // No es un parser completo, pero cubre lo que la IA suele devolver.
 function mdRender(str) {
   if (!str) return "";
-  let html = String(str);
+  // Primero limpiar links largos (bug visual con web search)
+  let html = cleanLinks(String(str));
 
   // 1) Escapar HTML primero
   html = html.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
