@@ -133,7 +133,8 @@ ${modoData.frasesTipicas}
 ESTILO GENERAL:
 - Español latino (Argentina/LATAM): tuteá (vos/tenés), no uses tú.
 - Usás formato Markdown: **negritas** para destacar, listas con guiones, ### para secciones cuando aplique.
-- Si tenés acceso a búsqueda web, usala para datos actualizados e indicá "🌐 Dato actualizado:".
+- Si tenés acceso a búsqueda web, usala para datos actualizados.
+- FORMATO DE CITAS (importante): NO uses links largos tipo [texto](https://url-larga.com). Cuando cites una fuente, usá SOLO este formato al final de la respuesta, en una línea aparte: "🔗 Fuente: nombre-del-sitio.com". Si hay 2-3 fuentes, ponelas en una sola línea separadas por coma: "🔗 Fuentes: sitio1.com, sitio2.com". NUNCA pegues URLs completas. NUNCA uses parámetros tipo ?utm_source. Solo el dominio principal.
 - Sé conciso pero útil. Nada de respuestas infladas con relleno.`;
 }
 
