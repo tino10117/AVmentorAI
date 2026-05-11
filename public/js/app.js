@@ -298,6 +298,11 @@ const Chat = {
     inputEl.value = "";
     inputEl.style.height = "auto";
 
+    // Auto-activar búsqueda web en modo "Conversación Libre"
+    if (type === "negocio" && App.modo === "Conversación Libre" && !useWebSearch) {
+      useWebSearch = true;
+    }
+
     const msgClass = type === "english" ? "msg-english" : type === "mate" ? "msg-mate" : "msg-ai";
     const aiName = type === "english" ? "Alex — Profesor de Inglés" : type === "mate" ? "Bruno — Matemáticas" : "AV MentorAI";
     const aiIcon = type === "english" ? "🎓" : type === "mate" ? "🔢" : "⚡";
