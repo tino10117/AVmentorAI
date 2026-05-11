@@ -361,7 +361,7 @@ const Chat = {
       div.innerHTML = `<div class="chat-msg-header">
         <div class="chat-avatar" style="background:${grad}">${icon}</div>
         <span class="chat-name" style="color:${color}">${name}</span>
-      </div><div>${nl2br(text)}</div>`;
+      </div><div>${mdRender(text)}</div>`;
     }
     container.appendChild(div);
     scrollBottom(container);
