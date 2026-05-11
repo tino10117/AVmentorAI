@@ -555,11 +555,34 @@ async function showBrunoResult(prompt){
   r.innerHTML=`<div class="loading-row"><div class="spinner"></div>Bruno está calculando…</div>`;
   try{
     const d=await API.chat({type:"mate",messages:[{role:"user",content:prompt}],mateModo:"calculadora",leccion:"Calculadora"});
+    // Guardamos el contexto para usarlo si el usuario quiere seguir charlando
+    window._lastBrunoContext = { prompt, reply: d.reply };
     r.innerHTML=`<div class="msg-mate chat-msg" style="border-left-color:#22c55e">
       <div class="chat-msg-header"><div class="chat-avatar" style="background:linear-gradient(135deg,#22c55e,#16a34a)">🔢</div>
       <span class="chat-name" style="color:#22c55e">Bruno</span></div>
-      <div>${mdRender(d.reply)}</div></div>`;
+      <div>${mdRender(d.reply)}</div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(34,197,94,.25)">
+        <button class="btn btn-green btn-sm" onclick="seguirConBruno()">💬 Seguir charlando con Bruno →</button>
+      </div>
+    </div>`;
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
+}
+
+function seguirConBruno(){
+  const ctx = window._lastBrunoContext;
+  if(!ctx){Toast.error("No hay contexto previo.");return;}
+  // Cargar el contexto del cálculo como historial del chat de Bruno
+  if(!App.user.mate_messages) App.user.mate_messages = [];
+  App.user.mate_messages.push({role:"user", content:ctx.prompt});
+  App.user.mate_messages.push({role:"assistant", content:ctx.reply});
+  App.chatMessages.mate = App.user.mate_messages.slice(-40);
+  Store.save();
+  API.saveUser({mate_messages: App.user.mate_messages}).catch(()=>{});
+  // Navegar al chat de Bruno
+  navigateTo("mate");
+  setSubnav("mate","chat");
+  initMateChat();
+  Toast.info("Seguí la conversación con Bruno acá.");
 }
 function calcMargen(){
   const c=parseFloat(document.getElementById("cc")?.value)||0;
