@@ -260,11 +260,11 @@ function navigateTo(tabId) {
   App.currentTab = tabId;
   document.querySelectorAll(".tab-content").forEach(t => {
     t.classList.remove("active");
-    t.style.display = "none";
+    t.classList.add("hidden");
   });
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
   const tabEl = document.getElementById("tab-" + tabId);
-  if (tabEl) { tabEl.classList.add("active"); tabEl.style.display = "block"; }
+  if (tabEl) { tabEl.classList.add("active"); tabEl.classList.remove("hidden"); }
   const navEl = document.querySelector(`[data-tab="${tabId}"]`);
   if (navEl) navEl.classList.add("active");
   document.getElementById("sidebar")?.classList.remove("open");
