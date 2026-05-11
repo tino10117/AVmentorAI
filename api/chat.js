@@ -387,7 +387,10 @@ export default async function handler(req, res) {
       }
     }
 
-    if (useWebSearch) {
+    // Si hay imagen + web search activo: web-search no soporta imágenes → forzamos gpt-4o
+    const effectiveWebSearch = useWebSearch && !image;
+
+    if (effectiveWebSearch) {
       const response = await openai.chat.completions.create({
         model: "gpt-4o-search-preview",
         messages: [{ role: "system", content: systemPrompt }, ...finalMessages],
