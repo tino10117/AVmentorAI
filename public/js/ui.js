@@ -1056,7 +1056,6 @@ async function calcDecision(){
     UserHelper.sumarXP(10);
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
 }
-}
 function calcAhorro(){
   const mont=parseFloat(document.getElementById("fmm").value)||0;
   const aho=parseFloat(document.getElementById("fam").value)||0;
