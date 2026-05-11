@@ -442,8 +442,11 @@ function initEnglishChat(){
     <button class="btn btn-purple btn-sm" onclick="quickAlexMsg('Enseñame frases cotidianas en inglés.')">🗣️ Frases</button>
   </div>
   <div id="chat-english" class="chat-wrap" style="min-height:200px;max-height:55vh;overflow-y:auto"></div>
+  <div id="eng-image-preview" style="display:none"></div>
   <div class="chat-input-wrap"><div class="chat-input-row">
     <textarea id="eng-input" placeholder="✍️ Escribile a Alex acá..." rows="1"></textarea>
+    <input type="file" id="eng-image-input" accept="image/*" style="display:none" onchange="Chat.attachImage(this, 'eng-image-preview')" />
+    <button class="chat-send-btn" id="eng-attach" style="background:linear-gradient(135deg,#a855f7,#6366f1)" onclick="document.getElementById('eng-image-input').click()" title="Adjuntar imagen (Premium)">📎</button>
     <button class="chat-send-btn" id="eng-send">➤</button>
   </div></div>
   <button class="btn btn-ghost btn-sm mt-2" onclick="clearEnglishChat()">🗑️ Borrar chat de Alex</button>`;
@@ -691,8 +694,11 @@ function initMateChat(){
     <button class="btn btn-green btn-sm" onclick="quickBrunoMsg('Dame un ejercicio de matemáticas de negocios.')">🎯 Ejercicio</button>
   </div>
   <div id="chat-mate" class="chat-wrap" style="min-height:200px;max-height:55vh;overflow-y:auto"></div>
+  <div id="mate-image-preview" style="display:none"></div>
   <div class="chat-input-wrap"><div class="chat-input-row">
     <textarea id="mate-input" placeholder="✍️ Preguntale a Bruno acá..." rows="1"></textarea>
+    <input type="file" id="mate-image-input" accept="image/*" style="display:none" onchange="Chat.attachImage(this, 'mate-image-preview')" />
+    <button class="chat-send-btn" id="mate-attach" style="background:linear-gradient(135deg,#a855f7,#6366f1)" onclick="document.getElementById('mate-image-input').click()" title="Adjuntar imagen (Premium)">📎</button>
     <button class="chat-send-btn" id="mate-send">➤</button>
   </div></div>
   <button class="btn btn-ghost btn-sm mt-2" onclick="clearMateChat()">🗑️ Borrar chat</button>`;
