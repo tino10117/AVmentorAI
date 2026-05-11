@@ -319,7 +319,7 @@ async function doTraducir(){
     r.innerHTML=`<div class="msg-english chat-msg">
       <div class="chat-msg-header"><div class="chat-avatar" style="background:linear-gradient(135deg,#a855f7,#6366f1)">🎓</div>
       <span class="chat-name" style="color:#a855f7">Alex — Traductor</span></div>
-      <div>${nl2br(d.reply)}</div></div>`;
+      <div>${mdRender(d.reply)}</div></div>`;
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
 }
 
@@ -364,7 +364,7 @@ async function submitDiario(){
     r.innerHTML=`<div class="msg-english chat-msg">
       <div class="chat-msg-header"><div class="chat-avatar" style="background:linear-gradient(135deg,#a855f7,#6366f1)">🎓</div>
       <span class="chat-name" style="color:#a855f7">Alex — Corrección</span></div>
-      <div>${nl2br(d.reply)}</div></div>`;
+      <div>${mdRender(d.reply)}</div></div>`;
     UserHelper.sumarXP(15);
     API.saveUser({english_diary:App.user.english_diary}).catch(()=>{});
     renderEnglishDiario();
@@ -558,7 +558,7 @@ async function showBrunoResult(prompt){
     r.innerHTML=`<div class="msg-mate chat-msg" style="border-left-color:#22c55e">
       <div class="chat-msg-header"><div class="chat-avatar" style="background:linear-gradient(135deg,#22c55e,#16a34a)">🔢</div>
       <span class="chat-name" style="color:#22c55e">Bruno</span></div>
-      <div>${nl2br(d.reply)}</div></div>`;
+      <div>${mdRender(d.reply)}</div></div>`;
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
 }
 function calcMargen(){
@@ -639,17 +639,8 @@ function clearMateChat(){
 
 // ── HERRAMIENTAS ─────────────────────────────────
 function renderHerramientas(){
-  // Cada render se ejecuta en su propio try/catch para que si UNO falla,
-  // los otros igual se rendericen y la sección no quede vacía.
-  const safeRun = (fn, name) => {
-    try { fn(); } catch(e) { console.error("Error en " + name + ":", e); }
-  };
-  safeRun(renderCompetencia, "renderCompetencia");
-  safeRun(renderContenido,   "renderContenido");
-  safeRun(renderPlantillas,  "renderPlantillas");
-  safeRun(renderMarca,       "renderMarca");
-  safeRun(renderFinanzas,    "renderFinanzas");
-  App.currentSubnav.herr = "competencia";
+  renderCompetencia();renderContenido();renderPlantillas();renderMarca();renderFinanzas();
+  App.currentSubnav.herr="competencia";
 }
 function renderCompetencia(){
   document.getElementById("herr-competencia").innerHTML=`
@@ -680,7 +671,7 @@ async function doCompetencia(){
   try{
     const d=await API.chat({type:"competitor",messages:[{role:"user",content:prompt}]});
     r.innerHTML=`<div class="card card-blue">
-      <div style="white-space:pre-wrap;font-size:14px;line-height:1.7;margin-bottom:12px">${nl2br(d.reply)}</div>
+      <div style="white-space:pre-wrap;font-size:14px;line-height:1.7;margin-bottom:12px">${mdRender(d.reply)}</div>
       <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent).then(()=>Toast.success('Copiado'))">📋 Copiar</button>
     </div>`;
     UserHelper.sumarXP(15);
@@ -721,7 +712,7 @@ async function doGenerarContenido(){
     r.innerHTML=(parts.length>1?parts:[d.reply]).map((p,i)=>`
       <div class="card card-purple mb-3">
         <div style="font-size:11px;color:var(--purple);font-weight:700;margin-bottom:8px">VERSIÓN ${i+1}</div>
-        <div style="white-space:pre-wrap;font-size:14px;line-height:1.7;margin-bottom:10px">${nl2br(p.trim())}</div>
+        <div style="white-space:pre-wrap;font-size:14px;line-height:1.7;margin-bottom:10px">${mdRender(p.trim())}</div>
         <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent).then(()=>Toast.success('Copiado'))">📋 Copiar</button>
       </div>`).join("");
     UserHelper.sumarXP(10);
@@ -761,17 +752,15 @@ async function personalizarPlantilla(){
   try{
     const d=await API.chat({type:"content",messages:[{role:"user",content:`Adaptá esta plantilla para el negocio: "${neg}". Plantilla:\n${PLANTILLAS[sel]}\nAdaptá todos los campos con información realista.`}]});
     r.innerHTML=`<div class="card card-gold">
-      <div style="white-space:pre-wrap;font-size:13px;line-height:1.7;margin-bottom:10px">${nl2br(d.reply)}</div>
+      <div style="white-space:pre-wrap;font-size:13px;line-height:1.7;margin-bottom:10px">${mdRender(d.reply)}</div>
       <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent).then(()=>Toast.success('Copiado'))">📋 Copiar personalizada</button>
     </div>`;
     UserHelper.sumarXP(10);
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
 }
 function renderMarca(){
-  const container = document.getElementById("herr-marca");
-  if (!container) return;
-  const userName = (App && App.user && App.user.nombre) ? App.user.nombre : "";
-  container.innerHTML = `
+  const userName = App.user?.nombre || "";
+  document.getElementById("herr-marca").innerHTML=`
     <h3 style="margin-bottom:8px">🎨 Creador de marca personal</h3>
     <p class="text-muted mb-3">La IA te crea una identidad de marca completa, lista para publicar hoy.</p>
 
@@ -958,7 +947,7 @@ async function calcPresupuesto(){
   </div><div id="fin-ia"><div class="loading-row"><div class="spinner"></div>Analizando…</div></div>`;
   try{
     const d=await API.chat({type:"finance",messages:[{role:"user",content:`Ingresos $${ing}. Gastos totales $${total}. Saldo $${saldo} (${pct}%). Dame diagnóstico, dónde recortar y cómo llegar al 20% de ahorro.`}]});
-    document.getElementById("fin-ia").innerHTML=`<div class="card card-green"><div style="white-space:pre-wrap;font-size:14px;line-height:1.7">${nl2br(d.reply)}</div></div>`;
+    document.getElementById("fin-ia").innerHTML=`<div class="card card-green"><div style="white-space:pre-wrap;font-size:14px;line-height:1.7">${mdRender(d.reply)}</div></div>`;
   }catch(e){document.getElementById("fin-ia").innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
 }
 async function calcDecision(){
@@ -969,7 +958,7 @@ async function calcDecision(){
   const ctx=document.getElementById("fctx").value.trim();
   try{
     const d=await API.chat({type:"finance",messages:[{role:"user",content:`Analizá: ${dil}. Situación: ${ctx||"no especificada"}. Dame pros/contras, qué pasa en 3/6/12 meses, recomendación y acción para HOY.`}]});
-    r.innerHTML=`<div class="card card-gold"><div style="white-space:pre-wrap;font-size:14px;line-height:1.7">${nl2br(d.reply)}</div></div>`;
+    r.innerHTML=`<div class="card card-gold"><div style="white-space:pre-wrap;font-size:14px;line-height:1.7">${mdRender(d.reply)}</div></div>`;
     UserHelper.sumarXP(10);
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
 }
