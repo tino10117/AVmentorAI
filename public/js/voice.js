@@ -135,6 +135,21 @@
         this.currentAudio = null;
       }
 
+      // Limpiar el texto antes de mandarlo a TTS: quitar markdown, emojis, links
+      const cleanText = (typeof stripForVoice === "function")
+        ? stripForVoice(text)
+        : String(text || "").replace(/[\*#`_]/g, "").replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1");
+
+      // Si después de limpiar quedó muy poco texto, no hay nada que leer
+      if (!cleanText || cleanText.trim().length < 3) {
+        btn.textContent = "🔊";
+        btn.disabled = false;
+        return;
+      }
+
+      // Limitar largo: TTS de OpenAI tiene tope de 4096 caracteres
+      const finalText = cleanText.slice(0, 4000);
+
       const originalText = btn.textContent;
       btn.textContent = "⏳";
       btn.disabled = true;
@@ -149,7 +164,7 @@
             "Content-Type": "application/json",
             Authorization: "Bearer " + token,
           },
-          body: JSON.stringify({ text, voice }),
+          body: JSON.stringify({ text: finalText, voice }),
         });
         if (!r.ok) {
           const data = await r.json().catch(() => ({}));
