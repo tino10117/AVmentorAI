@@ -203,9 +203,12 @@
       </div>
 
       <div id="chat-negocio" class="chat-wrap" style="min-height:200px;max-height:60vh;overflow-y:auto"></div>
+      <div id="neg-image-preview" style="display:none"></div>
       <div class="chat-input-wrap">
         <div class="chat-input-row">
           <textarea id="neg-input" placeholder="✍️ Escribí tu pregunta acá..." rows="1"></textarea>
+          <input type="file" id="neg-image-input" accept="image/*" style="display:none" onchange="Chat.attachImage(this, 'neg-image-preview')" />
+          <button class="chat-send-btn" id="neg-attach" style="background:linear-gradient(135deg,#a855f7,#6366f1)" onclick="document.getElementById('neg-image-input').click()" title="Adjuntar imagen (Premium)">📎</button>
           <button class="chat-send-btn" id="neg-send">➤</button>
         </div>
       </div>
