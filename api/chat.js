@@ -334,10 +334,16 @@ export default async function handler(req, res) {
     englishModo,    // "chat" | "roleplay" | "traductor" | "diario"
     mateModo,       // "chat" | "calculadora"
     useWebSearch,   // boolean
+    image,          // string base64 (data:image/...) opcional, solo Premium
   } = req.body || {};
 
   if (!type || !messages || !user) {
     return res.status(400).json({ error: "Faltan parámetros" });
+  }
+
+  // Validación: imágenes solo para Premium/Empresarial
+  if (image && user.plan === "Gratis") {
+    return res.status(403).json({ error: "Subir imágenes es una función Premium. Actualizá tu plan para usarla." });
   }
 
   // Rate limit básico (plan Gratis)
@@ -365,10 +371,26 @@ export default async function handler(req, res) {
   try {
     let reply;
 
+    // Si hay imagen, la inyectamos en el último mensaje del usuario en formato vision
+    let finalMessages = [...messages];
+    if (image && finalMessages.length > 0) {
+      const lastIdx = finalMessages.length - 1;
+      const last = finalMessages[lastIdx];
+      if (last.role === "user") {
+        finalMessages[lastIdx] = {
+          role: "user",
+          content: [
+            { type: "text", text: last.content || "Analizá esta imagen." },
+            { type: "image_url", image_url: { url: image } }
+          ]
+        };
+      }
+    }
+
     if (useWebSearch) {
       const response = await openai.chat.completions.create({
         model: "gpt-4o-search-preview",
-        messages: [{ role: "system", content: systemPrompt }, ...messages],
+        messages: [{ role: "system", content: systemPrompt }, ...finalMessages],
         web_search_options: { search_context_size: "medium" },
         max_tokens: 2000,
       });
@@ -376,7 +398,7 @@ export default async function handler(req, res) {
     } else {
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
-        messages: [{ role: "system", content: systemPrompt }, ...messages],
+        messages: [{ role: "system", content: systemPrompt }, ...finalMessages],
         temperature: 0.85,
         max_tokens: 2000,
       });
