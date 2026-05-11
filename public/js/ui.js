@@ -315,11 +315,17 @@ async function doTraducir(){
   const r=document.getElementById("trad-result");
   r.innerHTML=`<div class="loading-row"><div class="spinner"></div>Alex está traduciendo…</div>`;
   try{
-    const d=await API.chat({type:"english",messages:[{role:"user",content:`Traducí y explicá este texto: "${t}"`}],englishModo:"traductor"});
+    const tradPrompt = `Traducí y explicá este texto: "${t}"`;
+    const d=await API.chat({type:"english",messages:[{role:"user",content:tradPrompt}],englishModo:"traductor"});
+    window._lastTraductorContext = { prompt: tradPrompt, reply: d.reply };
     r.innerHTML=`<div class="msg-english chat-msg">
       <div class="chat-msg-header"><div class="chat-avatar" style="background:linear-gradient(135deg,#a855f7,#6366f1)">🎓</div>
       <span class="chat-name" style="color:#a855f7">Alex — Traductor</span></div>
-      <div>${mdRender(d.reply)}</div></div>`;
+      <div>${mdRender(d.reply)}</div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(168,85,247,.25)">
+        <button class="btn btn-purple btn-sm" onclick="seguirConAlex('_lastTraductorContext')">💬 Seguir charlando con Alex →</button>
+      </div>
+    </div>`;
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
 }
 
@@ -360,11 +366,17 @@ async function submitDiario(){
   if(!App.user.english_diary)App.user.english_diary=[];
   App.user.english_diary.push({fecha:today(),texto:t});Store.save();
   try{
-    const d=await API.chat({type:"english",messages:[{role:"user",content:`Mi entrada de diario en inglés de hoy: "${t}"`}],englishModo:"diario"});
+    const diaryPrompt = `Mi entrada de diario en inglés de hoy: "${t}"`;
+    const d=await API.chat({type:"english",messages:[{role:"user",content:diaryPrompt}],englishModo:"diario"});
+    window._lastDiarioContext = { prompt: diaryPrompt, reply: d.reply };
     r.innerHTML=`<div class="msg-english chat-msg">
       <div class="chat-msg-header"><div class="chat-avatar" style="background:linear-gradient(135deg,#a855f7,#6366f1)">🎓</div>
       <span class="chat-name" style="color:#a855f7">Alex — Corrección</span></div>
-      <div>${mdRender(d.reply)}</div></div>`;
+      <div>${mdRender(d.reply)}</div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(168,85,247,.25)">
+        <button class="btn btn-purple btn-sm" onclick="seguirConAlex('_lastDiarioContext')">💬 Seguir charlando con Alex →</button>
+      </div>
+    </div>`;
     UserHelper.sumarXP(15);
     API.saveUser({english_diary:App.user.english_diary}).catch(()=>{});
     renderEnglishDiario();
@@ -584,6 +596,39 @@ function seguirConBruno(){
   initMateChat();
   Toast.info("Seguí la conversación con Bruno acá.");
 }
+
+function seguirConMentor(ctxKey){
+  const ctx = window[ctxKey];
+  if(!ctx){Toast.error("No hay contexto previo.");return;}
+  // Cargar el contexto como historial del chat del Mentor
+  if(!App.user.messages) App.user.messages = [];
+  App.user.messages.push({role:"user", content:ctx.prompt});
+  App.user.messages.push({role:"assistant", content:ctx.reply});
+  App.chatMessages.negocio = App.user.messages.slice(-40);
+  Store.save();
+  API.saveUser({messages: App.user.messages}).catch(()=>{});
+  // Navegar al chat del Mentor
+  navigateTo("mentor");
+  initMentorTab();
+  Toast.info("Seguí la conversación con el Mentor acá.");
+}
+
+function seguirConAlex(ctxKey){
+  const ctx = window[ctxKey];
+  if(!ctx){Toast.error("No hay contexto previo.");return;}
+  // Cargar el contexto como historial del chat de Alex
+  if(!App.user.english_messages) App.user.english_messages = [];
+  App.user.english_messages.push({role:"user", content:ctx.prompt});
+  App.user.english_messages.push({role:"assistant", content:ctx.reply});
+  App.chatMessages.english = App.user.english_messages.slice(-40);
+  Store.save();
+  API.saveUser({english_messages: App.user.english_messages}).catch(()=>{});
+  // Navegar al chat de Alex
+  navigateTo("english");
+  setSubnav("english","chat");
+  initEnglishChat();
+  Toast.info("Seguí la conversación con Alex acá.");
+}
 function calcMargen(){
   const c=parseFloat(document.getElementById("cc")?.value)||0;
   const pv=parseFloat(document.getElementById("cpv")?.value)||0;
@@ -693,9 +738,13 @@ async function doCompetencia(){
   const prompt=`Analizá este competidor y dame un plan para superarlo:\nNombre: ${nom}\nRubro: ${rub}\nInstagram: ${ig||"N/A"}\nDescripción: ${desc}\nMi negocio: ${mi||"N/A"}\n\nDame: 1) Fortalezas 2) Debilidades 3) Mis ventajas competitivas 4) Plan de 5 acciones para superarlo 5) Estrategia de diferenciación.`;
   try{
     const d=await API.chat({type:"competitor",messages:[{role:"user",content:prompt}]});
+    window._lastCompetenciaContext = { prompt, reply: d.reply };
     r.innerHTML=`<div class="card card-blue">
       <div style="white-space:pre-wrap;font-size:14px;line-height:1.7;margin-bottom:12px">${mdRender(d.reply)}</div>
-      <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent).then(()=>Toast.success('Copiado'))">📋 Copiar</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(this.parentElement.previousElementSibling.textContent).then(()=>Toast.success('Copiado'))">📋 Copiar</button>
+        <button class="btn btn-sky btn-sm" onclick="seguirConMentor('_lastCompetenciaContext')">💬 Seguir charlando con el Mentor →</button>
+      </div>
     </div>`;
     UserHelper.sumarXP(15);
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
@@ -731,13 +780,18 @@ async function doGenerarContenido(){
   const prompt=`Generá 2 versiones de contenido para ${tipo}.\nProducto: ${prod}\nPrecio: ${prec||"N/A"}\nEspecial: ${bene||"N/A"}\nTono: ${tono}\nReglas: español latino argentino, emojis estratégicos, CTA claro. Separá con "--- VERSIÓN 1 ---" y "--- VERSIÓN 2 ---". Cada versión con enfoque diferente.`;
   try{
     const d=await API.chat({type:"content",messages:[{role:"user",content:prompt}]});
+    window._lastContenidoContext = { prompt, reply: d.reply };
     const parts=d.reply.split(/---\s*VERSIÓN\s*\d+\s*---/).filter(p=>p.trim());
-    r.innerHTML=(parts.length>1?parts:[d.reply]).map((p,i)=>`
+    const versionsHtml = (parts.length>1?parts:[d.reply]).map((p,i)=>`
       <div class="card card-purple mb-3">
         <div style="font-size:11px;color:var(--purple);font-weight:700;margin-bottom:8px">VERSIÓN ${i+1}</div>
         <div style="white-space:pre-wrap;font-size:14px;line-height:1.7;margin-bottom:10px">${mdRender(p.trim())}</div>
         <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent).then(()=>Toast.success('Copiado'))">📋 Copiar</button>
       </div>`).join("");
+    r.innerHTML = versionsHtml + `
+      <div style="margin-top:6px">
+        <button class="btn btn-sky btn-sm" onclick="seguirConMentor('_lastContenidoContext')">💬 Pedir otra versión o ajustar con el Mentor →</button>
+      </div>`;
     UserHelper.sumarXP(10);
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
 }
@@ -773,10 +827,15 @@ async function personalizarPlantilla(){
   const r=document.getElementById("plant-ai-result");
   r.innerHTML=`<div class="loading-row"><div class="spinner"></div>Personalizando…</div>`;
   try{
-    const d=await API.chat({type:"content",messages:[{role:"user",content:`Adaptá esta plantilla para el negocio: "${neg}". Plantilla:\n${PLANTILLAS[sel]}\nAdaptá todos los campos con información realista.`}]});
+    const prompt=`Adaptá esta plantilla para el negocio: "${neg}". Plantilla:\n${PLANTILLAS[sel]}\nAdaptá todos los campos con información realista.`;
+    const d=await API.chat({type:"content",messages:[{role:"user",content:prompt}]});
+    window._lastPlantillaContext = { prompt, reply: d.reply };
     r.innerHTML=`<div class="card card-gold">
       <div style="white-space:pre-wrap;font-size:13px;line-height:1.7;margin-bottom:10px">${mdRender(d.reply)}</div>
-      <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent).then(()=>Toast.success('Copiado'))">📋 Copiar personalizada</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(this.parentElement.previousElementSibling.textContent).then(()=>Toast.success('Copiado'))">📋 Copiar personalizada</button>
+        <button class="btn btn-sky btn-sm" onclick="seguirConMentor('_lastPlantillaContext')">💬 Ajustar con el Mentor →</button>
+      </div>
     </div>`;
     UserHelper.sumarXP(10);
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
@@ -894,11 +953,13 @@ Generá la identidad completa AHORA, en formato Markdown, siguiendo todas las se
 
   try{
     const d=await API.chat({type:"brand",messages:[{role:"user",content:userPrompt}]});
+    window._lastMarcaContext = { prompt: userPrompt, reply: d.reply };
     r.innerHTML=`<div class="card card-purple">
       <div class="md-output" style="font-size:14px;line-height:1.7;margin-bottom:12px">${mdRender(d.reply)}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-ghost btn-sm" onclick="copyMarcaText(this)">📋 Copiar todo</button>
         <button class="btn btn-purple btn-sm" onclick="doMarca()">🔄 Generar otra versión</button>
+        <button class="btn btn-sky btn-sm" onclick="seguirConMentor('_lastMarcaContext')">💬 Seguir con el Mentor →</button>
       </div>
     </div>`;
     UserHelper.sumarXP(15);
@@ -969,8 +1030,13 @@ async function calcPresupuesto(){
     <div class="metric-chip"><div class="metric-val" style="color:${color}">$${saldo.toLocaleString()}</div><div class="metric-lbl">Saldo (${pct}%)</div></div>
   </div><div id="fin-ia"><div class="loading-row"><div class="spinner"></div>Analizando…</div></div>`;
   try{
-    const d=await API.chat({type:"finance",messages:[{role:"user",content:`Ingresos $${ing}. Gastos totales $${total}. Saldo $${saldo} (${pct}%). Dame diagnóstico, dónde recortar y cómo llegar al 20% de ahorro.`}]});
-    document.getElementById("fin-ia").innerHTML=`<div class="card card-green"><div style="white-space:pre-wrap;font-size:14px;line-height:1.7">${mdRender(d.reply)}</div></div>`;
+    const finPrompt = `Ingresos $${ing}. Gastos totales $${total}. Saldo $${saldo} (${pct}%). Dame diagnóstico, dónde recortar y cómo llegar al 20% de ahorro.`;
+    const d=await API.chat({type:"finance",messages:[{role:"user",content:finPrompt}]});
+    window._lastFinanzasPresContext = { prompt: finPrompt, reply: d.reply };
+    document.getElementById("fin-ia").innerHTML=`<div class="card card-green">
+      <div style="white-space:pre-wrap;font-size:14px;line-height:1.7;margin-bottom:12px">${mdRender(d.reply)}</div>
+      <button class="btn btn-sky btn-sm" onclick="seguirConMentor('_lastFinanzasPresContext')">💬 Seguir charlando con el Mentor →</button>
+    </div>`;
   }catch(e){document.getElementById("fin-ia").innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
 }
 async function calcDecision(){
@@ -980,10 +1046,16 @@ async function calcDecision(){
   r.innerHTML=`<div class="loading-row"><div class="spinner"></div>Analizando decisión…</div>`;
   const ctx=document.getElementById("fctx").value.trim();
   try{
-    const d=await API.chat({type:"finance",messages:[{role:"user",content:`Analizá: ${dil}. Situación: ${ctx||"no especificada"}. Dame pros/contras, qué pasa en 3/6/12 meses, recomendación y acción para HOY.`}]});
-    r.innerHTML=`<div class="card card-gold"><div style="white-space:pre-wrap;font-size:14px;line-height:1.7">${mdRender(d.reply)}</div></div>`;
+    const decPrompt = `Analizá: ${dil}. Situación: ${ctx||"no especificada"}. Dame pros/contras, qué pasa en 3/6/12 meses, recomendación y acción para HOY.`;
+    const d=await API.chat({type:"finance",messages:[{role:"user",content:decPrompt}]});
+    window._lastFinanzasDecContext = { prompt: decPrompt, reply: d.reply };
+    r.innerHTML=`<div class="card card-gold">
+      <div style="white-space:pre-wrap;font-size:14px;line-height:1.7;margin-bottom:12px">${mdRender(d.reply)}</div>
+      <button class="btn btn-sky btn-sm" onclick="seguirConMentor('_lastFinanzasDecContext')">💬 Seguir charlando con el Mentor →</button>
+    </div>`;
     UserHelper.sumarXP(10);
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
+}
 }
 function calcAhorro(){
   const mont=parseFloat(document.getElementById("fmm").value)||0;
