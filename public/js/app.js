@@ -294,7 +294,8 @@ function setSubnav(section, value) {
 const Chat = {
   async send({ container, messagesKey, type, inputEl, englishModo, mateModo, useWebSearch }) {
     const text = inputEl.value.trim();
-    if (!text) return;
+    const pendingImage = this._pendingImage || null;
+    if (!text && !pendingImage) return;
     inputEl.value = "";
     inputEl.style.height = "auto";
 
@@ -311,13 +312,17 @@ const Chat = {
 
     // Add user message
     if (!App.chatMessages[messagesKey]) App.chatMessages[messagesKey] = [];
-    App.chatMessages[messagesKey].push({ role: "user", content: text });
-    this.appendMsg(container, text, "user");
+    const userMsg = text || "(imagen)";
+    App.chatMessages[messagesKey].push({ role: "user", content: userMsg });
+    this.appendMsg(container, userMsg, "user", null, null, null, null, pendingImage);
+    // Limpiar imagen pendiente del UI y de memoria
+    this._pendingImage = null;
+    this._clearImagePreview();
     const spinner = showSpinner(container);
 
     try {
       const history = App.chatMessages[messagesKey].slice(-16).map(m => ({ role: m.role, content: m.content }));
-      const data = await API.chat({ type: type === "englishRoleplay" ? "english" : type, messages: history, englishModo, mateModo, useWebSearch });
+      const data = await API.chat({ type: type === "englishRoleplay" ? "english" : type, messages: history, englishModo, mateModo, useWebSearch, image: pendingImage });
       removeSpinner();
       const reply = data.reply;
       App.chatMessages[messagesKey].push({ role: "assistant", content: reply });
@@ -337,14 +342,74 @@ const Chat = {
     }
   },
 
-  appendMsg(container, text, cls, name, icon, grad, color) {
+  // Manejo de imágenes adjuntas (Premium)
+  _pendingImage: null,
+  _pendingImageInputId: null,
+
+  attachImage(fileInputEl, previewContainerId) {
+    const file = fileInputEl.files && fileInputEl.files[0];
+    if (!file) return;
+    // Validación de plan: solo Premium/Empresarial
+    if (!App.user || App.user.plan === "Gratis") {
+      Toast.error("Subir imágenes es una función Premium. Actualizá tu plan para usarla.");
+      fileInputEl.value = "";
+      return;
+    }
+    // Validación de tipo
+    if (!file.type.startsWith("image/")) {
+      Toast.error("Solo se aceptan archivos de imagen (.jpg, .png, .webp).");
+      fileInputEl.value = "";
+      return;
+    }
+    // Validación de tamaño (5 MB)
+    if (file.size > 5 * 1024 * 1024) {
+      Toast.error("La imagen es demasiado grande (máximo 5 MB).");
+      fileInputEl.value = "";
+      return;
+    }
+    // Leer como base64
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this._pendingImage = e.target.result;
+      this._pendingImageInputId = previewContainerId;
+      this._showImagePreview(previewContainerId, e.target.result);
+    };
+    reader.readAsDataURL(file);
+    fileInputEl.value = "";
+  },
+
+  _showImagePreview(containerId, dataUrl) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = `<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.4);padding:6px 10px;border-radius:10px;margin-bottom:6px">
+      <img src="${dataUrl}" style="width:40px;height:40px;object-fit:cover;border-radius:6px" />
+      <span style="font-size:12px;color:#e9d5ff">📎 Imagen adjunta</span>
+      <button onclick="Chat._removeImage()" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:14px;padding:0 4px" title="Quitar imagen">✕</button>
+    </div>`;
+    container.style.display = "block";
+  },
+
+  _clearImagePreview() {
+    if (!this._pendingImageInputId) return;
+    const container = document.getElementById(this._pendingImageInputId);
+    if (container) { container.innerHTML = ""; container.style.display = "none"; }
+    this._pendingImageInputId = null;
+  },
+
+  _removeImage() {
+    this._pendingImage = null;
+    this._clearImagePreview();
+  },
+
+  appendMsg(container, text, cls, name, icon, grad, color, imageDataUrl) {
     const div = document.createElement("div");
     div.className = `chat-msg ${cls}`;
+    const imageHtml = imageDataUrl ? `<div style="margin-bottom:8px"><img src="${imageDataUrl}" style="max-width:280px;max-height:280px;border-radius:10px;border:1px solid rgba(255,255,255,.15);display:block" /></div>` : "";
     if (cls === "user") {
       div.innerHTML = `<div class="chat-msg-header">
         <div class="chat-avatar" style="background:linear-gradient(135deg,#facc15,#f97316)">😊</div>
         <span class="chat-name" style="color:#facc15">Vos</span>
-      </div><div>${nl2br(text)}</div>`;
+      </div>${imageHtml}<div>${nl2br(text)}</div>`;
     } else {
       div.innerHTML = `<div class="chat-msg-header">
         <div class="chat-avatar" style="background:${grad}">${icon}</div>
