@@ -8,6 +8,95 @@
 <meta name="theme-color" content="#020617">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 <link rel="stylesheet" href="css/styles.css">
+<style>
+  /* === Card del Modo Activo (Estilo A — destacado con borde brillante) === */
+  .modo-card {
+    position: relative;
+    background: linear-gradient(135deg, rgba(250, 204, 21, 0.08), rgba(249, 115, 22, 0.05));
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.25), 0 4px 20px rgba(249, 115, 22, 0.12);
+    transition: all 0.3s ease;
+  }
+  .modo-card::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: 16px;
+    padding: 2px;
+    background: linear-gradient(135deg, #facc15, #f97316, #facc15);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+  .modo-card:hover {
+    box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.5), 0 6px 28px rgba(249, 115, 22, 0.25);
+    transform: translateY(-1px);
+  }
+  .modo-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .modo-card-icon {
+    font-size: 22px;
+    line-height: 1;
+  }
+  .modo-card-label {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: #facc15;
+    text-transform: uppercase;
+  }
+  .modo-card-select {
+    width: 100%;
+    background: rgba(2, 6, 23, 0.6);
+    color: #fff;
+    border: 1.5px solid rgba(250, 204, 21, 0.35);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23facc15' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+    transition: border-color 0.2s ease;
+  }
+  .modo-card-select:hover, .modo-card-select:focus {
+    border-color: #facc15;
+    outline: none;
+  }
+  .modo-card-select option {
+    background: #020617;
+    color: #fff;
+    padding: 10px;
+  }
+  .modo-card-hint {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #94a3b8;
+    text-align: center;
+    font-weight: 500;
+  }
+  /* Mobile: un poco más compacto */
+  @media (max-width: 600px) {
+    .modo-card { padding: 14px 14px; }
+    .modo-card-select { font-size: 16px; padding: 11px 12px; padding-right: 38px; }
+    .modo-card-label { font-size: 11px; }
+    .modo-card-icon { font-size: 20px; }
+  }
+</style>
 </head>
 <body>
 
@@ -47,7 +136,7 @@
     </div>
 
     <div id="panel-login">
-      <div class="mb-3"><label class="label">Gmail</label><input class="input" id="login-email" type="email" placeholder="tuemail@gmail.com"></div>
+      <div class="mb-3"><label class="label">Email</label><input class="input" id="login-email" type="email" placeholder="tuemail@gmail.com / hotmail.com / icloud.com"></div>
       <div class="mb-3"><label class="label">Contraseña</label><input class="input" id="login-pass" type="password" placeholder="Tu contraseña"></div>
       <div id="login-error" class="alert alert-error hidden"></div>
       <button class="btn btn-primary btn-full btn-lg" onclick="doLogin()">⚡ Entrar</button>
@@ -55,7 +144,7 @@
 
     <div id="panel-register" class="hidden">
       <div class="mb-3"><label class="label">Tu nombre</label><input class="input" id="reg-nombre" type="text" placeholder="Valentino"></div>
-      <div class="mb-3"><label class="label">Gmail</label><input class="input" id="reg-email" type="email" placeholder="tuemail@gmail.com"></div>
+      <div class="mb-3"><label class="label">Email</label><input class="input" id="reg-email" type="email" placeholder="tuemail@gmail.com / hotmail.com / icloud.com"></div>
       <div class="mb-3"><label class="label">Contraseña (mín. 6 caracteres)</label><input class="input" id="reg-pass" type="password" placeholder="Creá tu contraseña"></div>
       <div id="reg-error" class="alert alert-error hidden"></div>
       <button class="btn btn-primary btn-full btn-lg" onclick="doRegister()">🚀 Crear cuenta gratis</button>
@@ -170,8 +259,12 @@
 
     <!-- TAB: MENTOR -->
     <div id="tab-mentor" class="tab-content active">
-      <div style="margin-bottom:10px;font-size:14px;font-weight:700;color:var(--text2)">
-        🧠 Modo: <select id="modo-selector" class="select" style="width:auto;display:inline-block;padding:4px 10px;font-size:13px" onchange="App.modo=this.value">
+      <div class="modo-card">
+        <div class="modo-card-header">
+          <span class="modo-card-icon">🧠</span>
+          <span class="modo-card-label">MODO ACTIVO</span>
+        </div>
+        <select id="modo-selector" class="modo-card-select" onchange="App.modo=this.value">
           <option>Mentor de Negocios</option>
           <option>Entrenador de Ventas</option>
           <option>Marketing LATAM</option>
@@ -184,6 +277,7 @@
           <option>Especialista Reventa</option>
           <option>Conversación Libre</option>
         </select>
+        <div class="modo-card-hint">💡 11 modos disponibles · tocá para cambiar</div>
       </div>
 
       <!-- Quick buttons -->
