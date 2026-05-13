@@ -368,9 +368,20 @@ export default async function handler(req, res) {
     default: return res.status(400).json({ error: "Tipo inválido" });
   }
 
-  try {
-    let reply;
+  // ─── MODO STREAMING ─────────────────────────────────────────
+  // Configurar headers de Server-Sent Events (SSE)
+  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no"); // Importante para Vercel
+  if (res.flushHeaders) res.flushHeaders();
 
+  const sendEvent = (event, data) => {
+    res.write(`event: ${event}\n`);
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  try {
     // Si hay imagen, la inyectamos en el último mensaje del usuario en formato vision
     let finalMessages = [...messages];
     if (image && finalMessages.length > 0) {
@@ -390,27 +401,47 @@ export default async function handler(req, res) {
     // Si hay imagen + web search activo: web-search no soporta imágenes → forzamos gpt-4o
     const effectiveWebSearch = useWebSearch && !image;
 
-    if (effectiveWebSearch) {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o-search-preview",
-        messages: [{ role: "system", content: systemPrompt }, ...finalMessages],
-        web_search_options: { search_context_size: "medium" },
-        max_tokens: 2000,
-      });
-      reply = response.choices[0].message.content;
-    } else {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [{ role: "system", content: systemPrompt }, ...finalMessages],
-        temperature: 0.85,
-        max_tokens: 2000,
-      });
-      reply = response.choices[0].message.content;
+    // Armar parámetros de OpenAI según si hay web search o no
+    const openaiParams = effectiveWebSearch
+      ? {
+          model: "gpt-4o-search-preview",
+          messages: [{ role: "system", content: systemPrompt }, ...finalMessages],
+          web_search_options: { search_context_size: "medium" },
+          max_tokens: 2000,
+          stream: true,
+        }
+      : {
+          model: "gpt-4o",
+          messages: [{ role: "system", content: systemPrompt }, ...finalMessages],
+          temperature: 0.85,
+          max_tokens: 2000,
+          stream: true,
+        };
+
+    const stream = await openai.chat.completions.create(openaiParams);
+
+    let fullReply = "";
+    for await (const chunk of stream) {
+      const delta = chunk?.choices?.[0]?.delta?.content || "";
+      if (delta) {
+        fullReply += delta;
+        sendEvent("delta", { text: delta });
+      }
     }
 
-    return res.status(200).json({ reply });
+    if (!fullReply) {
+      sendEvent("error", { error: "No se pudo generar respuesta. Probá de nuevo." });
+      return res.end();
+    }
+
+    sendEvent("done", { reply: fullReply });
+    return res.end();
   } catch (err) {
     console.error("OpenAI error:", err);
+    if (res.headersSent) {
+      sendEvent("error", { error: "Error al llamar a OpenAI: " + err.message });
+      return res.end();
+    }
     return res.status(500).json({ error: "Error al llamar a OpenAI: " + err.message });
   }
 }
