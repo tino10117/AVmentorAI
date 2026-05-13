@@ -1,5 +1,5 @@
-// api/logo.js — Generador de logos con DALL-E 3
-// Solo Premium/Empresarial. 5 generaciones por día. 3 opciones por generación, HD 1024x1024.
+// api/logo.js — Generador de logos con gpt-image-1
+// Solo Premium/Empresarial. 5 generaciones por día. 3 opciones por generación.
 
 import OpenAI from "openai";
 import jwt from "jsonwebtoken";
@@ -37,7 +37,7 @@ async function checkAndIncrement(email, plan) {
   return { ok: true, used: used + 1, limit };
 }
 
-// Construye el prompt para DALL-E 3 a partir de los datos del usuario
+// Construye el prompt para gpt-image-1 a partir de los datos del usuario
 function buildLogoPrompt({ nombre, descripcion, estilo, paleta }) {
   const estiloMap = {
     "minimalista": "minimalist, clean, modern, lots of white space",
@@ -64,6 +64,7 @@ Just a clean, modern, professional vector logo.`;
 
 export const config = {
   api: { bodyParser: { sizeLimit: "1mb" } },
+  maxDuration: 60, // gpt-image-1 puede tardar hasta 60 seg con n=3
 };
 
 export default async function handler(req, res) {
@@ -119,36 +120,26 @@ export default async function handler(req, res) {
   const prompt = buildLogoPrompt({ nombre, descripcion, estilo, paleta });
 
   try {
-    // DALL-E 3 solo permite n=1, así que hacemos 3 llamadas en paralelo
-    const tasks = [];
-    for (let i = 0; i < VARIATIONS_PER_REQUEST; i++) {
-      tasks.push(
-        openai.images.generate({
-          model: "dall-e-3",
-          prompt,
-          n: 1,
-          size: "1024x1024",
-          quality: "hd",
-          style: "vivid",
-        })
-      );
-    }
-    const results = await Promise.allSettled(tasks);
-
-    const images = [];
-    const errors = [];
-    results.forEach((r, idx) => {
-      if (r.status === "fulfilled") {
-        const url = r.value?.data?.[0]?.url;
-        const revised = r.value?.data?.[0]?.revised_prompt;
-        if (url) images.push({ url, revised_prompt: revised });
-      } else {
-        errors.push(r.reason?.message || "Error desconocido");
-      }
+    // gpt-image-1 soporta n>1 en una sola llamada
+    const response = await openai.images.generate({
+      model: "gpt-image-1",
+      prompt,
+      n: VARIATIONS_PER_REQUEST,
+      size: "1024x1024",
+      quality: "high",
     });
 
+    // gpt-image-1 devuelve b64_json (NO URL)
+    const images = (response?.data || [])
+      .filter((d) => d.b64_json)
+      .map((d) => ({
+        // Convertimos a data URL para que el frontend la pueda mostrar directamente
+        url: `data:image/png;base64,${d.b64_json}`,
+        revised_prompt: d.revised_prompt || null,
+      }));
+
     if (images.length === 0) {
-      // Todas fallaron, revertir el contador
+      // No vino ninguna imagen, revertir el contador
       try {
         const today = new Date().toISOString().split("T")[0];
         const key = `logo_limit:${userEmail}:${today}`;
@@ -157,7 +148,6 @@ export default async function handler(req, res) {
       } catch (e) { /* silencioso */ }
       return res.status(500).json({
         error: "No se pudo generar ningún logo. Probá de nuevo en un momento.",
-        details: errors[0],
       });
     }
 
@@ -169,6 +159,33 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("Logo error:", err);
-    return res.status(500).json({ error: "Error generando logo: " + err.message });
+
+    // Revertir contador en caso de error de OpenAI
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const key = `logo_limit:${userEmail}:${today}`;
+      const current = (await kv.get(key)) || 0;
+      if (current > 0) await kv.set(key, current - 1, { ex: 86400 });
+    } catch (e) { /* silencioso */ }
+
+    // Mensaje específico según el tipo de error
+    const errMsg = err?.message || "Error desconocido";
+
+    // Caso: organización no verificada (común con gpt-image-1)
+    if (/verif|organization/i.test(errMsg)) {
+      return res.status(400).json({
+        error: "Tu cuenta de OpenAI necesita verificar la organización para usar gpt-image-1. Andá a platform.openai.com/settings/organization → Verifications.",
+        verification_required: true,
+      });
+    }
+
+    // Caso: filtro de moderación
+    if (/safety|moderation|content_policy/i.test(errMsg)) {
+      return res.status(400).json({
+        error: "El sistema de seguridad de OpenAI rechazó el prompt. Probá con otra descripción.",
+      });
+    }
+
+    return res.status(500).json({ error: "Error generando logo: " + errMsg });
   }
 }
