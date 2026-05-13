@@ -7,8 +7,8 @@ import jwt from "jsonwebtoken";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const JWT_SECRET = process.env.JWT_SECRET || "av-mentorai-fixed-secret-2024";
 
-const LOGO_LIMITS = { Gratis: 0, Premium: 5, Empresarial: 5 };
-const VARIATIONS_PER_REQUEST = 3;
+const LOGO_LIMITS = { Gratis: 0, Premium: 10, Empresarial: 10 };
+const VARIATIONS_PER_REQUEST = 1;
 
 async function getKV() {
   const { Redis } = await import("@upstash/redis");
@@ -120,13 +120,13 @@ export default async function handler(req, res) {
   const prompt = buildLogoPrompt({ nombre, descripcion, estilo, paleta });
 
   try {
-    // gpt-image-1 soporta n>1 en una sola llamada
+    // gpt-image-1: una sola imagen para no superar el timeout de Vercel (30s en Hobby)
     const response = await openai.images.generate({
       model: "gpt-image-1",
       prompt,
       n: VARIATIONS_PER_REQUEST,
       size: "1024x1024",
-      quality: "high",
+      quality: "medium",
     });
 
     // gpt-image-1 devuelve b64_json (NO URL)
