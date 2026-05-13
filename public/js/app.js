@@ -321,6 +321,7 @@ function navigateTo(tabId) {
   if (tabId === "english") { renderEnglishLecciones(); setSubnav("english","lecciones"); }
   if (tabId === "mate") { renderMateLecciones(); setSubnav("mate","lecciones"); }
   if (tabId === "herramientas") { renderHerramientas(); setSubnav("herr","competencia"); }
+  if (tabId === "viajes") { renderViajes(); setSubnav("viajes","itinerario"); }
 }
 
 function setSubnav(section, value) {
@@ -564,7 +565,6 @@ const Chat = {
   },
 };
 
-
 // ═══════════════════════════════════════════════
 // LOGO GENERATOR (gpt-image-1)
 // ═══════════════════════════════════════════════
@@ -575,8 +575,6 @@ const Logo = {
 
   async download(dataUrl, filename) {
     try {
-      // dataUrl viene como "data:image/png;base64,xxxx..."
-      // fetch funciona perfecto con data URLs, sin problemas de CORS
       const resp = await fetch(dataUrl);
       const blob = await resp.blob();
       const blobUrl = URL.createObjectURL(blob);
@@ -589,12 +587,180 @@ const Logo = {
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
       Toast.success("📥 Logo descargado");
     } catch (e) {
-      // Fallback si algo raro pasa
       Toast.info("Abriendo el logo en una pestaña nueva (click derecho → Guardar imagen)");
       const w = window.open();
       if (w) {
         w.document.write(`<img src="${dataUrl}" style="max-width:100%" />`);
       }
     }
+  },
+};
+
+// ═══════════════════════════════════════════════
+// PLANIFICADOR DE VIAJES (gpt-4o-search-preview)
+// ═══════════════════════════════════════════════
+const Viajes = {
+  // Historial de la conversación actual (para refinamiento)
+  history: [],
+  lastMode: null,
+
+  async planificar({ mode, userMessage, formData, onDelta }) {
+    // Sumamos el mensaje del user al historial
+    this.history.push({ role: "user", content: userMessage });
+    this.lastMode = mode;
+
+    const data = await this._streamRequest({
+      mode,
+      messages: this.history,
+      formData,
+    }, onDelta);
+
+    // Sumamos la respuesta de la IA al historial (para refinamientos siguientes)
+    this.history.push({ role: "assistant", content: data.reply });
+
+    return data;
+  },
+
+  async refinar(userMessage, onDelta) {
+    // Modo "refinar" usa el historial completo de la conversación previa
+    this.history.push({ role: "user", content: userMessage });
+
+    const data = await this._streamRequest({
+      mode: "refinar",
+      messages: this.history,
+    }, onDelta);
+
+    this.history.push({ role: "assistant", content: data.reply });
+
+    return data;
+  },
+
+  // Helper interno: hace fetch con streaming SSE y llama onDelta con cada chunk
+  async _streamRequest(body, onDelta) {
+    const token = localStorage.getItem("av_token");
+    const resp = await fetch("/api/viajes", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+      },
+      body: JSON.stringify(body),
+    });
+
+    // Si NO es streaming (ej. error 401/403/429), el server devuelve JSON normal
+    const contentType = resp.headers.get("content-type") || "";
+    if (!contentType.includes("text/event-stream")) {
+      // Es una respuesta JSON tradicional (error)
+      let errData;
+      try { errData = await resp.json(); } catch { errData = { error: "Error desconocido" }; }
+      throw new Error(errData.error || "Error en la solicitud");
+    }
+
+    // Parsear el stream SSE
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullReply = "";
+    let finalData = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      // Procesar eventos completos (separados por \n\n)
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() || ""; // El último puede estar incompleto
+
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        const lines = part.split("\n");
+        let eventName = "message";
+        let dataStr = "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) eventName = line.slice(7).trim();
+          else if (line.startsWith("data: ")) dataStr += line.slice(6);
+        }
+        if (!dataStr) continue;
+        let parsed;
+        try { parsed = JSON.parse(dataStr); } catch { continue; }
+
+        if (eventName === "delta") {
+          fullReply += parsed.text || "";
+          if (onDelta) onDelta(parsed.text || "", fullReply);
+        } else if (eventName === "done") {
+          finalData = parsed;
+        } else if (eventName === "error") {
+          throw new Error(parsed.error || "Error del servidor");
+        }
+      }
+    }
+
+    if (!finalData) {
+      // El stream terminó sin evento "done" — usar el reply acumulado
+      return { reply: fullReply, used: 0, limit: 0 };
+    }
+    return finalData;
+  },
+
+  reset() {
+    this.history = [];
+    this.lastMode = null;
+  },
+
+  // Imprimir el itinerario actual (lo más simple: window.print con CSS)
+  imprimir() {
+    if (this.history.length === 0) {
+      Toast.error("No hay itinerario para imprimir.");
+      return;
+    }
+    // Buscar el último mensaje del assistant
+    const lastAssistant = [...this.history].reverse().find(m => m.role === "assistant");
+    if (!lastAssistant) {
+      Toast.error("No hay itinerario para imprimir.");
+      return;
+    }
+    const win = window.open("", "_blank");
+    if (!win) {
+      Toast.error("No se pudo abrir la ventana de impresión. Permití pop-ups.");
+      return;
+    }
+    const html = mdRender(lastAssistant.content);
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mi Viaje — AV MentorAI</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #1f2937; line-height: 1.7; }
+    h1, h2, h3 { color: #0f172a; }
+    h2 { border-bottom: 2px solid #facc15; padding-bottom: 8px; margin-top: 30px; }
+    h3 { color: #f97316; margin-top: 24px; }
+    hr { border: none; border-top: 1px dashed #d1d5db; margin: 24px 0; }
+    strong { color: #0f172a; }
+    .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px; text-align: center; }
+    @media print {
+      body { margin: 20px; }
+    }
+  </style>
+</head>
+<body>
+  ${html}
+  <div class="footer">Generado con ⚡ AV MentorAI · ${new Date().toLocaleDateString("es-AR")}</div>
+</body>
+</html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 500);
+  },
+
+  copiar() {
+    const lastAssistant = [...this.history].reverse().find(m => m.role === "assistant");
+    if (!lastAssistant) {
+      Toast.error("No hay itinerario para copiar.");
+      return;
+    }
+    navigator.clipboard.writeText(lastAssistant.content)
+      .then(() => Toast.success("📋 Itinerario copiado"))
+      .catch(() => Toast.error("No se pudo copiar"));
   },
 };

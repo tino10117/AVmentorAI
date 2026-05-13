@@ -1444,3 +1444,357 @@ function openLogoByIndex(i){
     w.document.write(`<title>Logo ${i+1}</title><img src="${img.url}" style="max-width:100%;display:block;margin:0 auto" />`);
   }
 }
+
+
+// ═══════════════════════════════════════════════════════════════
+// PLANIFICADOR DE VIAJES
+// ═══════════════════════════════════════════════════════════════
+
+function renderViajes() {
+  renderViajesItinerario();
+  renderViajesInspirame();
+}
+
+function renderViajesItinerario() {
+  const isPremium = App.user?.plan && App.user.plan !== "Gratis";
+  const userOrigen = App.user?.ciudad || "";
+
+  document.getElementById("viajes-itinerario").innerHTML = `
+    ${!isPremium ? `
+      <div style="background:linear-gradient(135deg,rgba(56,189,248,.12),rgba(99,102,241,.08));border:1.5px solid rgba(56,189,248,.4);border-radius:14px;padding:14px 16px;margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:22px">💎</span>
+          <div>
+            <strong style="color:#7dd3fc;font-size:14px">El Planificador de Viajes es Premium</strong>
+            <p style="font-size:12px;color:#94a3b8;margin:4px 0 0">Activá Premium para armar itinerarios con IA y precios reales actualizados.</p>
+          </div>
+        </div>
+      </div>` : ''}
+
+    <h3 style="margin-bottom:8px">🎯 Tengo destino — Armame el itinerario</h3>
+    <p class="text-muted mb-3">La IA arma tu viaje día por día con datos reales (alojamiento, comida, excursiones, precios).</p>
+
+    <div class="grid-2 mb-3">
+      <div><label class="label">¿A dónde vas? <span style="color:#f87171">*</span></label>
+        <input class="input" id="v-destino" placeholder="Bariloche, Argentina"></div>
+      <div><label class="label">¿Desde dónde salís?</label>
+        <input class="input" id="v-origen" value="${esc(userOrigen)}" placeholder="Buenos Aires, Formosa..."></div>
+    </div>
+
+    <div class="grid-3 mb-3">
+      <div><label class="label">¿Cuántos días? <span style="color:#f87171">*</span></label>
+        <select class="select" id="v-dias">
+          <option value="2">2 días (escapada corta)</option>
+          <option value="3">3 días (fin de semana largo)</option>
+          <option value="5" selected>5 días</option>
+          <option value="7">7 días (1 semana)</option>
+          <option value="10">10 días</option>
+          <option value="14">14 días (2 semanas)</option>
+          <option value="21">21 días o más</option>
+        </select></div>
+      <div><label class="label">¿Cuántos van?</label>
+        <select class="select" id="v-personas">
+          <option>Solo yo</option>
+          <option selected>Pareja (2)</option>
+          <option>Familia con niños chicos</option>
+          <option>Familia con adolescentes</option>
+          <option>Grupo de amigos (3-5)</option>
+          <option>Grupo grande (6+)</option>
+        </select></div>
+      <div><label class="label">¿Cuándo?</label>
+        <input class="input" id="v-fecha" placeholder="Marzo 2026 / verano"></div>
+    </div>
+
+    <div class="mb-3">
+      <label class="label">Presupuesto total (todo el grupo, sin contar vuelos)</label>
+      <select class="select" id="v-presupuesto">
+        <option>Económico / mochilero (lo más barato posible)</option>
+        <option selected>Medio (buen balance precio/calidad)</option>
+        <option>Cómodo (sin escatimar pero sin lujos)</option>
+        <option>Premium / lujo (todo top)</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="label">¿Qué les gusta hacer? (elegí 1 a 4)</label>
+      <div id="v-intereses" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+        ${["🌿 Naturaleza","🍽️ Gastronomía","🎉 Fiesta y vida nocturna","🏛️ Cultura e historia","⛰️ Aventura y deporte","🧖 Relax y spa","🛍️ Compras","📸 Fotos icónicas","👨‍👩‍👧 Familiar","🐶 Pet-friendly"].map(p=>
+          `<button type="button" class="btn btn-ghost btn-sm" data-int="${p}" onclick="toggleViajeInt(this)">${p}</button>`
+        ).join("")}
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="label">¿Algo especial? (opcional)</label>
+      <textarea class="input" id="v-especial" rows="2" placeholder="Vamos con bebé, soy vegetariano, luna de miel, problemas de movilidad, queremos algo tranquilo..."></textarea>
+    </div>
+
+    <button class="btn btn-primary" onclick="doPlanificarViaje()" ${!isPremium ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''}>✈️ Armar mi viaje</button>
+    <div id="viaje-result" class="mt-3"></div>`;
+}
+
+function renderViajesInspirame() {
+  const isPremium = App.user?.plan && App.user.plan !== "Gratis";
+  const userOrigen = App.user?.ciudad || "";
+
+  document.getElementById("viajes-inspirame").innerHTML = `
+    ${!isPremium ? `
+      <div style="background:linear-gradient(135deg,rgba(56,189,248,.12),rgba(99,102,241,.08));border:1.5px solid rgba(56,189,248,.4);border-radius:14px;padding:14px 16px;margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:22px">💎</span>
+          <div>
+            <strong style="color:#7dd3fc;font-size:14px">El Planificador de Viajes es Premium</strong>
+            <p style="font-size:12px;color:#94a3b8;margin:4px 0 0">Activá Premium para que la IA te sugiera destinos según tus gustos y presupuesto.</p>
+          </div>
+        </div>
+      </div>` : ''}
+
+    <h3 style="margin-bottom:8px">🤔 No sé a dónde ir — Inspirame</h3>
+    <p class="text-muted mb-3">Decime qué te gusta, cuánto querés gastar y la IA te tira 4-5 destinos pensados para vos.</p>
+
+    <div class="grid-2 mb-3">
+      <div><label class="label">¿Desde dónde salís?</label>
+        <input class="input" id="vi-origen" value="${esc(userOrigen)}" placeholder="Buenos Aires, Formosa..."></div>
+      <div><label class="label">¿Cuándo querés viajar?</label>
+        <input class="input" id="vi-fecha" placeholder="Verano 2026, en 3 meses, etc"></div>
+    </div>
+
+    <div class="grid-2 mb-3">
+      <div><label class="label">Presupuesto por persona (sin vuelos)</label>
+        <select class="select" id="vi-presupuesto">
+          <option>$200-500 USD (mochilero)</option>
+          <option selected>$500-1500 USD (medio)</option>
+          <option>$1500-3000 USD (cómodo)</option>
+          <option>$3000+ USD (premium)</option>
+        </select></div>
+      <div><label class="label">¿Cuántos días podés?</label>
+        <select class="select" id="vi-dias">
+          <option>2-3 días (escapada)</option>
+          <option selected>4-7 días (semana)</option>
+          <option>8-14 días (vacaciones)</option>
+          <option>15+ días (gran viaje)</option>
+        </select></div>
+    </div>
+
+    <div class="mb-3">
+      <label class="label">¿Qué te tira más? (elegí 1 a 4)</label>
+      <div id="vi-vibe" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+        ${["🏖️ Playa","⛰️ Montaña","🏙️ Ciudades grandes","🌿 Naturaleza salvaje","🍷 Gastronomía y vino","🎉 Fiesta","🏛️ Historia y cultura","🏝️ Islas paradisíacas","❄️ Nieve y frío","🏜️ Aventura extrema","🧘 Bienestar y relax","💑 Romántico"].map(p=>
+          `<button type="button" class="btn btn-ghost btn-sm" data-vibe="${p}" onclick="toggleViajeVibe(this)">${p}</button>`
+        ).join("")}
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="label">¿Algo que NO querés? (opcional)</label>
+      <input class="input" id="vi-evitar" placeholder="No quiero lugares muy turísticos, ni demasiado calor...">
+    </div>
+
+    <button class="btn btn-primary" onclick="doInspirameViaje()" ${!isPremium ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''}>🌎 Mostrame opciones</button>
+    <div id="inspirame-result" class="mt-3"></div>`;
+}
+
+function toggleViajeInt(btn) {
+  const active = btn.classList.toggle("btn-primary");
+  btn.classList.toggle("btn-ghost", !active);
+  const selected = document.querySelectorAll('#v-intereses .btn-primary');
+  if (selected.length > 4) {
+    btn.classList.remove("btn-primary");
+    btn.classList.add("btn-ghost");
+    Toast.error("Máximo 4 intereses");
+  }
+}
+
+function toggleViajeVibe(btn) {
+  const active = btn.classList.toggle("btn-primary");
+  btn.classList.toggle("btn-ghost", !active);
+  const selected = document.querySelectorAll('#vi-vibe .btn-primary');
+  if (selected.length > 4) {
+    btn.classList.remove("btn-primary");
+    btn.classList.add("btn-ghost");
+    Toast.error("Máximo 4 vibes");
+  }
+}
+
+async function doPlanificarViaje() {
+  if (!App.user || App.user.plan === "Gratis") {
+    Toast.error("Activá Premium para usar el Planificador de Viajes.");
+    return;
+  }
+
+  const destino = document.getElementById("v-destino").value.trim();
+  if (!destino) { Toast.error("¿A dónde querés ir?"); return; }
+
+  const origen = document.getElementById("v-origen").value.trim();
+  const dias = document.getElementById("v-dias").value;
+  const personas = document.getElementById("v-personas").value;
+  const fecha = document.getElementById("v-fecha").value.trim();
+  const presupuesto = document.getElementById("v-presupuesto").value;
+  const intereses = Array.from(document.querySelectorAll('#v-intereses .btn-primary')).map(b => b.dataset.int).join(", ");
+  const especial = document.getElementById("v-especial").value.trim();
+
+  // Reset historial (nuevo viaje)
+  Viajes.reset();
+
+  const r = document.getElementById("viaje-result");
+  // Preparar UI de streaming: spinner + container donde se va escribiendo
+  r.innerHTML = `
+    <div id="viaje-result-stream-status" class="loading-row" style="padding:12px 16px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:10px;margin-bottom:12px">
+      <div class="spinner"></div>
+      <div style="margin-left:10px;font-size:13px;color:#7dd3fc">Armando tu viaje a ${esc(destino)}… <span id="viaje-result-typing">esperando primera respuesta</span></div>
+    </div>
+    <div class="card card-blue" id="viaje-result-card">
+      <div class="md-output" id="viaje-result-text" style="font-size:14px;line-height:1.7;min-height:60px"></div>
+    </div>`;
+
+  const formData = { destino, origen, dias, personas, fecha, presupuesto, intereses, especial };
+  const userMsg = `Armame un itinerario de viaje a ${destino} de ${dias} días.`;
+
+  const textEl = document.getElementById("viaje-result-text");
+  const typingEl = document.getElementById("viaje-result-typing");
+  let firstChunkReceived = false;
+
+  try {
+    const data = await Viajes.planificar({
+      mode: "itinerario",
+      userMessage: userMsg,
+      formData,
+      onDelta: (chunk, fullText) => {
+        if (!firstChunkReceived) {
+          firstChunkReceived = true;
+          if (typingEl) typingEl.textContent = "escribiendo en vivo…";
+        }
+        if (textEl) textEl.innerHTML = mdRender(fullText);
+      },
+    });
+    finishViajeStream("viaje-result", data);
+    UserHelper.sumarXP(20);
+  } catch (e) {
+    r.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
+  }
+}
+
+async function doInspirameViaje() {
+  if (!App.user || App.user.plan === "Gratis") {
+    Toast.error("Activá Premium para usar el Planificador de Viajes.");
+    return;
+  }
+
+  const origen = document.getElementById("vi-origen").value.trim();
+  const fecha = document.getElementById("vi-fecha").value.trim();
+  const presupuesto = document.getElementById("vi-presupuesto").value;
+  const dias = document.getElementById("vi-dias").value;
+  const vibe = Array.from(document.querySelectorAll('#vi-vibe .btn-primary')).map(b => b.dataset.vibe).join(", ");
+  const evitar = document.getElementById("vi-evitar").value.trim();
+
+  if (!vibe) {
+    Toast.error("Elegí al menos un vibe de viaje para que la IA sepa qué te gusta.");
+    return;
+  }
+
+  Viajes.reset();
+
+  const r = document.getElementById("inspirame-result");
+  r.innerHTML = `
+    <div id="inspirame-result-stream-status" class="loading-row" style="padding:12px 16px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:10px;margin-bottom:12px">
+      <div class="spinner"></div>
+      <div style="margin-left:10px;font-size:13px;color:#7dd3fc">Pensando destinos para vos… <span id="inspirame-result-typing">esperando primera respuesta</span></div>
+    </div>
+    <div class="card card-blue" id="inspirame-result-card">
+      <div class="md-output" id="inspirame-result-text" style="font-size:14px;line-height:1.7;min-height:60px"></div>
+    </div>`;
+
+  const formData = { origen, fecha, presupuesto, dias, vibe, especial: evitar };
+  const userMsg = `No sé a dónde ir. Mostrame destinos que me puedan gustar.`;
+
+  const textEl = document.getElementById("inspirame-result-text");
+  const typingEl = document.getElementById("inspirame-result-typing");
+  let firstChunkReceived = false;
+
+  try {
+    const data = await Viajes.planificar({
+      mode: "inspirame",
+      userMessage: userMsg,
+      formData,
+      onDelta: (chunk, fullText) => {
+        if (!firstChunkReceived) {
+          firstChunkReceived = true;
+          if (typingEl) typingEl.textContent = "escribiendo en vivo…";
+        }
+        if (textEl) textEl.innerHTML = mdRender(fullText);
+      },
+    });
+    finishViajeStream("inspirame-result", data);
+    UserHelper.sumarXP(15);
+  } catch (e) {
+    r.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
+  }
+}
+
+// Cuando termina el streaming, sacamos el spinner y mostramos botones + refine
+function finishViajeStream(resultId, data) {
+  const container = document.getElementById(resultId);
+  if (!container) return;
+  const remaining = (data.limit || 0) - (data.used || 0);
+
+  // Sacar el status box de loading
+  const statusBox = document.getElementById(`${resultId}-stream-status`);
+  if (statusBox) {
+    statusBox.outerHTML = `
+      <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#86efac">
+        ✅ Listo. Te quedan <strong>${remaining}</strong> planificaciones hoy.
+      </div>`;
+  }
+
+  // Sumarle botones y refine a la card
+  const card = document.getElementById(`${resultId}-card`);
+  if (card) {
+    const actionsHtml = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0">
+        <button class="btn btn-purple btn-sm" onclick="Viajes.imprimir()">🖨️ Imprimir / PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="Viajes.copiar()">📋 Copiar todo</button>
+      </div>
+      <div style="border-top:1px solid rgba(168,85,247,.2);padding-top:14px;margin-top:6px">
+        <strong style="font-size:13px;color:#c4b5fd;display:block;margin-bottom:8px">💬 ¿Querés ajustar algo?</strong>
+        <textarea class="input" id="${resultId}-refine-input" rows="2" placeholder="Hacelo más barato / sumá un día más / sacá la excursión del día 3 / cambialo a destino con playa..."></textarea>
+        <button class="btn btn-purple btn-sm mt-2" onclick="doRefinarViaje('${resultId}')">🔄 Ajustar viaje</button>
+      </div>`;
+    card.insertAdjacentHTML("beforeend", actionsHtml);
+  }
+  container.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function doRefinarViaje(resultId) {
+  const inputEl = document.getElementById(`${resultId}-refine-input`);
+  const text = inputEl?.value?.trim();
+  if (!text) { Toast.error("Decime qué querés ajustar."); return; }
+
+  const container = document.getElementById(resultId);
+  // Limpiar lo anterior y armar una nueva card de streaming
+  container.innerHTML = `
+    <div id="${resultId}-stream-status" class="loading-row" style="padding:12px 16px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.25);border-radius:10px;margin-bottom:12px">
+      <div class="spinner"></div>
+      <div style="margin-left:10px;font-size:13px;color:#c4b5fd">Ajustando tu viaje… <span id="${resultId}-typing">esperando primera respuesta</span></div>
+    </div>
+    <div class="card card-blue" id="${resultId}-card">
+      <div class="md-output" id="${resultId}-text" style="font-size:14px;line-height:1.7;min-height:60px"></div>
+    </div>`;
+
+  const textEl = document.getElementById(`${resultId}-text`);
+  const typingEl = document.getElementById(`${resultId}-typing`);
+  let firstChunkReceived = false;
+
+  try {
+    const data = await Viajes.refinar(text, (chunk, fullText) => {
+      if (!firstChunkReceived) {
+        firstChunkReceived = true;
+        if (typingEl) typingEl.textContent = "escribiendo en vivo…";
+      }
+      if (textEl) textEl.innerHTML = mdRender(fullText);
+    });
+    finishViajeStream(resultId, data);
+    UserHelper.sumarXP(5);
+  } catch (e) {
+    container.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
+  }
+}
