@@ -858,9 +858,9 @@ function renderMarca(){
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
         <span style="font-size:22px">🖼️</span>
         <strong style="font-size:14px;letter-spacing:.5px;color:#c4b5fd">GENERADOR DE LOGO CON IA</strong>
-        ${!isPremium ? `<span style="margin-left:auto;font-size:11px;background:#facc15;color:#020617;padding:3px 8px;border-radius:6px;font-weight:800">PREMIUM</span>` : `<span style="margin-left:auto;font-size:11px;background:rgba(34,197,94,.2);color:#86efac;padding:3px 8px;border-radius:6px;font-weight:700">5/día</span>`}
+        ${!isPremium ? `<span style="margin-left:auto;font-size:11px;background:#facc15;color:#020617;padding:3px 8px;border-radius:6px;font-weight:800">PREMIUM</span>` : `<span style="margin-left:auto;font-size:11px;background:rgba(34,197,94,.2);color:#86efac;padding:3px 8px;border-radius:6px;font-weight:700">10/día</span>`}
       </div>
-      <p style="font-size:12px;color:#94a3b8;margin-bottom:10px;line-height:1.5">Generá 3 propuestas de logo HD en segundos con DALL·E 3. Listos para usar en tu marca.</p>
+      <p style="font-size:12px;color:#94a3b8;margin-bottom:10px;line-height:1.5">Generá tu logo en segundos con IA. Listo para usar en tu marca. Tenés 10 generaciones diarias.</p>
       <button class="btn btn-purple" style="width:100%" onclick="openLogoModal()">🎨 Generar mi logo ahora</button>
     </div>
     <!-- ▲▲▲ FIN del bloque nuevo ▲▲▲ -->
@@ -1311,7 +1311,7 @@ function openLogoModal(){
           <button onclick="closeLogoModal()" style="background:none;border:none;color:#f87171;font-size:22px;cursor:pointer;padding:0 4px" title="Cerrar">✕</button>
         </div>
 
-        <p class="text-muted" style="font-size:13px;margin-bottom:14px">DALL·E 3 va a crear 3 propuestas únicas en HD (1024×1024). Tardan ~30 segundos.</p>
+        <p class="text-muted" style="font-size:13px;margin-bottom:14px">La IA va a crear tu logo en alta calidad (1024×1024). Tarda ~15 segundos.</p>
 
         <div class="mb-3">
           <label class="label">Nombre de tu marca <span style="color:#f87171">*</span></label>
@@ -1342,7 +1342,7 @@ function openLogoModal(){
           </div>
         </div>
 
-        <button class="btn btn-purple" style="width:100%" id="logo-generate-btn" onclick="doGenerateLogo()">🚀 Generar 3 propuestas</button>
+        <button class="btn btn-purple" style="width:100%" id="logo-generate-btn" onclick="doGenerateLogo()">🚀 Generar mi logo</button>
 
         <div id="logo-modal-result" style="margin-top:18px"></div>
       </div>
@@ -1378,7 +1378,7 @@ async function doGenerateLogo(){
   result.innerHTML = `
     <div class="loading-row" style="padding:20px;text-align:center">
       <div class="spinner" style="margin:0 auto 10px"></div>
-      <div style="font-size:13px;color:#94a3b8">La IA está creando 3 propuestas únicas para vos…<br>Esto puede tardar 30-60 segundos. No cierres la ventana.</div>
+      <div style="font-size:13px;color:#94a3b8">La IA está creando tu logo…<br>Esto tarda unos 15 segundos. No cierres la ventana.</div>
     </div>`;
 
   try {
@@ -1411,7 +1411,7 @@ async function doGenerateLogo(){
         `).join("")}
       </div>
       <div style="margin-top:14px;display:flex;gap:8px">
-        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="doGenerateLogo()">🔄 Generar otras 3</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="doGenerateLogo()">🔄 Generar otro</button>
         <button class="btn btn-ghost btn-sm" style="flex:1" onclick="closeLogoModal()">Cerrar</button>
       </div>
     `;
@@ -1421,7 +1421,7 @@ async function doGenerateLogo(){
     result.innerHTML = `<div class="alert alert-error" style="margin-top:10px">${esc(e.message)}</div>`;
   } finally {
     btn.disabled = false;
-    btn.textContent = "🚀 Generar 3 propuestas";
+    btn.textContent = "🚀 Generar mi logo";
   }
 }
 
