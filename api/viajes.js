@@ -209,16 +209,42 @@ export default async function handler(req, res) {
     }
   }
 
+  // ─── MODO STREAMING ─────────────────────────────────────────
+  // Configurar headers de Server-Sent Events (SSE)
+  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no"); // Importante para Vercel
+  // Flush headers inmediatamente para que el frontend sepa que arrancó
+  if (res.flushHeaders) res.flushHeaders();
+
+  // Helper para mandar eventos al frontend
+  const sendEvent = (event, data) => {
+    res.write(`event: ${event}\n`);
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
   try {
-    // gpt-4o-search-preview = modelo con web search nativo
-    const response = await openai.chat.completions.create({
+    // gpt-4o-search-preview con stream:true → respuesta llega chunk por chunk
+    // Esto evita el timeout de 30s porque mientras llegan chunks la conexión sigue viva
+    const stream = await openai.chat.completions.create({
       model: "gpt-4o-search-preview",
       messages: [{ role: "system", content: systemPrompt }, ...finalMessages],
       max_tokens: 3000,
+      stream: true,
     });
 
-    const reply = response?.choices?.[0]?.message?.content || "";
-    if (!reply) {
+    let fullReply = "";
+    // Iterar el stream y mandar cada chunk al frontend
+    for await (const chunk of stream) {
+      const delta = chunk?.choices?.[0]?.delta?.content || "";
+      if (delta) {
+        fullReply += delta;
+        sendEvent("delta", { text: delta });
+      }
+    }
+
+    if (!fullReply) {
       // Revertir contador
       try {
         const today = new Date().toISOString().split("T")[0];
@@ -226,14 +252,17 @@ export default async function handler(req, res) {
         const current = (await kv.get(key)) || 0;
         if (current > 0) await kv.set(key, current - 1, { ex: 86400 });
       } catch (e) { /* silencioso */ }
-      return res.status(500).json({ error: "No se pudo generar la respuesta. Probá de nuevo." });
+      sendEvent("error", { error: "No se pudo generar la respuesta. Probá de nuevo." });
+      return res.end();
     }
 
-    return res.status(200).json({
-      reply,
+    // Evento final con el texto completo + metadata
+    sendEvent("done", {
+      reply: fullReply,
       used: check.used,
       limit: check.limit,
     });
+    return res.end();
   } catch (err) {
     console.error("Viajes error:", err);
     // Revertir contador
@@ -243,6 +272,11 @@ export default async function handler(req, res) {
       const current = (await kv.get(key)) || 0;
       if (current > 0) await kv.set(key, current - 1, { ex: 86400 });
     } catch (e) { /* silencioso */ }
+    // Si ya empezó el stream, mandamos error por SSE; sino, JSON tradicional
+    if (res.headersSent) {
+      sendEvent("error", { error: "Error generando el viaje: " + (err.message || "desconocido") });
+      return res.end();
+    }
     return res.status(500).json({ error: "Error generando el viaje: " + (err.message || "desconocido") });
   }
 }
