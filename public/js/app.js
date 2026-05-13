@@ -564,32 +564,20 @@ const Chat = {
   },
 };
 
-// ═══════════════════════════════════════════════════════════════════
-// SNIPPET PARA app.js — OBJETO Logo
-// ═══════════════════════════════════════════════════════════════════
-//
-// PEGAR ESTE BLOQUE AL FINAL DE app.js, ANTES de la última línea
-// (donde está el cierre del objeto Chat con su `};` final).
-//
-// Lo más simple: pegalo justo DESPUÉS del cierre del objeto Chat,
-// en el espacio antes de cualquier código de inicialización.
-//
-// ═══════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════
-// LOGO GENERATOR (DALL-E 3)
+// LOGO GENERATOR (gpt-image-1)
 // ═══════════════════════════════════════════════
 const Logo = {
   async generate({ nombre, descripcion, estilo, paleta }) {
     return API.req("/api/logo", "POST", { nombre, descripcion, estilo, paleta });
   },
 
-  async download(url, filename) {
+  async download(dataUrl, filename) {
     try {
-      // Las URLs de DALL-E vienen de azure y permiten descarga directa,
-      // pero por CORS algunas no se pueden fetchear. Probamos fetch y caemos a window.open.
-      const resp = await fetch(url, { mode: "cors" });
-      if (!resp.ok) throw new Error("No se pudo descargar");
+      // dataUrl viene como "data:image/png;base64,xxxx..."
+      // fetch funciona perfecto con data URLs, sin problemas de CORS
+      const resp = await fetch(dataUrl);
       const blob = await resp.blob();
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -601,9 +589,12 @@ const Logo = {
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
       Toast.success("📥 Logo descargado");
     } catch (e) {
-      // Fallback: abrir en pestaña nueva para que el usuario haga click derecho → guardar
+      // Fallback si algo raro pasa
       Toast.info("Abriendo el logo en una pestaña nueva (click derecho → Guardar imagen)");
-      window.open(url, "_blank");
+      const w = window.open();
+      if (w) {
+        w.document.write(`<img src="${dataUrl}" style="max-width:100%" />`);
+      }
     }
   },
 };
