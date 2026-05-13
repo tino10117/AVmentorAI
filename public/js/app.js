@@ -72,6 +72,71 @@ const API = {
       desafio: desafio || App.desafio, leccion, englishModo, mateModo, useWebSearch, image,
     });
   },
+
+  // Versión streaming de /api/chat — recibe chunks SSE y llama onDelta(chunk, fullText)
+  async chatStream({ type, messages, modo, desafio, leccion, englishModo, mateModo, useWebSearch, image, onDelta }) {
+    const token = localStorage.getItem("av_token");
+    const resp = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+      },
+      body: JSON.stringify({
+        type, messages, user: App.user, modo: modo || App.modo,
+        desafio: desafio || App.desafio, leccion, englishModo, mateModo, useWebSearch, image,
+      }),
+    });
+
+    // Si NO es streaming (error 401/403/429), el server devuelve JSON normal
+    const contentType = resp.headers.get("content-type") || "";
+    if (!contentType.includes("text/event-stream")) {
+      let errData;
+      try { errData = await resp.json(); } catch { errData = { error: "Error desconocido" }; }
+      throw new Error(errData.error || "Error en la solicitud");
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullReply = "";
+    let finalData = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() || "";
+
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        const lines = part.split("\n");
+        let eventName = "message";
+        let dataStr = "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) eventName = line.slice(7).trim();
+          else if (line.startsWith("data: ")) dataStr += line.slice(6);
+        }
+        if (!dataStr) continue;
+        let parsed;
+        try { parsed = JSON.parse(dataStr); } catch { continue; }
+
+        if (eventName === "delta") {
+          fullReply += parsed.text || "";
+          if (onDelta) onDelta(parsed.text || "", fullReply);
+        } else if (eventName === "done") {
+          finalData = parsed;
+        } else if (eventName === "error") {
+          throw new Error(parsed.error || "Error del servidor");
+        }
+      }
+    }
+
+    if (!finalData) return { reply: fullReply };
+    return finalData;
+  },
 };
 
 // ═══════════════════════════════════════════════
@@ -365,15 +430,44 @@ const Chat = {
     // Limpiar imagen pendiente del UI y de memoria
     this._pendingImage = null;
     this._clearImagePreview();
-    const spinner = showSpinner(container);
+
+    // Crear la burbuja de respuesta vacía (donde se va escribiendo en vivo)
+    const aiBubble = document.createElement("div");
+    aiBubble.className = `chat-msg ${msgClass}`;
+    aiBubble.innerHTML = `
+      <div class="chat-msg-header">
+        <div class="chat-avatar" style="background:${avatarGrad}">${aiIcon}</div>
+        <span class="chat-name" style="color:${aiColor}">${aiName}</span>
+        <span class="chat-typing" style="margin-left:8px;font-size:11px;color:#64748b;opacity:.7">escribiendo…</span>
+      </div>
+      <div class="chat-msg-body"></div>`;
+    container.appendChild(aiBubble);
+    scrollBottom(container);
+
+    const bodyEl = aiBubble.querySelector(".chat-msg-body");
+    const typingEl = aiBubble.querySelector(".chat-typing");
 
     try {
       const history = App.chatMessages[messagesKey].slice(-16).map(m => ({ role: m.role, content: m.content }));
-      const data = await API.chat({ type: type === "englishRoleplay" ? "english" : type, messages: history, englishModo, mateModo, useWebSearch, image: pendingImage });
-      removeSpinner();
+
+      const data = await API.chatStream({
+        type: type === "englishRoleplay" ? "english" : type,
+        messages: history,
+        englishModo, mateModo, useWebSearch,
+        image: pendingImage,
+        onDelta: (chunk, fullText) => {
+          if (bodyEl) bodyEl.innerHTML = mdRender(fullText);
+          scrollBottom(container);
+        },
+      });
+
       const reply = data.reply;
+      // Sacar el "escribiendo..." cuando termina
+      if (typingEl) typingEl.remove();
+      // Re-renderizar por las dudas (markdown final completo)
+      if (bodyEl) bodyEl.innerHTML = mdRender(reply);
+
       App.chatMessages[messagesKey].push({ role: "assistant", content: reply });
-      this.appendMsg(container, reply, msgClass, aiName, aiIcon, avatarGrad, aiColor);
       UserHelper.sumarXP(10);
 
       // Save messages to user object
@@ -383,7 +477,8 @@ const Chat = {
       Store.save();
       API.saveUser({ [userKey]: App.user[userKey] }).catch(() => {});
     } catch (err) {
-      removeSpinner();
+      // Si hubo error, sacar la burbuja vacía y mostrar el error
+      aiBubble.remove();
       Toast.error(err.message);
       this.appendMsg(container, "❌ " + err.message, msgClass, aiName, aiIcon, avatarGrad, aiColor);
     }
