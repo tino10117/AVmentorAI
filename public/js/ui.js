@@ -1378,7 +1378,7 @@ async function doGenerateLogo(){
   result.innerHTML = `
     <div class="loading-row" style="padding:20px;text-align:center">
       <div class="spinner" style="margin:0 auto 10px"></div>
-      <div style="font-size:13px;color:#94a3b8">DALL·E 3 está creando 3 propuestas únicas para vos…<br>Esto tarda ~30 segundos. No cierres la ventana.</div>
+      <div style="font-size:13px;color:#94a3b8">La IA está creando 3 propuestas únicas para vos…<br>Esto puede tardar 30-60 segundos. No cierres la ventana.</div>
     </div>`;
 
   try {
@@ -1387,6 +1387,11 @@ async function doGenerateLogo(){
     if(!data.images || data.images.length === 0){
       throw new Error("No se generó ninguna imagen. Probá de nuevo.");
     }
+
+    // Guardar las imágenes en una variable global para que los botones las referencien
+    // (las imágenes son base64 muy largas, no se pueden meter en onclick directamente)
+    window._lastLogoImages = data.images;
+    window._lastLogoName = nombre;
 
     const remaining = (data.limit || 0) - (data.used || 0);
     result.innerHTML = `
@@ -1399,8 +1404,8 @@ async function doGenerateLogo(){
           <div style="background:#fff;border-radius:12px;padding:12px;border:1px solid rgba(168,85,247,.2)">
             <img src="${img.url}" alt="Logo propuesta ${i+1}" style="width:100%;border-radius:8px;display:block;margin-bottom:10px" />
             <div style="display:flex;gap:8px">
-              <button class="btn btn-purple btn-sm" style="flex:1" onclick="Logo.download('${img.url}', 'logo-${esc(nombre).toLowerCase().replace(/\\s+/g,'-')}-${i+1}.png')">⬇️ Descargar #${i+1}</button>
-              <button class="btn btn-ghost btn-sm" onclick="window.open('${img.url}','_blank')" title="Abrir en pestaña nueva">🔗</button>
+              <button class="btn btn-purple btn-sm" style="flex:1" onclick="downloadLogoByIndex(${i})">⬇️ Descargar #${i+1}</button>
+              <button class="btn btn-ghost btn-sm" onclick="openLogoByIndex(${i})" title="Abrir en pestaña nueva">🔗</button>
             </div>
           </div>
         `).join("")}
@@ -1417,5 +1422,25 @@ async function doGenerateLogo(){
   } finally {
     btn.disabled = false;
     btn.textContent = "🚀 Generar 3 propuestas";
+  }
+}
+
+// Helpers para que los botones de descarga/abrir referencien por índice
+// (no podemos meter el base64 largo dentro de onclick="")
+function downloadLogoByIndex(i){
+  const imgs = window._lastLogoImages || [];
+  const img = imgs[i];
+  if(!img) return;
+  const safeName = String(window._lastLogoName || "logo").toLowerCase().replace(/\s+/g,"-");
+  Logo.download(img.url, `logo-${safeName}-${i+1}.png`);
+}
+
+function openLogoByIndex(i){
+  const imgs = window._lastLogoImages || [];
+  const img = imgs[i];
+  if(!img) return;
+  const w = window.open();
+  if(w){
+    w.document.write(`<title>Logo ${i+1}</title><img src="${img.url}" style="max-width:100%;display:block;margin:0 auto" />`);
   }
 }
