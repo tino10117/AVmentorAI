@@ -563,3 +563,47 @@ const Chat = {
     this.appendMsg(container, msg, cls, name, icon, grad, color);
   },
 };
+
+// ═══════════════════════════════════════════════════════════════════
+// SNIPPET PARA app.js — OBJETO Logo
+// ═══════════════════════════════════════════════════════════════════
+//
+// PEGAR ESTE BLOQUE AL FINAL DE app.js, ANTES de la última línea
+// (donde está el cierre del objeto Chat con su `};` final).
+//
+// Lo más simple: pegalo justo DESPUÉS del cierre del objeto Chat,
+// en el espacio antes de cualquier código de inicialización.
+//
+// ═══════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════
+// LOGO GENERATOR (DALL-E 3)
+// ═══════════════════════════════════════════════
+const Logo = {
+  async generate({ nombre, descripcion, estilo, paleta }) {
+    return API.req("/api/logo", "POST", { nombre, descripcion, estilo, paleta });
+  },
+
+  async download(url, filename) {
+    try {
+      // Las URLs de DALL-E vienen de azure y permiten descarga directa,
+      // pero por CORS algunas no se pueden fetchear. Probamos fetch y caemos a window.open.
+      const resp = await fetch(url, { mode: "cors" });
+      if (!resp.ok) throw new Error("No se pudo descargar");
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename || "logo.png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      Toast.success("📥 Logo descargado");
+    } catch (e) {
+      // Fallback: abrir en pestaña nueva para que el usuario haga click derecho → guardar
+      Toast.info("Abriendo el logo en una pestaña nueva (click derecho → Guardar imagen)");
+      window.open(url, "_blank");
+    }
+  },
+};
