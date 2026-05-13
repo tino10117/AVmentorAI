@@ -1637,14 +1637,37 @@ async function doPlanificarViaje() {
   Viajes.reset();
 
   const r = document.getElementById("viaje-result");
-  r.innerHTML = `<div class="loading-row" style="padding:20px"><div class="spinner"></div><div style="margin-left:10px;font-size:13px;color:#94a3b8">Armando tu viaje a ${esc(destino)}…<br>Buscando precios reales, lugares, recomendaciones. Tarda ~30 segundos.</div></div>`;
+  // Preparar UI de streaming: spinner + container donde se va escribiendo
+  r.innerHTML = `
+    <div id="viaje-result-stream-status" class="loading-row" style="padding:12px 16px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:10px;margin-bottom:12px">
+      <div class="spinner"></div>
+      <div style="margin-left:10px;font-size:13px;color:#7dd3fc">Armando tu viaje a ${esc(destino)}… <span id="viaje-result-typing">esperando primera respuesta</span></div>
+    </div>
+    <div class="card card-blue" id="viaje-result-card">
+      <div class="md-output" id="viaje-result-text" style="font-size:14px;line-height:1.7;min-height:60px"></div>
+    </div>`;
 
   const formData = { destino, origen, dias, personas, fecha, presupuesto, intereses, especial };
   const userMsg = `Armame un itinerario de viaje a ${destino} de ${dias} días.`;
 
+  const textEl = document.getElementById("viaje-result-text");
+  const typingEl = document.getElementById("viaje-result-typing");
+  let firstChunkReceived = false;
+
   try {
-    const data = await Viajes.planificar({ mode: "itinerario", userMessage: userMsg, formData });
-    showViajeResult(r, data, "viaje-result");
+    const data = await Viajes.planificar({
+      mode: "itinerario",
+      userMessage: userMsg,
+      formData,
+      onDelta: (chunk, fullText) => {
+        if (!firstChunkReceived) {
+          firstChunkReceived = true;
+          if (typingEl) typingEl.textContent = "escribiendo en vivo…";
+        }
+        if (textEl) textEl.innerHTML = mdRender(fullText);
+      },
+    });
+    finishViajeStream("viaje-result", data);
     UserHelper.sumarXP(20);
   } catch (e) {
     r.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
@@ -1672,38 +1695,72 @@ async function doInspirameViaje() {
   Viajes.reset();
 
   const r = document.getElementById("inspirame-result");
-  r.innerHTML = `<div class="loading-row" style="padding:20px"><div class="spinner"></div><div style="margin-left:10px;font-size:13px;color:#94a3b8">Pensando destinos para vos…<br>Buscando opciones reales según tus gustos. Tarda ~30 segundos.</div></div>`;
+  r.innerHTML = `
+    <div id="inspirame-result-stream-status" class="loading-row" style="padding:12px 16px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:10px;margin-bottom:12px">
+      <div class="spinner"></div>
+      <div style="margin-left:10px;font-size:13px;color:#7dd3fc">Pensando destinos para vos… <span id="inspirame-result-typing">esperando primera respuesta</span></div>
+    </div>
+    <div class="card card-blue" id="inspirame-result-card">
+      <div class="md-output" id="inspirame-result-text" style="font-size:14px;line-height:1.7;min-height:60px"></div>
+    </div>`;
 
   const formData = { origen, fecha, presupuesto, dias, vibe, especial: evitar };
   const userMsg = `No sé a dónde ir. Mostrame destinos que me puedan gustar.`;
 
+  const textEl = document.getElementById("inspirame-result-text");
+  const typingEl = document.getElementById("inspirame-result-typing");
+  let firstChunkReceived = false;
+
   try {
-    const data = await Viajes.planificar({ mode: "inspirame", userMessage: userMsg, formData });
-    showViajeResult(r, data, "inspirame-result");
+    const data = await Viajes.planificar({
+      mode: "inspirame",
+      userMessage: userMsg,
+      formData,
+      onDelta: (chunk, fullText) => {
+        if (!firstChunkReceived) {
+          firstChunkReceived = true;
+          if (typingEl) typingEl.textContent = "escribiendo en vivo…";
+        }
+        if (textEl) textEl.innerHTML = mdRender(fullText);
+      },
+    });
+    finishViajeStream("inspirame-result", data);
     UserHelper.sumarXP(15);
   } catch (e) {
     r.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
   }
 }
 
-function showViajeResult(container, data, resultId) {
+// Cuando termina el streaming, sacamos el spinner y mostramos botones + refine
+function finishViajeStream(resultId, data) {
+  const container = document.getElementById(resultId);
+  if (!container) return;
   const remaining = (data.limit || 0) - (data.used || 0);
-  container.innerHTML = `
-    <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#86efac">
-      ✅ Listo. Te quedan <strong>${remaining}</strong> planificaciones hoy.
-    </div>
-    <div class="card card-blue">
-      <div class="md-output" style="font-size:14px;line-height:1.7;margin-bottom:14px">${mdRender(data.reply)}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+
+  // Sacar el status box de loading
+  const statusBox = document.getElementById(`${resultId}-stream-status`);
+  if (statusBox) {
+    statusBox.outerHTML = `
+      <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#86efac">
+        ✅ Listo. Te quedan <strong>${remaining}</strong> planificaciones hoy.
+      </div>`;
+  }
+
+  // Sumarle botones y refine a la card
+  const card = document.getElementById(`${resultId}-card`);
+  if (card) {
+    const actionsHtml = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0">
         <button class="btn btn-purple btn-sm" onclick="Viajes.imprimir()">🖨️ Imprimir / PDF</button>
         <button class="btn btn-ghost btn-sm" onclick="Viajes.copiar()">📋 Copiar todo</button>
       </div>
-      <div style="border-top:1px solid rgba(168,85,247,.2);padding-top:14px;margin-top:14px">
+      <div style="border-top:1px solid rgba(168,85,247,.2);padding-top:14px;margin-top:6px">
         <strong style="font-size:13px;color:#c4b5fd;display:block;margin-bottom:8px">💬 ¿Querés ajustar algo?</strong>
         <textarea class="input" id="${resultId}-refine-input" rows="2" placeholder="Hacelo más barato / sumá un día más / sacá la excursión del día 3 / cambialo a destino con playa..."></textarea>
         <button class="btn btn-purple btn-sm mt-2" onclick="doRefinarViaje('${resultId}')">🔄 Ajustar viaje</button>
-      </div>
-    </div>`;
+      </div>`;
+    card.insertAdjacentHTML("beforeend", actionsHtml);
+  }
   container.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -1713,23 +1770,31 @@ async function doRefinarViaje(resultId) {
   if (!text) { Toast.error("Decime qué querés ajustar."); return; }
 
   const container = document.getElementById(resultId);
-  const cardOld = container.querySelector(".card");
-  if (cardOld) cardOld.style.opacity = "0.4";
+  // Limpiar lo anterior y armar una nueva card de streaming
+  container.innerHTML = `
+    <div id="${resultId}-stream-status" class="loading-row" style="padding:12px 16px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.25);border-radius:10px;margin-bottom:12px">
+      <div class="spinner"></div>
+      <div style="margin-left:10px;font-size:13px;color:#c4b5fd">Ajustando tu viaje… <span id="${resultId}-typing">esperando primera respuesta</span></div>
+    </div>
+    <div class="card card-blue" id="${resultId}-card">
+      <div class="md-output" id="${resultId}-text" style="font-size:14px;line-height:1.7;min-height:60px"></div>
+    </div>`;
 
-  const loadingDiv = document.createElement("div");
-  loadingDiv.className = "loading-row";
-  loadingDiv.style.cssText = "padding:14px;margin-top:10px";
-  loadingDiv.innerHTML = `<div class="spinner"></div><div style="margin-left:10px;font-size:13px;color:#94a3b8">Ajustando tu viaje…</div>`;
-  container.appendChild(loadingDiv);
+  const textEl = document.getElementById(`${resultId}-text`);
+  const typingEl = document.getElementById(`${resultId}-typing`);
+  let firstChunkReceived = false;
 
   try {
-    const data = await Viajes.refinar(text);
-    loadingDiv.remove();
-    showViajeResult(container, data, resultId);
+    const data = await Viajes.refinar(text, (chunk, fullText) => {
+      if (!firstChunkReceived) {
+        firstChunkReceived = true;
+        if (typingEl) typingEl.textContent = "escribiendo en vivo…";
+      }
+      if (textEl) textEl.innerHTML = mdRender(fullText);
+    });
+    finishViajeStream(resultId, data);
     UserHelper.sumarXP(5);
   } catch (e) {
-    loadingDiv.remove();
-    if (cardOld) cardOld.style.opacity = "1";
-    Toast.error(e.message || "Error ajustando el viaje");
+    container.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
   }
 }
