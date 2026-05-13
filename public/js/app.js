@@ -604,16 +604,16 @@ const Viajes = {
   history: [],
   lastMode: null,
 
-  async planificar({ mode, userMessage, formData }) {
+  async planificar({ mode, userMessage, formData, onDelta }) {
     // Sumamos el mensaje del user al historial
     this.history.push({ role: "user", content: userMessage });
     this.lastMode = mode;
 
-    const data = await API.req("/api/viajes", "POST", {
+    const data = await this._streamRequest({
       mode,
       messages: this.history,
       formData,
-    });
+    }, onDelta);
 
     // Sumamos la respuesta de la IA al historial (para refinamientos siguientes)
     this.history.push({ role: "assistant", content: data.reply });
@@ -621,18 +621,86 @@ const Viajes = {
     return data;
   },
 
-  async refinar(userMessage) {
+  async refinar(userMessage, onDelta) {
     // Modo "refinar" usa el historial completo de la conversación previa
     this.history.push({ role: "user", content: userMessage });
 
-    const data = await API.req("/api/viajes", "POST", {
+    const data = await this._streamRequest({
       mode: "refinar",
       messages: this.history,
-    });
+    }, onDelta);
 
     this.history.push({ role: "assistant", content: data.reply });
 
     return data;
+  },
+
+  // Helper interno: hace fetch con streaming SSE y llama onDelta con cada chunk
+  async _streamRequest(body, onDelta) {
+    const token = localStorage.getItem("av_token");
+    const resp = await fetch("/api/viajes", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+      },
+      body: JSON.stringify(body),
+    });
+
+    // Si NO es streaming (ej. error 401/403/429), el server devuelve JSON normal
+    const contentType = resp.headers.get("content-type") || "";
+    if (!contentType.includes("text/event-stream")) {
+      // Es una respuesta JSON tradicional (error)
+      let errData;
+      try { errData = await resp.json(); } catch { errData = { error: "Error desconocido" }; }
+      throw new Error(errData.error || "Error en la solicitud");
+    }
+
+    // Parsear el stream SSE
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullReply = "";
+    let finalData = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      // Procesar eventos completos (separados por \n\n)
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() || ""; // El último puede estar incompleto
+
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        const lines = part.split("\n");
+        let eventName = "message";
+        let dataStr = "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) eventName = line.slice(7).trim();
+          else if (line.startsWith("data: ")) dataStr += line.slice(6);
+        }
+        if (!dataStr) continue;
+        let parsed;
+        try { parsed = JSON.parse(dataStr); } catch { continue; }
+
+        if (eventName === "delta") {
+          fullReply += parsed.text || "";
+          if (onDelta) onDelta(parsed.text || "", fullReply);
+        } else if (eventName === "done") {
+          finalData = parsed;
+        } else if (eventName === "error") {
+          throw new Error(parsed.error || "Error del servidor");
+        }
+      }
+    }
+
+    if (!finalData) {
+      // El stream terminó sin evento "done" — usar el reply acumulado
+      return { reply: fullReply, used: 0, limit: 0 };
+    }
+    return finalData;
   },
 
   reset() {
