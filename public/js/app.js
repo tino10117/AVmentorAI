@@ -563,3 +563,38 @@ const Chat = {
     this.appendMsg(container, msg, cls, name, icon, grad, color);
   },
 };
+
+
+// ═══════════════════════════════════════════════
+// LOGO GENERATOR (gpt-image-1)
+// ═══════════════════════════════════════════════
+const Logo = {
+  async generate({ nombre, descripcion, estilo, paleta }) {
+    return API.req("/api/logo", "POST", { nombre, descripcion, estilo, paleta });
+  },
+
+  async download(dataUrl, filename) {
+    try {
+      // dataUrl viene como "data:image/png;base64,xxxx..."
+      // fetch funciona perfecto con data URLs, sin problemas de CORS
+      const resp = await fetch(dataUrl);
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename || "logo.png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      Toast.success("📥 Logo descargado");
+    } catch (e) {
+      // Fallback si algo raro pasa
+      Toast.info("Abriendo el logo en una pestaña nueva (click derecho → Guardar imagen)");
+      const w = window.open();
+      if (w) {
+        w.document.write(`<img src="${dataUrl}" style="max-width:100%" />`);
+      }
+    }
+  },
+};

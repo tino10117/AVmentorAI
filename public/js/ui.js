@@ -848,9 +848,22 @@ async function personalizarPlantilla(){
 }
 function renderMarca(){
   const userName = App.user?.nombre || "";
+  const isPremium = App.user?.plan && App.user.plan !== "Gratis";
   document.getElementById("herr-marca").innerHTML=`
     <h3 style="margin-bottom:8px">🎨 Creador de marca personal</h3>
     <p class="text-muted mb-3">La IA te crea una identidad de marca completa, lista para publicar hoy.</p>
+
+    <!-- ▼▼▼ NUEVO: Botón Generar Logo arriba de todo ▼▼▼ -->
+    <div style="background:linear-gradient(135deg,rgba(168,85,247,.12),rgba(99,102,241,.08));border:1.5px solid rgba(168,85,247,.4);border-radius:14px;padding:14px 16px;margin-bottom:18px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <span style="font-size:22px">🖼️</span>
+        <strong style="font-size:14px;letter-spacing:.5px;color:#c4b5fd">GENERADOR DE LOGO CON IA</strong>
+        ${!isPremium ? `<span style="margin-left:auto;font-size:11px;background:#facc15;color:#020617;padding:3px 8px;border-radius:6px;font-weight:800">PREMIUM</span>` : `<span style="margin-left:auto;font-size:11px;background:rgba(34,197,94,.2);color:#86efac;padding:3px 8px;border-radius:6px;font-weight:700">10/día</span>`}
+      </div>
+      <p style="font-size:12px;color:#94a3b8;margin-bottom:10px;line-height:1.5">Generá tu logo en segundos con IA. Listo para usar en tu marca. Tenés 10 generaciones diarias.</p>
+      <button class="btn btn-purple" style="width:100%" onclick="openLogoModal()">🎨 Generar mi logo ahora</button>
+    </div>
+    <!-- ▲▲▲ FIN del bloque nuevo ▲▲▲ -->
 
     <div class="grid-2 mb-3">
       <div><label class="label">Tu nombre o apodo</label>
@@ -911,7 +924,6 @@ function renderMarca(){
     <button class="btn btn-purple" onclick="doMarca()">🎨 Crear mi marca</button>
     <div id="marca-result" class="mt-3"></div>`;
 }
-
 function toggleMarcaPers(btn){
   const active = btn.classList.toggle("btn-purple");
   btn.classList.toggle("btn-ghost", !active);
@@ -1265,4 +1277,170 @@ function sendFeedback(){
   App.user.feedback.push({fecha:today(),calificacion:cal,comentario:com,pagaria:pag});
   Store.save();API.saveUser({feedback:App.user.feedback}).catch(()=>{});
   document.getElementById("fb-result").innerHTML=`<div class="alert alert-success mt-2">Feedback guardado. ¡Gracias! ✅</div>`;
+}
+
+function openLogoModal(){
+  // Si tiene plan Gratis → toast y no abrir
+  if(!App.user || App.user.plan === "Gratis"){
+    Toast.error("Generar logos con IA es una función Premium. Activá Premium para usarla.");
+    return;
+  }
+
+  // Pre-rellenar con datos del form si ya los completó
+  const prefName = document.getElementById("mname")?.value?.trim() || App.user?.nombre || "";
+  const prefRub  = document.getElementById("mrub")?.value?.trim() || "";
+  const prefEst  = document.getElementById("mest")?.value || "Moderno y minimalista";
+
+  // Mapear estilo del select al valor que entiende DALL-E
+  const estiloMap = {
+    "Moderno y minimalista": "minimalista",
+    "Divertido y colorido": "divertido",
+    "Elegante y premium": "elegante",
+    "Cercano y familiar": "moderno",
+    "Joven y urbano": "joven",
+    "Disruptivo y rebelde": "disruptivo",
+    "Profesional y confiable": "profesional",
+  };
+  const prefEstValue = estiloMap[prefEst] || "moderno";
+
+  const modalHtml = `
+    <div id="logo-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeLogoModal()">
+      <div style="background:#0f172a;border:1.5px solid rgba(168,85,247,.4);border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(168,85,247,.3)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h3 style="margin:0;font-size:18px">🎨 Generar logo con IA</h3>
+          <button onclick="closeLogoModal()" style="background:none;border:none;color:#f87171;font-size:22px;cursor:pointer;padding:0 4px" title="Cerrar">✕</button>
+        </div>
+
+        <p class="text-muted" style="font-size:13px;margin-bottom:14px">La IA va a crear tu logo en alta calidad (1024×1024). Tarda ~15 segundos.</p>
+
+        <div class="mb-3">
+          <label class="label">Nombre de tu marca <span style="color:#f87171">*</span></label>
+          <input class="input" id="logo-nombre" maxlength="60" placeholder="Bela Store, AV Mentor, Tino Tech…" value="${esc(prefName)}">
+        </div>
+
+        <div class="mb-3">
+          <label class="label">¿Qué vende tu marca? <span style="color:#f87171">*</span></label>
+          <textarea class="input" id="logo-desc" rows="2" maxlength="300" placeholder="Ropa femenina urbana para mujeres 18-30 años">${esc(prefRub)}</textarea>
+        </div>
+
+        <div class="grid-2 mb-3">
+          <div>
+            <label class="label">Estilo del logo</label>
+            <select class="select" id="logo-estilo">
+              <option value="minimalista" ${prefEstValue==='minimalista'?'selected':''}>Minimalista</option>
+              <option value="moderno" ${prefEstValue==='moderno'?'selected':''}>Moderno</option>
+              <option value="elegante" ${prefEstValue==='elegante'?'selected':''}>Elegante / Premium</option>
+              <option value="divertido" ${prefEstValue==='divertido'?'selected':''}>Divertido / Colorido</option>
+              <option value="joven" ${prefEstValue==='joven'?'selected':''}>Joven / Urbano</option>
+              <option value="profesional" ${prefEstValue==='profesional'?'selected':''}>Profesional</option>
+              <option value="disruptivo" ${prefEstValue==='disruptivo'?'selected':''}>Disruptivo</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Paleta de colores (opcional)</label>
+            <input class="input" id="logo-paleta" placeholder="negro y dorado, pastel, blanco y rojo…">
+          </div>
+        </div>
+
+        <button class="btn btn-purple" style="width:100%" id="logo-generate-btn" onclick="doGenerateLogo()">🚀 Generar mi logo</button>
+
+        <div id="logo-modal-result" style="margin-top:18px"></div>
+      </div>
+    </div>
+  `;
+
+  // Inyectar modal en el body
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = modalHtml;
+  document.body.appendChild(wrapper.firstElementChild);
+}
+
+function closeLogoModal(){
+  const m = document.getElementById("logo-modal-backdrop");
+  if (m) m.remove();
+}
+
+async function doGenerateLogo(){
+  const nombre = document.getElementById("logo-nombre").value.trim();
+  const desc   = document.getElementById("logo-desc").value.trim();
+  const estilo = document.getElementById("logo-estilo").value;
+  const paleta = document.getElementById("logo-paleta").value.trim();
+
+  if(!nombre){ Toast.error("Poné el nombre de tu marca."); return; }
+  if(!desc){ Toast.error("Contame qué vende tu marca."); return; }
+  if(desc.length > 300){ Toast.error("La descripción es muy larga (máx 300 caracteres)."); return; }
+
+  const btn = document.getElementById("logo-generate-btn");
+  const result = document.getElementById("logo-modal-result");
+
+  btn.disabled = true;
+  btn.textContent = "⏳ Generando… (~30 seg)";
+  result.innerHTML = `
+    <div class="loading-row" style="padding:20px;text-align:center">
+      <div class="spinner" style="margin:0 auto 10px"></div>
+      <div style="font-size:13px;color:#94a3b8">La IA está creando tu logo…<br>Esto tarda unos 15 segundos. No cierres la ventana.</div>
+    </div>`;
+
+  try {
+    const data = await Logo.generate({ nombre, descripcion: desc, estilo, paleta });
+
+    if(!data.images || data.images.length === 0){
+      throw new Error("No se generó ninguna imagen. Probá de nuevo.");
+    }
+
+    // Guardar las imágenes en una variable global para que los botones las referencien
+    // (las imágenes son base64 muy largas, no se pueden meter en onclick directamente)
+    window._lastLogoImages = data.images;
+    window._lastLogoName = nombre;
+
+    const remaining = (data.limit || 0) - (data.used || 0);
+    result.innerHTML = `
+      <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#86efac">
+        ✅ ${data.images.length} logo${data.images.length>1?'s':''} generado${data.images.length>1?'s':''}. Te quedan <strong>${remaining}</strong> generaciones hoy.
+        ${data.partial ? '<br>⚠️ Algunas variaciones fallaron, igualmente te mostramos las que sí salieron.' : ''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr;gap:14px">
+        ${data.images.map((img, i) => `
+          <div style="background:#fff;border-radius:12px;padding:12px;border:1px solid rgba(168,85,247,.2)">
+            <img src="${img.url}" alt="Logo propuesta ${i+1}" style="width:100%;border-radius:8px;display:block;margin-bottom:10px" />
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-purple btn-sm" style="flex:1" onclick="downloadLogoByIndex(${i})">⬇️ Descargar #${i+1}</button>
+              <button class="btn btn-ghost btn-sm" onclick="openLogoByIndex(${i})" title="Abrir en pestaña nueva">🔗</button>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+      <div style="margin-top:14px;display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="doGenerateLogo()">🔄 Generar otro</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="closeLogoModal()">Cerrar</button>
+      </div>
+    `;
+    UserHelper.sumarXP(20);
+    Toast.success("¡Logos generados! +20 XP");
+  } catch(e) {
+    result.innerHTML = `<div class="alert alert-error" style="margin-top:10px">${esc(e.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🚀 Generar mi logo";
+  }
+}
+
+// Helpers para que los botones de descarga/abrir referencien por índice
+// (no podemos meter el base64 largo dentro de onclick="")
+function downloadLogoByIndex(i){
+  const imgs = window._lastLogoImages || [];
+  const img = imgs[i];
+  if(!img) return;
+  const safeName = String(window._lastLogoName || "logo").toLowerCase().replace(/\s+/g,"-");
+  Logo.download(img.url, `logo-${safeName}-${i+1}.png`);
+}
+
+function openLogoByIndex(i){
+  const imgs = window._lastLogoImages || [];
+  const img = imgs[i];
+  if(!img) return;
+  const w = window.open();
+  if(w){
+    w.document.write(`<title>Logo ${i+1}</title><img src="${img.url}" style="max-width:100%;display:block;margin:0 auto" />`);
+  }
 }
