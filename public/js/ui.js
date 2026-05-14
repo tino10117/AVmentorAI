@@ -1798,3 +1798,382 @@ async function doRefinarViaje(resultId) {
     container.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// VIDA SANA (Alimentación + Ejercicio)
+// ═══════════════════════════════════════════════════════════════
+
+function renderVidaSana() {
+  renderVidaSanaAlimentacion();
+  renderVidaSanaEjercicio();
+}
+
+function renderVidaSanaAlimentacion() {
+  const isPremium = App.user?.plan && App.user.plan !== "Gratis";
+
+  document.getElementById("vidasana-alimentacion").innerHTML = `
+    ${!isPremium ? `
+      <div style="background:linear-gradient(135deg,rgba(56,189,248,.12),rgba(99,102,241,.08));border:1.5px solid rgba(56,189,248,.4);border-radius:14px;padding:14px 16px;margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:22px">💎</span>
+          <div>
+            <strong style="color:#7dd3fc;font-size:14px">Vida Sana es Premium</strong>
+            <p style="font-size:12px;color:#94a3b8;margin:4px 0 0">Activá Premium para tu plan de alimentación con IA.</p>
+          </div>
+        </div>
+      </div>` : ''}
+
+    <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#fcd34d">
+      ⚠️ <strong>Importante:</strong> Esto NO reemplaza a un nutricionista o médico. Es orientativo. Si tenés diabetes, embarazo, alergias o dudas, consultá a un profesional.
+    </div>
+
+    <h3 style="margin-bottom:8px">🥗 Tu Plan de Alimentación</h3>
+    <p class="text-muted mb-3">Completá los datos y la IA te arma un plan de 7 días con lista de compras y precios de Argentina.</p>
+
+    <div class="grid-3 mb-3">
+      <div><label class="label">Edad <span style="color:#f87171">*</span></label>
+        <input class="input" id="vs-a-edad" type="number" placeholder="25" min="14" max="100"></div>
+      <div><label class="label">Sexo</label>
+        <select class="select" id="vs-a-sexo">
+          <option>Femenino</option>
+          <option>Masculino</option>
+          <option>Otro / Prefiero no decir</option>
+        </select></div>
+      <div><label class="label">Altura (cm)</label>
+        <input class="input" id="vs-a-altura" type="number" placeholder="170" min="100" max="230"></div>
+    </div>
+
+    <div class="grid-3 mb-3">
+      <div><label class="label">Peso actual (kg) <span style="color:#f87171">*</span></label>
+        <input class="input" id="vs-a-peso" type="number" step="0.5" placeholder="70" min="30" max="250"></div>
+      <div><label class="label">Peso objetivo (kg)</label>
+        <input class="input" id="vs-a-objetivo-peso" type="number" step="0.5" placeholder="65"></div>
+      <div><label class="label">Objetivo</label>
+        <select class="select" id="vs-a-objetivo">
+          <option>Bajar de peso</option>
+          <option>Mantener peso</option>
+          <option>Subir de peso (masa muscular)</option>
+          <option>Comer más saludable</option>
+          <option>Más energía</option>
+        </select></div>
+    </div>
+
+    <div class="grid-2 mb-3">
+      <div><label class="label">Nivel de actividad física</label>
+        <select class="select" id="vs-a-actividad">
+          <option>Sedentario (poco o nada de ejercicio)</option>
+          <option selected>Ligero (1-2 días/semana)</option>
+          <option>Moderado (3-4 días/semana)</option>
+          <option>Intenso (5-6 días/semana)</option>
+          <option>Muy intenso (deportista)</option>
+        </select></div>
+      <div><label class="label">Presupuesto semanal (ARS)</label>
+        <input class="input" id="vs-a-presupuesto" placeholder="30000"></div>
+    </div>
+
+    <div class="mb-3">
+      <label class="label">Restricciones / preferencias (elegí las que aplican)</label>
+      <div id="vs-a-restricciones" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+        ${["🥬 Vegetariano","🌱 Vegano","🚫 Sin gluten","🥛 Sin lactosa","🐟 Sin pescado","🥜 Sin frutos secos","🍳 Sin huevo","☪️ Halal","✡️ Kosher","🍖 Bajo en grasas","🍞 Bajo en carbohidratos","🧂 Bajo en sodio"].map(p=>
+          `<button type="button" class="btn btn-ghost btn-sm" data-rest="${p}" onclick="toggleVsRest(this)">${p}</button>`
+        ).join("")}
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="label">Gustos y aversiones (opcional)</label>
+      <textarea class="input" id="vs-a-gustos" rows="2" placeholder="Me gusta el pollo y las pastas. No me gusta el pescado ni los hongos. Tomo mate todo el día."></textarea>
+    </div>
+
+    <button class="btn btn-primary" onclick="doPlanAlimentacion()" ${!isPremium ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''}>🥗 Armar mi plan de alimentación</button>
+    <div id="vsa-result" class="mt-3"></div>`;
+}
+
+function renderVidaSanaEjercicio() {
+  const isPremium = App.user?.plan && App.user.plan !== "Gratis";
+
+  document.getElementById("vidasana-ejercicio").innerHTML = `
+    ${!isPremium ? `
+      <div style="background:linear-gradient(135deg,rgba(56,189,248,.12),rgba(99,102,241,.08));border:1.5px solid rgba(56,189,248,.4);border-radius:14px;padding:14px 16px;margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:22px">💎</span>
+          <div>
+            <strong style="color:#7dd3fc;font-size:14px">Vida Sana es Premium</strong>
+            <p style="font-size:12px;color:#94a3b8;margin:4px 0 0">Activá Premium para tu rutina de ejercicio con IA.</p>
+          </div>
+        </div>
+      </div>` : ''}
+
+    <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#fcd34d">
+      ⚠️ <strong>Importante:</strong> Esto NO reemplaza a un entrenador o kinesiólogo. Si tenés lesiones serias o sos principiante absoluto, consultá a un profesional antes.
+    </div>
+
+    <h3 style="margin-bottom:8px">🏋️ Tu Rutina de Ejercicio</h3>
+    <p class="text-muted mb-3">La IA te arma la rutina perfecta según tu objetivo, lugar de entrenamiento y experiencia.</p>
+
+    <div class="grid-2 mb-3">
+      <div><label class="label">Edad <span style="color:#f87171">*</span></label>
+        <input class="input" id="vs-e-edad" type="number" placeholder="25" min="14" max="100"></div>
+      <div><label class="label">Sexo</label>
+        <select class="select" id="vs-e-sexo">
+          <option>Femenino</option>
+          <option>Masculino</option>
+          <option>Otro / Prefiero no decir</option>
+        </select></div>
+    </div>
+
+    <div class="mb-3">
+      <label class="label">Objetivo principal <span style="color:#f87171">*</span></label>
+      <select class="select" id="vs-e-objetivo">
+        <option>Perder grasa / definición</option>
+        <option>Ganar masa muscular</option>
+        <option>Mantener forma física</option>
+        <option>Mejorar flexibilidad y movilidad</option>
+        <option>Más cardio / resistencia</option>
+        <option>Fuerza máxima</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="label">¿Dónde entrenás? <span style="color:#f87171">*</span></label>
+      <select class="select" id="vs-e-lugar">
+        <option>Gimnasio (equipamiento completo)</option>
+        <option>Casa con equipo (mancuernas, banco, bandas)</option>
+        <option>Casa sin equipo (solo peso corporal)</option>
+        <option>Aire libre (parque, plaza)</option>
+        <option>Mix: gym + casa</option>
+      </select>
+    </div>
+
+    <div class="grid-3 mb-3">
+      <div><label class="label">Días por semana</label>
+        <select class="select" id="vs-e-dias">
+          <option>2 días</option>
+          <option selected>3 días</option>
+          <option>4 días</option>
+          <option>5 días</option>
+          <option>6 días</option>
+        </select></div>
+      <div><label class="label">Tiempo por sesión</label>
+        <select class="select" id="vs-e-tiempo">
+          <option>15-20 min</option>
+          <option>30 min</option>
+          <option selected>45 min</option>
+          <option>60 min (1 hora)</option>
+          <option>90 min o más</option>
+        </select></div>
+      <div><label class="label">Experiencia</label>
+        <select class="select" id="vs-e-experiencia">
+          <option selected>Principiante (poco/nada de gym)</option>
+          <option>Intermedio (6+ meses entrenando)</option>
+          <option>Avanzado (años entrenando)</option>
+        </select></div>
+    </div>
+
+    <div class="mb-3">
+      <label class="label">¿Tenés lesiones o limitaciones? (opcional)</label>
+      <textarea class="input" id="vs-e-limitaciones" rows="2" placeholder="Dolor de espalda baja, rodilla operada, no puedo correr, sobrepeso considerable..."></textarea>
+    </div>
+
+    <button class="btn btn-primary" onclick="doPlanEjercicio()" ${!isPremium ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''}>🏋️ Armar mi rutina</button>
+    <div id="vse-result" class="mt-3"></div>`;
+}
+
+function toggleVsRest(btn) {
+  btn.classList.toggle("btn-primary");
+  btn.classList.toggle("btn-ghost");
+}
+
+async function doPlanAlimentacion() {
+  if (!App.user || App.user.plan === "Gratis") {
+    Toast.error("Activá Premium para usar Vida Sana.");
+    return;
+  }
+
+  const edad = document.getElementById("vs-a-edad").value.trim();
+  const peso = document.getElementById("vs-a-peso").value.trim();
+
+  if (!edad) { Toast.error("Decime tu edad."); return; }
+  if (!peso) { Toast.error("Decime tu peso actual."); return; }
+
+  const formData = {
+    edad,
+    sexo: document.getElementById("vs-a-sexo").value,
+    altura: document.getElementById("vs-a-altura").value.trim(),
+    peso_actual: peso,
+    peso_objetivo: document.getElementById("vs-a-objetivo-peso").value.trim(),
+    objetivo: document.getElementById("vs-a-objetivo").value,
+    actividad: document.getElementById("vs-a-actividad").value,
+    presupuesto: document.getElementById("vs-a-presupuesto").value.trim(),
+    restricciones: Array.from(document.querySelectorAll('#vs-a-restricciones .btn-primary')).map(b => b.dataset.rest).join(", "),
+    gustos: document.getElementById("vs-a-gustos").value.trim(),
+  };
+
+  Bienestar.reset();
+
+  const r = document.getElementById("vsa-result");
+  r.innerHTML = `
+    <div id="vsa-result-stream-status" class="loading-row" style="padding:12px 16px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:10px;margin-bottom:12px">
+      <div class="spinner"></div>
+      <div style="margin-left:10px;font-size:13px;color:#86efac">Armando tu plan de alimentación… <span id="vsa-result-typing">esperando primera respuesta</span></div>
+    </div>
+    <div class="card card-blue" id="vsa-result-card">
+      <div class="md-output" id="vsa-result-text" style="font-size:14px;line-height:1.7;min-height:60px"></div>
+    </div>`;
+
+  const userMsg = `Armame un plan de alimentación de 7 días con lista de compras.`;
+  const textEl = document.getElementById("vsa-result-text");
+  const typingEl = document.getElementById("vsa-result-typing");
+  let firstChunkReceived = false;
+
+  try {
+    const data = await Bienestar.planificar({
+      mode: "alimentacion",
+      userMessage: userMsg,
+      formData,
+      onDelta: (chunk, fullText) => {
+        if (!firstChunkReceived) {
+          firstChunkReceived = true;
+          if (typingEl) typingEl.textContent = "escribiendo en vivo…";
+        }
+        if (textEl) textEl.innerHTML = mdRender(fullText);
+      },
+    });
+    finishBienestarStream("vsa-result", data);
+    UserHelper.sumarXP(20);
+  } catch (e) {
+    r.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
+  }
+}
+
+async function doPlanEjercicio() {
+  if (!App.user || App.user.plan === "Gratis") {
+    Toast.error("Activá Premium para usar Vida Sana.");
+    return;
+  }
+
+  const edad = document.getElementById("vs-e-edad").value.trim();
+  if (!edad) { Toast.error("Decime tu edad."); return; }
+
+  const formData = {
+    edad,
+    sexo: document.getElementById("vs-e-sexo").value,
+    objetivo: document.getElementById("vs-e-objetivo").value,
+    lugar: document.getElementById("vs-e-lugar").value,
+    dias: document.getElementById("vs-e-dias").value,
+    tiempo: document.getElementById("vs-e-tiempo").value,
+    experiencia: document.getElementById("vs-e-experiencia").value,
+    limitaciones: document.getElementById("vs-e-limitaciones").value.trim(),
+  };
+
+  Bienestar.reset();
+
+  const r = document.getElementById("vse-result");
+  r.innerHTML = `
+    <div id="vse-result-stream-status" class="loading-row" style="padding:12px 16px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:10px;margin-bottom:12px">
+      <div class="spinner"></div>
+      <div style="margin-left:10px;font-size:13px;color:#86efac">Armando tu rutina… <span id="vse-result-typing">esperando primera respuesta</span></div>
+    </div>
+    <div class="card card-blue" id="vse-result-card">
+      <div class="md-output" id="vse-result-text" style="font-size:14px;line-height:1.7;min-height:60px"></div>
+    </div>`;
+
+  const userMsg = `Armame una rutina de ejercicio adaptada a mis datos.`;
+  const textEl = document.getElementById("vse-result-text");
+  const typingEl = document.getElementById("vse-result-typing");
+  let firstChunkReceived = false;
+
+  try {
+    const data = await Bienestar.planificar({
+      mode: "ejercicio",
+      userMessage: userMsg,
+      formData,
+      onDelta: (chunk, fullText) => {
+        if (!firstChunkReceived) {
+          firstChunkReceived = true;
+          if (typingEl) typingEl.textContent = "escribiendo en vivo…";
+        }
+        if (textEl) textEl.innerHTML = mdRender(fullText);
+      },
+    });
+    finishBienestarStream("vse-result", data);
+    UserHelper.sumarXP(20);
+  } catch (e) {
+    r.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
+  }
+}
+
+function finishBienestarStream(resultId, data) {
+  const container = document.getElementById(resultId);
+  if (!container) return;
+  const remaining = (data.limit || 0) - (data.used || 0);
+
+  const statusBox = document.getElementById(`${resultId}-stream-status`);
+  if (statusBox) {
+    if (data.riesgo_detectado) {
+      // Mensaje protector — no mostramos "te quedan X planes"
+      statusBox.outerHTML = `
+        <div style="background:rgba(244,114,182,.08);border:1px solid rgba(244,114,182,.3);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#f9a8d4">
+          💗 Mensaje importante de seguridad
+        </div>`;
+    } else {
+      statusBox.outerHTML = `
+        <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#86efac">
+          ✅ Listo. Te quedan <strong>${remaining}</strong> planes hoy.
+        </div>`;
+    }
+  }
+
+  // Solo agregar botones si NO fue mensaje de riesgo
+  if (!data.riesgo_detectado) {
+    const card = document.getElementById(`${resultId}-card`);
+    if (card) {
+      const actionsHtml = `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0">
+          <button class="btn btn-purple btn-sm" onclick="Bienestar.imprimir()">🖨️ Imprimir / PDF</button>
+          <button class="btn btn-ghost btn-sm" onclick="Bienestar.copiar()">📋 Copiar todo</button>
+        </div>
+        <div style="border-top:1px solid rgba(168,85,247,.2);padding-top:14px;margin-top:6px">
+          <strong style="font-size:13px;color:#c4b5fd;display:block;margin-bottom:8px">💬 ¿Querés ajustar algo?</strong>
+          <textarea class="input" id="${resultId}-refine-input" rows="2" placeholder="Más vegetariano / menos carbohidratos / agregar día de descanso / más cardio / más económico..."></textarea>
+          <button class="btn btn-purple btn-sm mt-2" onclick="doRefinarBienestar('${resultId}')">🔄 Ajustar plan</button>
+        </div>`;
+      card.insertAdjacentHTML("beforeend", actionsHtml);
+    }
+  }
+  container.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function doRefinarBienestar(resultId) {
+  const inputEl = document.getElementById(`${resultId}-refine-input`);
+  const text = inputEl?.value?.trim();
+  if (!text) { Toast.error("Decime qué querés ajustar."); return; }
+
+  const container = document.getElementById(resultId);
+  container.innerHTML = `
+    <div id="${resultId}-stream-status" class="loading-row" style="padding:12px 16px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.25);border-radius:10px;margin-bottom:12px">
+      <div class="spinner"></div>
+      <div style="margin-left:10px;font-size:13px;color:#c4b5fd">Ajustando tu plan… <span id="${resultId}-typing">esperando primera respuesta</span></div>
+    </div>
+    <div class="card card-blue" id="${resultId}-card">
+      <div class="md-output" id="${resultId}-text" style="font-size:14px;line-height:1.7;min-height:60px"></div>
+    </div>`;
+
+  const textEl = document.getElementById(`${resultId}-text`);
+  const typingEl = document.getElementById(`${resultId}-typing`);
+  let firstChunkReceived = false;
+
+  try {
+    const data = await Bienestar.refinar(text, (chunk, fullText) => {
+      if (!firstChunkReceived) {
+        firstChunkReceived = true;
+        if (typingEl) typingEl.textContent = "escribiendo en vivo…";
+      }
+      if (textEl) textEl.innerHTML = mdRender(fullText);
+    });
+    finishBienestarStream(resultId, data);
+    UserHelper.sumarXP(5);
+  } catch (e) {
+    container.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
+  }
+}
