@@ -174,7 +174,7 @@ function sendWebSearch(tipo){
       removeSpinner();
       App.chatMessages.negocio.push({role:"assistant",content:d.reply});
       Chat.appendMsg(c,d.reply,"msg-ai","AV MentorAI","⚡","linear-gradient(135deg,#38bdf8,#6366f1)","#38bdf8");
-      UserHelper.sumarXP(10);
+      UserHelper.accion("chat_message");
       if(!App.user.messages)App.user.messages=[];
       App.user.messages=App.chatMessages.negocio.slice(-40);
       Store.save();API.saveUser({messages:App.user.messages}).catch(()=>{});
@@ -248,17 +248,28 @@ function checkQuiz(type,id){
       :"<br>✅ Ya completaste esta lección."}</div>`
     :`<div class="alert alert-warning mt-3">⚠️ ${ok}/${l.quiz.length} correctas (${pct}%). Necesitás 80%. Repasá y volvé a intentarlo.</div>`;
 }
-function completeLesson(type,id,xp){
+async function completeLesson(type,id,xp){
   const k=type==="english"?"english_lecciones_completadas":"mate_lecciones_completadas";
   if(!App.user[k])App.user[k]=[];
-  if(!App.user[k].includes(id)){
-    App.user[k].push(id);UserHelper.sumarXP(xp);
-    if(type==="english")App.user.english_xp=(App.user.english_xp||0)+xp;
-    UserHelper.desbloquearLogros();Store.save();
-    API.saveUser({[k]:App.user[k]}).catch(()=>{});
-    Toast.success(`¡Lección completada! +${xp} XP 🎉`);
-    if(type==="english")renderEnglishLecciones();else renderMateLecciones();
+  if(App.user[k].includes(id)){
+    Toast.info("Ya completaste esta lección.");
+    return;
   }
+  // Sumamos al array local (esto no es campo protegido para arrays)
+  App.user[k].push(id);
+  Store.save();
+  // Ahora pedimos la acción al backend para el XP
+  const data = await UserHelper.accion(type==="english"?"leccion_ingles":"leccion_mate");
+  if(data && data.ok){
+    Toast.success(`¡Lección completada! +${xp} XP 🎉`);
+  } else if(data && data.limit_reached){
+    Toast.info("Lección guardada. Llegaste al límite diario de XP por lecciones.");
+  } else {
+    Toast.success(`¡Lección completada!`);
+  }
+  // Guardar el array de lecciones (NO es campo protegido)
+  API.saveUser({[k]:App.user[k]}).catch(()=>{});
+  if(type==="english")renderEnglishLecciones();else renderMateLecciones();
 }
 function closeLesson(type){const e=document.getElementById(`lesson-panel-${type}`);if(e)e.innerHTML="";}
 
@@ -377,7 +388,7 @@ async function submitDiario(){
         <button class="btn btn-purple btn-sm" onclick="seguirConAlex('_lastDiarioContext')">💬 Seguir charlando con Alex →</button>
       </div>
     </div>`;
-    UserHelper.sumarXP(15);
+    UserHelper.accion("diario_ingles");
     API.saveUser({english_diary:App.user.english_diary}).catch(()=>{});
     renderEnglishDiario();
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
@@ -752,7 +763,7 @@ async function doCompetencia(){
         <button class="btn btn-sky btn-sm" onclick="seguirConMentor('_lastCompetenciaContext')">💬 Seguir charlando con el Mentor →</button>
       </div>
     </div>`;
-    UserHelper.sumarXP(15);
+    UserHelper.accion("herramienta_usada");
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
 }
 function renderContenido(){
@@ -798,7 +809,7 @@ async function doGenerarContenido(){
       <div style="margin-top:6px">
         <button class="btn btn-sky btn-sm" onclick="seguirConMentor('_lastContenidoContext')">💬 Pedir otra versión o ajustar con el Mentor →</button>
       </div>`;
-    UserHelper.sumarXP(10);
+    UserHelper.accion("herramienta_usada");
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
 }
 function renderPlantillas(){
@@ -843,7 +854,7 @@ async function personalizarPlantilla(){
         <button class="btn btn-sky btn-sm" onclick="seguirConMentor('_lastPlantillaContext')">💬 Ajustar con el Mentor →</button>
       </div>
     </div>`;
-    UserHelper.sumarXP(10);
+    UserHelper.accion("herramienta_usada");
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
 }
 function renderMarca(){
@@ -980,7 +991,7 @@ Generá la identidad completa AHORA, en formato Markdown, siguiendo todas las se
         <button class="btn btn-sky btn-sm" onclick="seguirConMentor('_lastMarcaContext')">💬 Seguir con el Mentor →</button>
       </div>
     </div>`;
-    UserHelper.sumarXP(15);
+    UserHelper.accion("herramienta_usada");
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
 }
 
@@ -1071,7 +1082,7 @@ async function calcDecision(){
       <div style="white-space:pre-wrap;font-size:14px;line-height:1.7;margin-bottom:12px">${mdRender(d.reply)}</div>
       <button class="btn btn-sky btn-sm" onclick="seguirConMentor('_lastFinanzasDecContext')">💬 Seguir charlando con el Mentor →</button>
     </div>`;
-    UserHelper.sumarXP(10);
+    UserHelper.accion("herramienta_usada");
   }catch(e){r.innerHTML=`<div class="alert alert-error">${esc(e.message)}</div>`;}
 }
 function calcAhorro(){
@@ -1146,17 +1157,29 @@ function renderDesafios(){
       <p>⭐ <b>XP total:</b> ${u?.xp||0}</p>
     </div></div>`;
 }
-function completarDesafio(){
-  if(!App.user)return;App.user.desafios_completados=(App.user.desafios_completados||0)+1;
-  UserHelper.sumarXP(40);UserHelper.desbloquearLogros();Store.save();
-  API.saveUser({desafios_completados:App.user.desafios_completados}).catch(()=>{});
-  Toast.success("+40 XP 🎉 ¡Desafío completado!");renderDesafios();refreshHeader();
+async function completarDesafio(){
+  if(!App.user)return;
+  const data = await UserHelper.accion("desafio_completado");
+  if(data && data.ok){
+    Toast.success("+40 XP 🎉 ¡Desafío completado!");
+  } else if(data && data.limit_reached){
+    Toast.error("Ya completaste el desafío de hoy. Mañana hay uno nuevo.");
+  } else {
+    Toast.error("No se pudo completar el desafío. Probá de nuevo.");
+  }
+  renderDesafios();refreshHeader();
 }
-function completarObjetivo(){
-  if(!App.user)return;App.user.objetivos_completados=(App.user.objetivos_completados||0)+1;
-  UserHelper.sumarXP(60);UserHelper.desbloquearLogros();Store.save();
-  API.saveUser({objetivos_completados:App.user.objetivos_completados}).catch(()=>{});
-  Toast.success("+60 XP 🏆 ¡Objetivo completado!");renderDesafios();refreshHeader();
+async function completarObjetivo(){
+  if(!App.user)return;
+  const data = await UserHelper.accion("objetivo_completado");
+  if(data && data.ok){
+    Toast.success("+60 XP 🏆 ¡Objetivo completado!");
+  } else if(data && data.limit_reached){
+    Toast.error("Ya completaste un objetivo hoy. Mañana se reinicia.");
+  } else {
+    Toast.error("No se pudo completar el objetivo. Probá de nuevo.");
+  }
+  renderDesafios();refreshHeader();
 }
 
 // ── RANKING ──────────────────────────────────────
@@ -1415,7 +1438,7 @@ async function doGenerateLogo(){
         <button class="btn btn-ghost btn-sm" style="flex:1" onclick="closeLogoModal()">Cerrar</button>
       </div>
     `;
-    UserHelper.sumarXP(20);
+    UserHelper.accion("logo_generado");
     Toast.success("¡Logos generados! +20 XP");
   } catch(e) {
     result.innerHTML = `<div class="alert alert-error" style="margin-top:10px">${esc(e.message)}</div>`;
@@ -1668,7 +1691,7 @@ async function doPlanificarViaje() {
       },
     });
     finishViajeStream("viaje-result", data);
-    UserHelper.sumarXP(20);
+    UserHelper.accion("viaje_generado");
   } catch (e) {
     r.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
   }
@@ -1725,7 +1748,7 @@ async function doInspirameViaje() {
       },
     });
     finishViajeStream("inspirame-result", data);
-    UserHelper.sumarXP(15);
+    UserHelper.accion("viaje_generado");
   } catch (e) {
     r.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
   }
@@ -1793,7 +1816,7 @@ async function doRefinarViaje(resultId) {
       if (textEl) textEl.innerHTML = mdRender(fullText);
     });
     finishViajeStream(resultId, data);
-    UserHelper.sumarXP(5);
+    UserHelper.accion("viaje_refinado");
   } catch (e) {
     container.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
   }
@@ -2040,7 +2063,7 @@ async function doPlanAlimentacion() {
       },
     });
     finishBienestarStream("vsa-result", data);
-    UserHelper.sumarXP(20);
+    UserHelper.accion("bienestar_generado");
   } catch (e) {
     r.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
   }
@@ -2097,7 +2120,7 @@ async function doPlanEjercicio() {
       },
     });
     finishBienestarStream("vse-result", data);
-    UserHelper.sumarXP(20);
+    UserHelper.accion("bienestar_generado");
   } catch (e) {
     r.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
   }
@@ -2172,7 +2195,7 @@ async function doRefinarBienestar(resultId) {
       if (textEl) textEl.innerHTML = mdRender(fullText);
     });
     finishBienestarStream(resultId, data);
-    UserHelper.sumarXP(5);
+    UserHelper.accion("bienestar_refinado");
   } catch (e) {
     container.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
   }
