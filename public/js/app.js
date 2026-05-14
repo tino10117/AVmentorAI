@@ -110,43 +110,48 @@ const UserHelper = {
     if (xp < 1200) return (xp - 700) / 500;
     return 1;
   },
+  // ⚠️ DEPRECATED: usar UserHelper.accion(tipo) en su lugar
+  // Queda vacío como fallback compatible (no rompe llamadas viejas pero no suma XP local)
   sumarXP(n) {
-    if (!App.user) return;
-    App.user.xp = (App.user.xp || 0) + n;
-    const hoy = today();
-    if (App.user.ultima_fecha !== hoy) {
-      App.user.racha = (App.user.racha || 0) + 1;
-      App.user.ultima_fecha = hoy;
-    }
-    if (!App.user.xp_history) App.user.xp_history = [];
-    App.user.xp_history.push({ fecha: hoy, xp: App.user.xp });
-    Store.save();
-    refreshHeader();
-    API.saveUser({ xp: App.user.xp, racha: App.user.racha, ultima_fecha: App.user.ultima_fecha, xp_history: App.user.xp_history }).catch(() => {});
+    // La lógica se movió al backend (/api/accion)
+    // Esta función queda como no-op para compatibilidad con código viejo
   },
+
+  // ─── NUEVA: registrar una acción en el backend ─────────
+  // El backend valida límites diarios, suma XP, actualiza racha, desbloquea logros.
+  // tipos válidos: "chat_message" | "desafio_completado" | "objetivo_completado" |
+  //                "leccion_ingles" | "leccion_mate" | "diario_ingles" |
+  //                "viaje_generado" | "viaje_refinado" | "bienestar_generado" |
+  //                "bienestar_refinado" | "herramienta_usada" | "logo_generado"
+  async accion(tipo) {
+    if (!App.user) return null;
+    try {
+      const data = await API.req("/api/accion", "POST", { tipo });
+      // Actualizar user local con la versión del backend (es la fuente de verdad)
+      if (data && data.user) {
+        // Preservamos password_hash si estaba (no debería estar pero por las dudas)
+        const oldPwd = App.user.password_hash;
+        App.user = { ...App.user, ...data.user };
+        if (oldPwd) App.user.password_hash = oldPwd;
+        Store.save();
+        refreshHeader();
+      }
+      return data;
+    } catch (e) {
+      // 429 = límite diario alcanzado (no es error real)
+      const msg = (e.message || "").toLowerCase();
+      if (msg.includes("máximo diario") || msg.includes("limit")) {
+        return { limit_reached: true, error: e.message };
+      }
+      // Otros errores: silenciosos para no molestar al usuario
+      console.warn("Error en acción:", tipo, e);
+      return null;
+    }
+  },
+
   desbloquearLogros() {
-    if (!App.user) return;
-    const u = App.user;
-    const loks = (u.english_lecciones_completadas || []).length;
-    const diary = (u.english_diary || []).length;
-    const reglas = [
-      [u.xp >= 100, "Primeros 100 XP"],
-      [u.xp >= 300, "Mente en crecimiento"],
-      [u.xp >= 700, "Estratega en formación"],
-      [u.racha >= 3, "Racha de 3 días"],
-      [u.racha >= 7, "Semana imparable"],
-      [u.desafios_completados >= 5, "5 desafíos completados"],
-      [u.objetivos_completados >= 3, "Constructor de objetivos"],
-      [loks >= 3, "Estudiante de inglés"],
-      [loks >= 8, "Angloparlante en progreso"],
-      [loks >= 12, "Inglés dominado 🏆"],
-      [diary >= 7, "Diario de 7 días"],
-      [diary >= 30, "Escritor constante 📝"],
-    ];
-    if (!u.logros) u.logros = [];
-    reglas.forEach(([cond, logro]) => {
-      if (cond && !u.logros.includes(logro)) u.logros.push(logro);
-    });
+    // Ya no hace nada en frontend — los logros se desbloquean en /api/accion
+    // y vienen actualizados en App.user después de cada acción
   },
   genDesafio() {
     const DESAFIOS = [
@@ -375,7 +380,7 @@ const Chat = {
       const reply = data.reply;
       App.chatMessages[messagesKey].push({ role: "assistant", content: reply });
       this.appendMsg(container, reply, msgClass, aiName, aiIcon, avatarGrad, aiColor);
-      UserHelper.sumarXP(10);
+      UserHelper.accion("chat_message");
 
       // Save messages to user object
       const userKey = messagesKey === "negocio" ? "messages" : messagesKey === "english" ? "english_messages" : messagesKey === "englishRoleplay" ? "english_roleplay_messages" : "mate_messages";
