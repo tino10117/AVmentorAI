@@ -207,6 +207,7 @@
     <div class="nav-section">HERRAMIENTAS</div>
     <button class="nav-btn" data-tab="herramientas" onclick="navigateTo('herramientas')"><span class="nav-icon">🛠️</span> Herramientas</button>
     <button class="nav-btn" data-tab="viajes" onclick="navigateTo('viajes')"><span class="nav-icon">✈️</span> Viajes</button>
+    <button class="nav-btn" data-tab="vidasana" onclick="navigateTo('vidasana')"><span class="nav-icon">💪</span> Vida Sana</button>
     <div class="nav-section">MI PROGRESO</div>
     <button class="nav-btn" data-tab="progreso" onclick="navigateTo('progreso')"><span class="nav-icon">📈</span> Progreso</button>
     <button class="nav-btn" data-tab="desafios" onclick="navigateTo('desafios')"><span class="nav-icon">🔥</span> Desafíos</button>
@@ -367,6 +368,17 @@
       </div>
       <div id="viajes-itinerario" data-subpanel="viajes" data-value="itinerario"></div>
       <div id="viajes-inspirame" data-subpanel="viajes" data-value="inspirame" style="display:none"></div>
+    </div>
+
+    <!-- TAB: VIDA SANA -->
+    <div id="tab-vidasana" class="tab-content hidden">
+      <div class="hero-card mb-3"><h2>💪 Vida Sana</h2><p class="av-subtitle">Plan de alimentación y rutina de ejercicio con IA, adaptado a tus objetivos.</p></div>
+      <div class="subnav">
+        <button class="subnav-btn active" data-subnav="vidasana" data-value="alimentacion" onclick="setSubnav('vidasana','alimentacion')">🥗 Alimentación</button>
+        <button class="subnav-btn" data-subnav="vidasana" data-value="ejercicio" onclick="setSubnav('vidasana','ejercicio')">🏋️ Ejercicio</button>
+      </div>
+      <div id="vidasana-alimentacion" data-subpanel="vidasana" data-value="alimentacion"></div>
+      <div id="vidasana-ejercicio" data-subpanel="vidasana" data-value="ejercicio" style="display:none"></div>
     </div>
 
     <!-- TAB: PROGRESO -->
