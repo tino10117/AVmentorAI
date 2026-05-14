@@ -72,71 +72,6 @@ const API = {
       desafio: desafio || App.desafio, leccion, englishModo, mateModo, useWebSearch, image,
     });
   },
-
-  // Versión streaming de /api/chat — recibe chunks SSE y llama onDelta(chunk, fullText)
-  async chatStream({ type, messages, modo, desafio, leccion, englishModo, mateModo, useWebSearch, image, onDelta }) {
-    const token = localStorage.getItem("av_token");
-    const resp = await fetch("/api/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + token,
-      },
-      body: JSON.stringify({
-        type, messages, user: App.user, modo: modo || App.modo,
-        desafio: desafio || App.desafio, leccion, englishModo, mateModo, useWebSearch, image,
-      }),
-    });
-
-    // Si NO es streaming (error 401/403/429), el server devuelve JSON normal
-    const contentType = resp.headers.get("content-type") || "";
-    if (!contentType.includes("text/event-stream")) {
-      let errData;
-      try { errData = await resp.json(); } catch { errData = { error: "Error desconocido" }; }
-      throw new Error(errData.error || "Error en la solicitud");
-    }
-
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let fullReply = "";
-    let finalData = null;
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-
-      const parts = buffer.split("\n\n");
-      buffer = parts.pop() || "";
-
-      for (const part of parts) {
-        if (!part.trim()) continue;
-        const lines = part.split("\n");
-        let eventName = "message";
-        let dataStr = "";
-        for (const line of lines) {
-          if (line.startsWith("event: ")) eventName = line.slice(7).trim();
-          else if (line.startsWith("data: ")) dataStr += line.slice(6);
-        }
-        if (!dataStr) continue;
-        let parsed;
-        try { parsed = JSON.parse(dataStr); } catch { continue; }
-
-        if (eventName === "delta") {
-          fullReply += parsed.text || "";
-          if (onDelta) onDelta(parsed.text || "", fullReply);
-        } else if (eventName === "done") {
-          finalData = parsed;
-        } else if (eventName === "error") {
-          throw new Error(parsed.error || "Error del servidor");
-        }
-      }
-    }
-
-    if (!finalData) return { reply: fullReply };
-    return finalData;
-  },
 };
 
 // ═══════════════════════════════════════════════
@@ -387,6 +322,7 @@ function navigateTo(tabId) {
   if (tabId === "mate") { renderMateLecciones(); setSubnav("mate","lecciones"); }
   if (tabId === "herramientas") { renderHerramientas(); setSubnav("herr","competencia"); }
   if (tabId === "viajes") { renderViajes(); setSubnav("viajes","itinerario"); }
+  if (tabId === "vidasana") { renderVidaSana(); setSubnav("vidasana","alimentacion"); }
 }
 
 function setSubnav(section, value) {
@@ -430,44 +366,15 @@ const Chat = {
     // Limpiar imagen pendiente del UI y de memoria
     this._pendingImage = null;
     this._clearImagePreview();
-
-    // Crear la burbuja de respuesta vacía (donde se va escribiendo en vivo)
-    const aiBubble = document.createElement("div");
-    aiBubble.className = `chat-msg ${msgClass}`;
-    aiBubble.innerHTML = `
-      <div class="chat-msg-header">
-        <div class="chat-avatar" style="background:${avatarGrad}">${aiIcon}</div>
-        <span class="chat-name" style="color:${aiColor}">${aiName}</span>
-        <span class="chat-typing" style="margin-left:8px;font-size:11px;color:#64748b;opacity:.7">escribiendo…</span>
-      </div>
-      <div class="chat-msg-body"></div>`;
-    container.appendChild(aiBubble);
-    scrollBottom(container);
-
-    const bodyEl = aiBubble.querySelector(".chat-msg-body");
-    const typingEl = aiBubble.querySelector(".chat-typing");
+    const spinner = showSpinner(container);
 
     try {
       const history = App.chatMessages[messagesKey].slice(-16).map(m => ({ role: m.role, content: m.content }));
-
-      const data = await API.chatStream({
-        type: type === "englishRoleplay" ? "english" : type,
-        messages: history,
-        englishModo, mateModo, useWebSearch,
-        image: pendingImage,
-        onDelta: (chunk, fullText) => {
-          if (bodyEl) bodyEl.innerHTML = mdRender(fullText);
-          scrollBottom(container);
-        },
-      });
-
+      const data = await API.chat({ type: type === "englishRoleplay" ? "english" : type, messages: history, englishModo, mateModo, useWebSearch, image: pendingImage });
+      removeSpinner();
       const reply = data.reply;
-      // Sacar el "escribiendo..." cuando termina
-      if (typingEl) typingEl.remove();
-      // Re-renderizar por las dudas (markdown final completo)
-      if (bodyEl) bodyEl.innerHTML = mdRender(reply);
-
       App.chatMessages[messagesKey].push({ role: "assistant", content: reply });
+      this.appendMsg(container, reply, msgClass, aiName, aiIcon, avatarGrad, aiColor);
       UserHelper.sumarXP(10);
 
       // Save messages to user object
@@ -477,8 +384,7 @@ const Chat = {
       Store.save();
       API.saveUser({ [userKey]: App.user[userKey] }).catch(() => {});
     } catch (err) {
-      // Si hubo error, sacar la burbuja vacía y mostrar el error
-      aiBubble.remove();
+      removeSpinner();
       Toast.error(err.message);
       this.appendMsg(container, "❌ " + err.message, msgClass, aiName, aiIcon, avatarGrad, aiColor);
     }
@@ -856,6 +762,156 @@ const Viajes = {
     }
     navigator.clipboard.writeText(lastAssistant.content)
       .then(() => Toast.success("📋 Itinerario copiado"))
+      .catch(() => Toast.error("No se pudo copiar"));
+  },
+};
+
+// ═══════════════════════════════════════════════
+// VIDA SANA (Bienestar: Alimentación + Ejercicio)
+// ═══════════════════════════════════════════════
+const Bienestar = {
+  history: [],
+  lastMode: null, // "alimentacion" o "ejercicio"
+
+  async planificar({ mode, userMessage, formData, onDelta }) {
+    this.history.push({ role: "user", content: userMessage });
+    this.lastMode = mode;
+
+    const data = await this._streamRequest({
+      mode,
+      messages: this.history,
+      formData,
+    }, onDelta);
+
+    this.history.push({ role: "assistant", content: data.reply });
+    return data;
+  },
+
+  async refinar(userMessage, onDelta) {
+    this.history.push({ role: "user", content: userMessage });
+
+    // El modo de refinamiento depende del último plan
+    const refinarMode = this.lastMode === "alimentacion" ? "refinar-alim" : "refinar-ej";
+
+    const data = await this._streamRequest({
+      mode: refinarMode,
+      messages: this.history,
+    }, onDelta);
+
+    this.history.push({ role: "assistant", content: data.reply });
+    return data;
+  },
+
+  reset() {
+    this.history = [];
+    this.lastMode = null;
+  },
+
+  // Helper interno: fetch con streaming SSE
+  async _streamRequest(body, onDelta) {
+    const token = localStorage.getItem("av_token");
+    const resp = await fetch("/api/bienestar", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const contentType = resp.headers.get("content-type") || "";
+    if (!contentType.includes("text/event-stream")) {
+      let errData;
+      try { errData = await resp.json(); } catch { errData = { error: "Error desconocido" }; }
+      throw new Error(errData.error || "Error en la solicitud");
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullReply = "";
+    let finalData = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() || "";
+
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        const lines = part.split("\n");
+        let eventName = "message";
+        let dataStr = "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) eventName = line.slice(7).trim();
+          else if (line.startsWith("data: ")) dataStr += line.slice(6);
+        }
+        if (!dataStr) continue;
+        let parsed;
+        try { parsed = JSON.parse(dataStr); } catch { continue; }
+
+        if (eventName === "delta") {
+          fullReply += parsed.text || "";
+          if (onDelta) onDelta(parsed.text || "", fullReply);
+        } else if (eventName === "done") {
+          finalData = parsed;
+        } else if (eventName === "error") {
+          throw new Error(parsed.error || "Error del servidor");
+        }
+      }
+    }
+
+    if (!finalData) return { reply: fullReply };
+    return finalData;
+  },
+
+  imprimir() {
+    if (this.history.length === 0) {
+      Toast.error("No hay plan para imprimir.");
+      return;
+    }
+    const lastAssistant = [...this.history].reverse().find(m => m.role === "assistant");
+    if (!lastAssistant) {
+      Toast.error("No hay plan para imprimir.");
+      return;
+    }
+    const win = window.open("", "_blank");
+    if (!win) {
+      Toast.error("No se pudo abrir la ventana de impresión. Permití pop-ups.");
+      return;
+    }
+    const html = mdRender(lastAssistant.content);
+    const titulo = this.lastMode === "alimentacion" ? "Mi Plan de Alimentación" : "Mi Rutina de Ejercicio";
+    win.document.write(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>${titulo} — AV MentorAI</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #1f2937; line-height: 1.7; }
+  h1, h2, h3 { color: #0f172a; }
+  h2 { border-bottom: 2px solid #22c55e; padding-bottom: 8px; margin-top: 30px; }
+  h3 { color: #16a34a; margin-top: 24px; }
+  hr { border: none; border-top: 1px dashed #d1d5db; margin: 24px 0; }
+  strong { color: #0f172a; }
+  .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px; text-align: center; }
+  @media print { body { margin: 20px; } }
+</style></head><body>
+  ${html}
+  <div class="footer">Generado con ⚡ AV MentorAI · ${new Date().toLocaleDateString("es-AR")}</div>
+</body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 500);
+  },
+
+  copiar() {
+    const lastAssistant = [...this.history].reverse().find(m => m.role === "assistant");
+    if (!lastAssistant) {
+      Toast.error("No hay plan para copiar.");
+      return;
+    }
+    navigator.clipboard.writeText(lastAssistant.content)
+      .then(() => Toast.success("📋 Plan copiado"))
       .catch(() => Toast.error("No se pudo copiar"));
   },
 };
