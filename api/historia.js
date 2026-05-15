@@ -99,7 +99,7 @@ TU ROL:
 
 REGLAS CRÍTICAS DE FORMATO:
 - Narrá MÁXIMO 3-4 párrafos cortos. NUNCA respondas con un texto enorme.
-- Terminá SIEMPRE con 3 o 4 opciones de decisión en este formato EXACTO:
+- Terminá SIEMPRE con 3 o 4 opciones de decisión en este formato EXACTO (con apertura Y cierre obligatorios):
 
 [OPCIONES]
 A) Texto de la opción A
@@ -107,6 +107,8 @@ B) Texto de la opción B
 C) Texto de la opción C
 D) Texto de la opción D (opcional)
 [/OPCIONES]
+
+⚠️ MUY IMPORTANTE: SIEMPRE cerrá con [/OPCIONES]. Sin esa línea de cierre el juego se rompe.
 
 - Las opciones tienen que ser MOVIDAS REALES distintas entre sí, no "Sí/No". Cada una abre un camino diferente.
 - NO escribas las consecuencias de cada opción en la lista — solo describí brevemente la acción.
@@ -118,7 +120,7 @@ REGLAS DE COHERENCIA:
 - Los personajes tienen memoria: si Javier te traicionó hace 5 días, todavía está enojado.
 
 REGLAS DE MÉTRICAS:
-Al final de cada respuesta, AGREGÁ ESTA LÍNEA (es obligatorio):
+Al final de cada respuesta, AGREGÁ ESTA LÍNEA DESPUÉS de [/OPCIONES] (es obligatorio):
 
 [METRICAS]
 plata: +/-NÚMERO
@@ -128,7 +130,26 @@ energia: +/-NÚMERO (0-100)
 dia: +1
 [/METRICAS]
 
-Los números son CAMBIOS desde el estado anterior. Pueden ser 0, positivos o negativos. Sé realista: comprar un café no cambia métricas; firmar un contrato millonario suma mucha plata; una noche sin dormir baja energía.`;
+⚠️ SIEMPRE cerrá el bloque con [/METRICAS]. Sin eso el juego no procesa los cambios.
+
+Los números son CAMBIOS desde el estado anterior. Pueden ser 0, positivos o negativos. Sé realista: comprar un café no cambia métricas; firmar un contrato millonario suma mucha plata; una noche sin dormir baja energía.
+
+EJEMPLO COMPLETO DE FINAL DE RESPUESTA:
+...última oración de la narración.
+
+[OPCIONES]
+A) Aceptar el trato
+B) Rechazar y buscar otro inversor
+C) Negociar mejores términos
+[/OPCIONES]
+
+[METRICAS]
+plata: 0
+salud: 0
+reputacion: 0
+energia: -5
+dia: 1
+[/METRICAS]`;
 
 const SYSTEM_INICIO = SYSTEM_BASE + `
 
@@ -350,23 +371,48 @@ export default async function handler(req, res) {
     }
 
     // ─── PARSEAR MÉTRICAS Y OPCIONES ────────────────────────
+    // Parser de métricas — acepta [METRICAS] con o sin cierre, y formato flexible
     const parseMetricas = (texto) => {
-      const match = texto.match(/\[METRICAS\]([\s\S]*?)\[\/METRICAS\]/i);
+      // Intento 1: con cierre [/METRICAS]
+      let match = texto.match(/\[METRICAS\]([\s\S]*?)\[\/METRICAS\]/i);
+      // Intento 2: sin cierre — desde [METRICAS] hasta el final
+      if (!match) match = texto.match(/\[METRICAS\]([\s\S]*?)$/i);
       if (!match) return null;
       const m = {};
       const lines = match[1].split("\n");
       for (const line of lines) {
-        const kv = line.match(/^(plata|salud|reputacion|energia|dia)\s*:\s*([+-]?\d+)/i);
+        const kv = line.match(/^\s*(plata|salud|reputacion|energia|dia)\s*:\s*([+-]?\d+)/i);
         if (kv) m[kv[1].toLowerCase()] = parseInt(kv[2], 10);
       }
-      return m;
+      return Object.keys(m).length > 0 ? m : null;
     };
 
+    // Parser de opciones — acepta [OPCIONES] con o sin cierre
     const parseOpciones = (texto) => {
-      const match = texto.match(/\[OPCIONES\]([\s\S]*?)\[\/OPCIONES\]/i);
-      if (!match) return [];
+      let dentroDelBloque = "";
+      // Intento 1: con cierre [/OPCIONES]
+      let match = texto.match(/\[OPCIONES\]([\s\S]*?)\[\/OPCIONES\]/i);
+      if (match) {
+        dentroDelBloque = match[1];
+      } else {
+        // Intento 2: sin cierre — desde [OPCIONES] hasta [METRICAS] o fin del texto
+        match = texto.match(/\[OPCIONES\]([\s\S]*?)(?=\[METRICAS\]|$)/i);
+        if (match) dentroDelBloque = match[1];
+      }
+      // Intento 3: si no hay [OPCIONES] pero hay líneas con A) B) C) D) al final
+      if (!dentroDelBloque) {
+        // Buscar las últimas líneas que empiecen con A) B) C) D)
+        const lines = texto.split("\n");
+        const opLines = [];
+        for (let i = lines.length - 1; i >= 0; i--) {
+          if (/^\s*[A-D]\s*\)/.test(lines[i])) opLines.unshift(lines[i]);
+          else if (opLines.length > 0) break; // ya pasamos las opciones
+        }
+        if (opLines.length >= 2) dentroDelBloque = opLines.join("\n");
+      }
+      if (!dentroDelBloque) return [];
       const opts = [];
-      const lines = match[1].split("\n");
+      const lines = dentroDelBloque.split("\n");
       for (const line of lines) {
         const m = line.match(/^\s*([A-D])\s*\)\s*(.+?)\s*$/);
         if (m) opts.push({ letra: m[1], texto: m[2] });
@@ -377,10 +423,16 @@ export default async function handler(req, res) {
     const cambiosMetricas = parseMetricas(fullReply);
     const opciones = parseOpciones(fullReply);
 
-    // Limpiar el texto narrativo (sin las secciones meta)
+    // Limpiar el texto narrativo (sin las secciones meta, incluso si están sin cerrar)
     const narrativaLimpia = fullReply
+      // Bloques con cierre
       .replace(/\[METRICAS\][\s\S]*?\[\/METRICAS\]/gi, "")
       .replace(/\[OPCIONES\][\s\S]*?\[\/OPCIONES\]/gi, "")
+      // Bloques SIN cierre: desde [METRICAS]/[OPCIONES] hasta fin de texto
+      .replace(/\[METRICAS\][\s\S]*$/gi, "")
+      .replace(/\[OPCIONES\][\s\S]*$/gi, "")
+      // Líneas A) B) C) D) sueltas al final (por si quedó algo)
+      .replace(/(\n\s*[A-D]\s*\).*)+$/g, "")
       .trim();
 
     // ─── APLICAR CAMBIOS A LA PARTIDA ──────────────────────
