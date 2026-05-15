@@ -469,26 +469,13 @@ export default async function handler(req, res) {
                 size: "1024x1024",
               });
             } else {
-              // Generar sin imagen base — intentar gpt-image-1, fallback dall-e-3
-              try {
-                result = await openai.images.generate({
-                  model: "gpt-image-1",
-                  prompt: promptLimpio,
-                  size: "1024x1024",
-                  n: 1,
-                });
-              } catch (errModel) {
-                const m = (errModel?.message || "").toLowerCase();
-                if (m.includes("model") && (m.includes("not found") || m.includes("does not exist") || m.includes("invalid"))) {
-                  result = await openai.images.generate({
-                    model: "dall-e-3",
-                    prompt: promptLimpio,
-                    size: "1024x1024",
-                    n: 1,
-                    response_format: "b64_json",
-                  });
-                } else throw errModel;
-              }
+              // Generar sin imagen base — usar gpt-image-1 (calidad superior)
+              result = await openai.images.generate({
+                model: "gpt-image-1",
+                prompt: promptLimpio,
+                size: "1024x1024",
+                quality: "medium",
+              });
             }
           } catch (errGen) {
             console.error("Error generando imagen:", errGen);
