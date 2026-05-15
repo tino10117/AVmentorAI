@@ -25,6 +25,27 @@ async function getKV() {
   });
 }
 
+// Obtener IP real del cliente (Vercel pone el header x-forwarded-for)
+function getClientIP(req) {
+  const xff = req.headers["x-forwarded-for"] || req.headers["x-real-ip"] || "";
+  return xff.split(",")[0].trim() || "unknown";
+}
+
+// Rate limit por IP — anti-bots y abuso desde la misma IP
+async function checkIPLimit(kv, ip, maxPerHour = 100) {
+  if (ip === "unknown") return { ok: true };
+  const hourKey = `ip_limit:${ip}:${new Date().toISOString().slice(0, 13)}`;
+  const count = parseInt(await kv.get(hourKey) || "0", 10);
+  if (count >= maxPerHour) {
+    return {
+      ok: false,
+      message: "Demasiadas peticiones desde tu IP. Esperá un rato y volvé a intentar."
+    };
+  }
+  await kv.set(hourKey, count + 1, { ex: 3600 });
+  return { ok: true };
+}
+
 // ─── Detector de pedidos de imagen ──────────────────────────────
 // Hace un mini-clasificador con gpt-4o-mini que devuelve true/false.
 // Usado solo en Mentor / Conversación Libre.
@@ -390,6 +411,17 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  // ═══════════════════════════════════════════════════════════════
+  // RATE LIMIT POR IP (anti-bots, anti-abuso desde la misma IP)
+  // 100 requests/hora por IP, sin importar cuántas cuentas tenga
+  // ═══════════════════════════════════════════════════════════════
+  const clientIP = getClientIP(req);
+  const kvForIP = await getKV();
+  const ipCheck = await checkIPLimit(kvForIP, clientIP, 100);
+  if (!ipCheck.ok) {
+    return res.status(429).json({ error: ipCheck.message });
+  }
 
   let decoded;
   try { decoded = verifyToken(req); }
