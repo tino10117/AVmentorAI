@@ -66,11 +66,83 @@ const API = {
     return this.req("/api/ranking");
   },
 
+  // API.chat ahora es un wrapper sobre chatStream que junta toda la respuesta y la devuelve.
+  // Mantiene compatibilidad con herramientas (Inglés traductor, Diario, Mate, etc.) que esperan
+  // un { reply, ... } final sin streaming en vivo.
   async chat({ type, messages, modo, desafio, leccion, englishModo, mateModo, useWebSearch, image }) {
-    return this.req("/api/chat", "POST", {
-      type, messages, user: App.user, modo: modo || App.modo,
-      desafio: desafio || App.desafio, leccion, englishModo, mateModo, useWebSearch, image,
+    return this.chatStream(
+      { type, messages, modo, desafio, leccion, englishModo, mateModo, useWebSearch, image },
+      null // sin callback de delta — junta todo y devuelve al final
+    );
+  },
+
+  // Streaming SSE para el chat (Mentor, Inglés, Mate, Roleplay)
+  // onDelta(chunk, fullText) se llama por cada chunk que llega
+  async chatStream({ type, messages, modo, desafio, leccion, englishModo, mateModo, useWebSearch, image }, onDelta) {
+    const resp = await fetch(this.base + "/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": App.token ? `Bearer ${App.token}` : "",
+      },
+      body: JSON.stringify({
+        type, messages, user: App.user, modo: modo || App.modo,
+        desafio: desafio || App.desafio, leccion, englishModo, mateModo, useWebSearch, image,
+      }),
     });
+
+    // Si NO es SSE (error 401/429/etc.), devuelve JSON normal
+    const contentType = resp.headers.get("content-type") || "";
+    if (!contentType.includes("text/event-stream")) {
+      let errData;
+      try { errData = await resp.json(); } catch { errData = { error: "Error desconocido" }; }
+      if (!resp.ok) throw new Error(errData.error || "Error del servidor");
+      // Respuesta JSON normal (compatibilidad backwards)
+      return { reply: errData.reply || "" };
+    }
+
+    // Parsear el stream SSE
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullReply = "";
+    let finalData = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() || "";
+
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        const lines = part.split("\n");
+        let eventName = "message";
+        let dataStr = "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) eventName = line.slice(7).trim();
+          else if (line.startsWith("data: ")) dataStr += line.slice(6);
+        }
+        if (!dataStr) continue;
+        let parsed;
+        try { parsed = JSON.parse(dataStr); } catch { continue; }
+
+        if (eventName === "delta") {
+          fullReply += parsed.text || "";
+          if (onDelta) onDelta(parsed.text || "", fullReply);
+        } else if (eventName === "done") {
+          finalData = parsed;
+        } else if (eventName === "error") {
+          throw new Error(parsed.error || "Error del servidor");
+        }
+      }
+    }
+
+    if (!finalData) return { reply: fullReply };
+    if (!finalData.reply) finalData.reply = fullReply;
+    return finalData;
   },
 };
 
@@ -328,6 +400,7 @@ function navigateTo(tabId) {
   if (tabId === "herramientas") { renderHerramientas(); setSubnav("herr","competencia"); }
   if (tabId === "viajes") { renderViajes(); setSubnav("viajes","itinerario"); }
   if (tabId === "vidasana") { renderVidaSana(); setSubnav("vidasana","alimentacion"); }
+  if (tabId === "juegos") { renderJuegos(); setSubnav("juegos","historia"); }
 }
 
 function setSubnav(section, value) {
@@ -373,13 +446,41 @@ const Chat = {
     this._clearImagePreview();
     const spinner = showSpinner(container);
 
+    // Preparamos el div donde se va escribiendo la respuesta en vivo
+    let streamingDiv = null;
+    let streamingTextEl = null;
+    const showStreamingMsg = () => {
+      removeSpinner();
+      streamingDiv = document.createElement("div");
+      streamingDiv.className = `chat-msg ${msgClass}`;
+      streamingDiv.innerHTML = `<div class="chat-msg-header">
+        <div class="chat-avatar" style="background:${avatarGrad}">${aiIcon}</div>
+        <span class="chat-name" style="color:${aiColor}">${aiName}</span>
+      </div><div class="chat-msg-body"></div>`;
+      streamingTextEl = streamingDiv.querySelector(".chat-msg-body");
+      container.appendChild(streamingDiv);
+      scrollBottom(container);
+    };
+
     try {
       const history = App.chatMessages[messagesKey].slice(-16).map(m => ({ role: m.role, content: m.content }));
-      const data = await API.chat({ type: type === "englishRoleplay" ? "english" : type, messages: history, englishModo, mateModo, useWebSearch, image: pendingImage });
-      removeSpinner();
+      const data = await API.chatStream(
+        { type: type === "englishRoleplay" ? "english" : type, messages: history, englishModo, mateModo, useWebSearch, image: pendingImage },
+        (chunk, fullText) => {
+          if (!streamingDiv) showStreamingMsg();
+          if (streamingTextEl) {
+            streamingTextEl.innerHTML = mdRender(fullText);
+            scrollBottom(container);
+          }
+        }
+      );
+      // Si NO hubo streaming (respuesta JSON normal), mostramos el mensaje completo de una
+      if (!streamingDiv) {
+        removeSpinner();
+        this.appendMsg(container, data.reply, msgClass, aiName, aiIcon, avatarGrad, aiColor);
+      }
       const reply = data.reply;
       App.chatMessages[messagesKey].push({ role: "assistant", content: reply });
-      this.appendMsg(container, reply, msgClass, aiName, aiIcon, avatarGrad, aiColor);
       UserHelper.accion("chat_message");
 
       // Save messages to user object
@@ -390,6 +491,7 @@ const Chat = {
       API.saveUser({ [userKey]: App.user[userKey] }).catch(() => {});
     } catch (err) {
       removeSpinner();
+      if (streamingDiv) streamingDiv.remove();
       Toast.error(err.message);
       this.appendMsg(container, "❌ " + err.message, msgClass, aiName, aiIcon, avatarGrad, aiColor);
     }
@@ -918,5 +1020,146 @@ const Bienestar = {
     navigator.clipboard.writeText(lastAssistant.content)
       .then(() => Toast.success("📋 Plan copiado"))
       .catch(() => Toast.error("No se pudo copiar"));
+  },
+};
+
+// ═══════════════════════════════════════════════
+// MODO HISTORIA — Juego narrativo con IA
+// ═══════════════════════════════════════════════
+const Historia = {
+  // Estado de la partida activa en memoria (se carga desde backend)
+  partidaActual: null,
+  ultimasOpciones: [], // opciones del último turno
+  cargandoTurno: false,
+
+  // ─── LISTAR PARTIDAS ────────────────────────────────────
+  async listar() {
+    const token = localStorage.getItem("av_token");
+    const resp = await fetch("/api/historia", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+      },
+      body: JSON.stringify({ action: "listar" }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Error" }));
+      throw new Error(err.error || "Error listando partidas");
+    }
+    return await resp.json();
+  },
+
+  // ─── BORRAR PARTIDA ─────────────────────────────────────
+  async borrar(partida_id) {
+    const token = localStorage.getItem("av_token");
+    const resp = await fetch("/api/historia", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+      },
+      body: JSON.stringify({ action: "borrar", partida_id }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Error" }));
+      throw new Error(err.error || "Error borrando partida");
+    }
+    return await resp.json();
+  },
+
+  // ─── INICIAR PARTIDA NUEVA ──────────────────────────────
+  async iniciar({ escenario_id, escenario_libre, onDelta }) {
+    return this._streamRequest({
+      action: "iniciar",
+      escenario_id,
+      escenario_libre,
+    }, onDelta);
+  },
+
+  // ─── AVANZAR (decisión del jugador) ─────────────────────
+  async avanzar({ partida_id, decision, onDelta }) {
+    return this._streamRequest({
+      action: "avanzar",
+      partida_id,
+      decision,
+    }, onDelta);
+  },
+
+  // ─── RETOMAR (recap de partida pausada) ─────────────────
+  async retomar({ partida_id, onDelta }) {
+    return this._streamRequest({
+      action: "retomar",
+      partida_id,
+    }, onDelta);
+  },
+
+  // ─── Helper: streaming SSE ──────────────────────────────
+  async _streamRequest(body, onDelta) {
+    const token = localStorage.getItem("av_token");
+    const resp = await fetch("/api/historia", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const contentType = resp.headers.get("content-type") || "";
+    if (!contentType.includes("text/event-stream")) {
+      let errData;
+      try { errData = await resp.json(); } catch { errData = { error: "Error desconocido" }; }
+      throw new Error(errData.error || "Error en la solicitud");
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullReply = "";
+    let finalData = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() || "";
+
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        const lines = part.split("\n");
+        let eventName = "message";
+        let dataStr = "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) eventName = line.slice(7).trim();
+          else if (line.startsWith("data: ")) dataStr += line.slice(6);
+        }
+        if (!dataStr) continue;
+        let parsed;
+        try { parsed = JSON.parse(dataStr); } catch { continue; }
+
+        if (eventName === "delta") {
+          fullReply += parsed.text || "";
+          if (onDelta) onDelta(parsed.text || "", fullReply);
+        } else if (eventName === "done") {
+          finalData = parsed;
+        } else if (eventName === "error") {
+          throw new Error(parsed.error || "Error del servidor");
+        }
+      }
+    }
+
+    if (!finalData) return { reply: fullReply };
+    return finalData;
+  },
+
+  // ─── Limpiar narrativa para mostrar (sin tags meta) ────
+  limpiarNarrativa(texto) {
+    return String(texto || "")
+      .replace(/\[METRICAS\][\s\S]*?\[\/METRICAS\]/gi, "")
+      .replace(/\[OPCIONES\][\s\S]*?\[\/OPCIONES\]/gi, "")
+      .trim();
   },
 };
