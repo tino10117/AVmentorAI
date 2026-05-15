@@ -188,6 +188,58 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, usuario: resto });
     }
 
+    // ════════════════════════════════════════════════
+    // GASTO Y HARD CAP
+    // ════════════════════════════════════════════════
+    if (action === "gasto") {
+      // Devuelve gasto del día, cap actual, y últimos 7 días
+      const today = new Date().toISOString().split("T")[0];
+      const capActual = parseFloat(await kv.get("system_cap_usd") || "10");
+      const gastoHoy = parseFloat(await kv.get(`system_spent:${today}`) || "0");
+
+      // Últimos 7 días
+      const dias = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dStr = d.toISOString().split("T")[0];
+        const monto = parseFloat(await kv.get(`system_spent:${dStr}`) || "0");
+        dias.push({ fecha: dStr, gasto: monto });
+      }
+
+      return res.status(200).json({
+        ok: true,
+        gasto_hoy: gastoHoy,
+        cap_actual: capActual,
+        porcentaje_usado: capActual > 0 ? (gastoHoy / capActual) * 100 : 0,
+        dias_recientes: dias,
+        bloqueado: gastoHoy >= capActual,
+      });
+    }
+
+    if (action === "set_cap") {
+      const nuevoCap = parseFloat(body.cap || "10");
+      if (isNaN(nuevoCap) || nuevoCap < 1 || nuevoCap > 1000) {
+        return res.status(400).json({ error: "El cap debe estar entre $1 y $1000 USD" });
+      }
+      await kv.set("system_cap_usd", nuevoCap.toString());
+      return res.status(200).json({
+        ok: true,
+        message: `Cap actualizado a $${nuevoCap} USD/día`,
+        cap_actual: nuevoCap,
+      });
+    }
+
+    if (action === "reset_gasto") {
+      // Útil si querés reiniciar manualmente el contador (después de un día anómalo)
+      const today = new Date().toISOString().split("T")[0];
+      await kv.set(`system_spent:${today}`, "0", { ex: 172800 });
+      return res.status(200).json({
+        ok: true,
+        message: "Contador de gasto del día reseteado a $0",
+      });
+    }
+
     return res.status(400).json({ error: `Acción desconocida: ${action}` });
 
   } catch (err) {
