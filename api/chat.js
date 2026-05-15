@@ -15,6 +15,67 @@ function verifyToken(req) {
   return jwt.verify(token, JWT_SECRET);
 }
 
+// ─── Detector de pedidos de imagen ──────────────────────────────
+// Hace un mini-clasificador con gpt-4o-mini que devuelve true/false.
+// Usado solo en Mentor / Conversación Libre.
+async function detectarPedidoImagen(textoUsuario, tieneImagenAdjunta) {
+  try {
+    // Heurística rápida para evitar llamada innecesaria
+    const lower = textoUsuario.toLowerCase();
+    const palabrasGenerar = [
+      "generá una imagen", "genera una imagen", "creá una imagen", "crea una imagen",
+      "hacé una imagen", "hace una imagen", "haceme una imagen", "hazme una imagen",
+      "dibujame", "dibujá", "dibuja", "imagen de", "una foto de", "hazme un dibujo",
+      "create an image", "generate image", "draw me", "imagine",
+    ];
+    const palabrasEditar = [
+      "transformá", "transforma", "mostrámelo", "mostramelo", "mostrame",
+      "editá esta", "edita esta", "convertí esta", "convierte esta",
+      "cambiá el", "cambia el", "modificá", "modifica",
+      "ponele un", "poné un", "agrega un", "agregale", "agregá",
+      "fondo", "estilo", "color", "versión",
+    ];
+
+    // Si tiene imagen adjunta, las palabras de "editar" cuentan más
+    if (tieneImagenAdjunta) {
+      for (const p of palabrasEditar) {
+        if (lower.includes(p)) return true;
+      }
+    }
+    // Palabras claras de "generar imagen"
+    for (const p of palabrasGenerar) {
+      if (lower.includes(p)) return true;
+    }
+
+    // Si no matcheó la heurística pero igual parece dudoso, preguntamos a la IA
+    // Solo si el mensaje es corto (típico de pedidos de imagen)
+    if (textoUsuario.length > 200 && !tieneImagenAdjunta) return false;
+
+    const resp = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `Sos un clasificador. Recibís un mensaje del usuario y respondés SOLO "image" o "chat".
+- "image" = el usuario pide GENERAR, CREAR, DIBUJAR, EDITAR, MODIFICAR, TRANSFORMAR una imagen.
+- "chat" = el usuario quiere conversar, preguntar, pedir consejo, o cualquier otra cosa.
+${tieneImagenAdjunta ? 'CONTEXTO: el usuario adjuntó una imagen.' : ''}
+Respondé con UNA SOLA PALABRA: image o chat.`,
+        },
+        { role: "user", content: textoUsuario },
+      ],
+      max_tokens: 5,
+      temperature: 0,
+    });
+    const out = (resp.choices?.[0]?.message?.content || "").toLowerCase().trim();
+    return out.includes("image");
+  } catch (err) {
+    console.error("Error en detectarPedidoImagen:", err);
+    return false; // si falla, default a chat (más seguro)
+  }
+}
+
+
 // ─── Modos del Mentor (10 especializados + 1 libre) ──────────
 
 const MODOS = {
@@ -344,6 +405,58 @@ export default async function handler(req, res) {
   // Validación: imágenes solo para Premium/Empresarial
   if (image && user.plan === "Gratis") {
     return res.status(403).json({ error: "Subir imágenes es una función Premium. Actualizá tu plan para usarla." });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // DETECTOR DE PEDIDO DE IMAGEN (solo Mentor / Conversación Libre)
+  // Si el último mensaje del usuario pide explícitamente generar/editar
+  // una imagen, derivamos a /api/edit-image
+  // ═══════════════════════════════════════════════════════════════
+  const esModoLibre = type === "negocio" && modo === "Conversación Libre";
+  if (esModoLibre) {
+    const ultimoUser = [...messages].reverse().find(m => m.role === "user");
+    const textoUsuario = (ultimoUser?.content || "").toString().trim();
+    if (textoUsuario && textoUsuario.length > 0) {
+      const pideImagen = await detectarPedidoImagen(textoUsuario, !!image);
+      if (pideImagen) {
+        // Reenviamos al endpoint de imagen reusando el mismo token
+        try {
+          const baseUrl = req.headers["x-forwarded-proto"]
+            ? `${req.headers["x-forwarded-proto"]}://${req.headers.host}`
+            : `https://${req.headers.host}`;
+          const respImg = await fetch(`${baseUrl}/api/edit-image`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": req.headers.authorization,
+            },
+            body: JSON.stringify({
+              prompt: textoUsuario,
+              image_base64: image || null,
+            }),
+          });
+          const dataImg = await respImg.json();
+          if (!respImg.ok) {
+            return res.status(respImg.status).json(dataImg);
+          }
+          // Respondemos como si fuese un mensaje del chat pero con tipo "image"
+          return res.status(200).json({
+            ok: true,
+            tipo: "image",
+            image_url: dataImg.image_url,
+            modo: dataImg.modo,
+            reply: dataImg.modo === "edit"
+              ? "✨ Listo, acá tenés tu imagen editada."
+              : "✨ Listo, acá tenés tu imagen.",
+            used: dataImg.used,
+            limit: dataImg.limit,
+          });
+        } catch (err) {
+          console.error("Error derivando a edit-image:", err);
+          return res.status(500).json({ error: "Error generando la imagen" });
+        }
+      }
+    }
   }
 
   // Rate limit básico (plan Gratis)
