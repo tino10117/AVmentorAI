@@ -4,7 +4,6 @@
 
 import OpenAI from "openai";
 import jwt from "jsonwebtoken";
-import { toFile } from "openai/uploads";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const JWT_SECRET = process.env.JWT_SECRET || "av-mentorai-fixed-secret-2024";
@@ -15,6 +14,10 @@ const LIMITS = {
   Premium: 999,        // "ilimitado" práctico
   Empresarial: 999,
 };
+
+// Modelo principal y fallback
+const MODEL_PRIMARY = "gpt-image-1";
+const MODEL_FALLBACK = "dall-e-3";
 
 async function getKV() {
   const { Redis } = await import("@upstash/redis");
@@ -56,6 +59,19 @@ function dataUrlToBuffer(dataUrl) {
   return { mime: match[1], buffer: Buffer.from(match[2], "base64") };
 }
 
+// Convierte Buffer a un File-like compatible con OpenAI SDK (sin usar "openai/uploads")
+async function bufferToFileLike(buffer, filename, mimeType) {
+  // En entornos modernos de Node 18+, File está disponible globalmente
+  if (typeof File !== "undefined") {
+    return new File([buffer], filename, { type: mimeType });
+  }
+  // Fallback: crear un Blob-like manualmente (compatible con el SDK)
+  // OpenAI SDK acepta cualquier objeto con propiedades correctas
+  const blob = new Blob([buffer], { type: mimeType });
+  blob.name = filename;
+  return blob;
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -95,62 +111,94 @@ export default async function handler(req, res) {
   }
 
   // ─── Generación o Edición ───────────────────────
-  try {
-    let result;
-    const promptLimpio = prompt.trim().slice(0, 1000);
+  const promptLimpio = prompt.trim().slice(0, 1000);
+  const tieneImagen = !!image_base64;
 
-    if (image_base64) {
-      // ─ MODO EDIT ─
-      const { mime, buffer } = dataUrlToBuffer(image_base64);
-
-      if (buffer.length > 4 * 1024 * 1024) {
-        return res.status(400).json({ error: "La imagen es muy grande (máx 4MB)" });
+  // Función interna: intentar con un modelo, devolver result o lanzar error
+  async function intentarConModelo(modelo) {
+    if (tieneImagen) {
+      // Modo edit (solo disponible con gpt-image-1)
+      if (modelo !== "gpt-image-1") {
+        throw new Error("La edición de imágenes solo está disponible con gpt-image-1");
       }
-
-      // gpt-image-1 acepta png/jpeg/webp para edición
+      const { mime, buffer } = dataUrlToBuffer(image_base64);
+      if (buffer.length > 4 * 1024 * 1024) {
+        throw new Error("La imagen es muy grande (máx 4MB)");
+      }
       const ext = mime.includes("png") ? "png"
                 : mime.includes("webp") ? "webp"
                 : "jpg";
-      const imageFile = await toFile(buffer, `input.${ext}`, { type: mime });
-
-      result = await openai.images.edit({
+      const fileLike = await bufferToFileLike(buffer, `input.${ext}`, mime);
+      return await openai.images.edit({
         model: "gpt-image-1",
-        image: imageFile,
+        image: fileLike,
         prompt: promptLimpio,
         size: "1024x1024",
-        quality: "medium",
       });
     } else {
-      // ─ MODO GENERATE ─
-      result = await openai.images.generate({
-        model: "gpt-image-1",
+      // Modo generate
+      const opts = {
+        model: modelo,
         prompt: promptLimpio,
         size: "1024x1024",
-        quality: "medium",
-      });
+        n: 1,
+      };
+      // dall-e-3 requiere response_format explícito
+      if (modelo === "dall-e-3") {
+        opts.response_format = "b64_json";
+      }
+      return await openai.images.generate(opts);
+    }
+  }
+
+  try {
+    let result;
+    let modeloUsado = MODEL_PRIMARY;
+
+    // Intento 1: gpt-image-1
+    try {
+      result = await intentarConModelo(MODEL_PRIMARY);
+    } catch (err1) {
+      // Si es error de modelo no encontrado, intentar fallback (solo si no tiene imagen)
+      const errMsg1 = (err1?.error?.message || err1?.message || "").toLowerCase();
+      const esErrorDeModelo = errMsg1.includes("model") && (errMsg1.includes("not found") || errMsg1.includes("does not exist") || errMsg1.includes("invalid"));
+      if (esErrorDeModelo && !tieneImagen) {
+        console.warn("gpt-image-1 no disponible, usando dall-e-3");
+        result = await intentarConModelo(MODEL_FALLBACK);
+        modeloUsado = MODEL_FALLBACK;
+      } else {
+        throw err1;
+      }
     }
 
-    // gpt-image-1 devuelve b64_json
-    const imgB64 = result?.data?.[0]?.b64_json;
-    if (!imgB64) {
-      console.error("Respuesta sin b64:", JSON.stringify(result).slice(0, 200));
+    // Procesar resultado: puede venir como b64_json o url
+    const imgData = result?.data?.[0];
+    let imageUrl = null;
+    if (imgData?.b64_json) {
+      imageUrl = `data:image/png;base64,${imgData.b64_json}`;
+    } else if (imgData?.url) {
+      imageUrl = imgData.url;
+    }
+    if (!imageUrl) {
+      console.error("Respuesta sin imagen:", JSON.stringify(result).slice(0, 200));
       return res.status(500).json({ error: "La IA no devolvió imagen" });
     }
-    const imageUrl = `data:image/png;base64,${imgB64}`;
 
     // Log opcional (para auditoría)
     try {
       await kv.set(`imggen_log:${userEmail}:${Date.now()}`, {
         prompt: promptLimpio,
-        modo: image_base64 ? "edit" : "generate",
+        modo: tieneImagen ? "edit" : "generate",
+        modelo: modeloUsado,
         ts: new Date().toISOString(),
-      }, { ex: 60 * 60 * 24 * 30 }); // 30 días
+      }, { ex: 60 * 60 * 24 * 30 });
     } catch {}
 
     return res.status(200).json({
       ok: true,
       image_url: imageUrl,
-      modo: image_base64 ? "edit" : "generate",
+      modo: tieneImagen ? "edit" : "generate",
+      modelo: modeloUsado,
       used: check.used,
       limit: check.limit,
     });
@@ -158,13 +206,16 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error("Error edit-image:", err);
     const errMsg = err?.error?.message || err?.message || "Error generando imagen";
+    const errLower = errMsg.toLowerCase();
 
-    // Mensajes más amables para el usuario
-    if (errMsg.toLowerCase().includes("safety") || errMsg.toLowerCase().includes("content_policy")) {
+    if (errLower.includes("safety") || errLower.includes("content_policy")) {
       return res.status(400).json({ error: "El pedido fue rechazado por las políticas de contenido. Probá con otro pedido." });
     }
-    if (errMsg.toLowerCase().includes("rate")) {
+    if (errLower.includes("rate")) {
       return res.status(429).json({ error: "Demasiadas solicitudes. Probá en unos segundos." });
+    }
+    if (errLower.includes("model") && (errLower.includes("not found") || errLower.includes("does not exist"))) {
+      return res.status(500).json({ error: "El modelo de imágenes no está disponible en tu cuenta de OpenAI. Verificá que tengas acceso a gpt-image-1 o dall-e-3." });
     }
     return res.status(500).json({ error: errMsg });
   }
