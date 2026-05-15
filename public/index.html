@@ -216,6 +216,10 @@
     <div class="nav-section">CUENTA</div>
     <button class="nav-btn" data-tab="premium" onclick="navigateTo('premium')"><span class="nav-icon">💎</span> Premium</button>
     <button class="nav-btn" data-tab="config" onclick="navigateTo('config')"><span class="nav-icon">⚙️</span> Configuración</button>
+    <div id="admin-section" style="display:none">
+      <div class="nav-section" style="color:#fbbf24">🛡️ ADMIN</div>
+      <button class="nav-btn" data-tab="admin" onclick="navigateTo('admin')" style="color:#fbbf24"><span class="nav-icon">🛠️</span> Panel Admin</button>
+    </div>
     <button class="nav-btn" onclick="doLogout()" style="margin-top:auto;color:#ef4444"><span class="nav-icon">🚪</span> Cerrar sesión</button>
   </nav>
 
@@ -423,6 +427,12 @@
     <div id="tab-config" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">⚙️ Configuración</h2>
       <div id="config-content"></div>
+    </div>
+
+    <!-- TAB: ADMIN (solo visible para Valentino) -->
+    <div id="tab-admin" class="tab-content hidden">
+      <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px;color:#fbbf24">🛡️ Panel Admin</h2>
+      <div id="admin-content"></div>
     </div>
 
   </main>

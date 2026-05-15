@@ -3291,3 +3291,185 @@ function volverAlMenuEmpire() {
   Empire.ultimasOpciones = [];
   renderJuegosEmpire();
 }
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN PANEL — Solo visible para el admin (valen810a@gmail.com)
+// ═══════════════════════════════════════════════════════════════
+
+async function renderAdminPanel() {
+  const c = document.getElementById("admin-content");
+  if (!c) return;
+
+  if (!Admin.esAdmin()) {
+    c.innerHTML = `
+      <div class="alert alert-error">
+        🚫 No tenés permisos para ver este panel. Esta sección es solo para el admin de la app.
+      </div>
+    `;
+    return;
+  }
+
+  c.innerHTML = `
+    <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:14px 16px;margin-bottom:18px">
+      <strong style="color:#fbbf24">🛡️ Modo Admin activo</strong>
+      <p class="text-muted" style="font-size:12px;margin-top:6px;margin-bottom:0">
+        Desde acá podés activar/desactivar Premium a otros usuarios mientras integrás pagos reales.
+      </p>
+    </div>
+
+    <!-- ─── ESTADÍSTICAS ─── -->
+    <div class="card mb-4" style="border-left:3px solid #38bdf8">
+      <h3 style="font-size:16px;margin-bottom:12px">📊 Estadísticas de la app</h3>
+      <div id="admin-stats">
+        <div class="loading-row" style="padding:14px"><div class="spinner"></div>
+          <span style="margin-left:10px;color:#94a3b8">Calculando…</span></div>
+      </div>
+    </div>
+
+    <!-- ─── ACTIVAR PREMIUM RÁPIDO ─── -->
+    <div class="card mb-4" style="border-left:3px solid #fbbf24">
+      <h3 style="font-size:16px;margin-bottom:12px">⚡ Cambiar plan de un usuario</h3>
+      <p class="text-muted" style="font-size:12px;margin-bottom:12px">
+        Pegá el email del usuario y elegí el plan. Cambio inmediato.
+      </p>
+
+      <div style="display:grid;gap:10px">
+        <input type="email" id="admin-email" class="input" placeholder="ejemplo: hermano@gmail.com" autocomplete="off">
+        <select id="admin-plan" class="input">
+          <option value="Premium">💎 Premium</option>
+          <option value="Empresarial">🏢 Empresarial</option>
+          <option value="Gratis">🆓 Gratis (downgrade)</option>
+        </select>
+        <button class="btn btn-primary" onclick="adminCambiarPlan()">
+          ✅ Activar plan
+        </button>
+      </div>
+
+      <div id="admin-result" style="margin-top:12px"></div>
+    </div>
+
+    <!-- ─── LISTA DE USUARIOS ─── -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <h3 style="font-size:16px;margin:0">👥 Usuarios registrados</h3>
+        <button class="btn btn-ghost btn-sm" onclick="renderAdminPanel()">🔄 Refrescar</button>
+      </div>
+      <div id="admin-users-list">
+        <div class="loading-row" style="padding:20px"><div class="spinner"></div>
+          <span style="margin-left:10px;color:#94a3b8">Cargando usuarios…</span></div>
+      </div>
+    </div>
+  `;
+
+  // Cargar estadísticas
+  Admin.stats().then(data => {
+    const s = data.stats;
+    const statsEl = document.getElementById("admin-stats");
+    if (statsEl) {
+      statsEl.innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:12px">
+          <div style="background:rgba(34,197,94,.1);padding:12px;border-radius:10px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:#86efac">${s.total}</div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Total usuarios</div>
+          </div>
+          <div style="background:rgba(168,85,247,.1);padding:12px;border-radius:10px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:#d8b4fe">${s.plan.premium}</div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Premium</div>
+          </div>
+          <div style="background:rgba(100,116,139,.1);padding:12px;border-radius:10px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:#cbd5e1">${s.plan.gratis}</div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Gratis</div>
+          </div>
+          <div style="background:rgba(56,189,248,.1);padding:12px;border-radius:10px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:#7dd3fc">${s.conversion_premium}%</div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Conversión</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;font-size:12px;color:#94a3b8;flex-wrap:wrap">
+          <span>🔥 Activos últimos 7 días: <strong style="color:#86efac">${s.actividad.activos_7d}</strong></span>
+          <span>📅 Activos últimos 30 días: <strong style="color:#86efac">${s.actividad.activos_30d}</strong></span>
+        </div>
+      `;
+    }
+  }).catch(e => {
+    const statsEl = document.getElementById("admin-stats");
+    if (statsEl) statsEl.innerHTML = `<div class="alert alert-error">❌ ${esc(e.message)}</div>`;
+  });
+
+  // Cargar lista de usuarios
+  try {
+    const data = await Admin.listarUsuarios();
+    const users = data.usuarios || [];
+
+    const listEl = document.getElementById("admin-users-list");
+    if (users.length === 0) {
+      listEl.innerHTML = `<p class="text-muted">No hay usuarios registrados aún.</p>`;
+    } else {
+      listEl.innerHTML = `
+        <p class="text-muted" style="font-size:12px;margin-bottom:12px">Total: ${data.total} usuarios</p>
+        ${users.map(u => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid rgba(255,255,255,.06);border-radius:8px;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+            <div style="flex:1;min-width:200px">
+              <div style="font-weight:600;font-size:14px">${esc(u.nombre)}</div>
+              <div style="font-size:11px;color:#94a3b8">${esc(u.email)}</div>
+              <div style="font-size:11px;color:#64748b;margin-top:2px">
+                ${u.xp || 0} XP · 🔥 ${u.racha || 0} días
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${u.plan === 'Premium' ? 'rgba(168,85,247,.2);color:#d8b4fe' : u.plan === 'Empresarial' ? 'rgba(245,158,11,.2);color:#fbbf24' : 'rgba(100,116,139,.2);color:#94a3b8'}">
+                ${u.plan}
+              </span>
+              ${u.plan === "Gratis"
+                ? `<button class="btn btn-primary btn-sm" onclick="adminActivarRapido('${esc(u.email)}','Premium')">→ Premium</button>`
+                : `<button class="btn btn-ghost btn-sm" onclick="adminActivarRapido('${esc(u.email)}','Gratis')" style="color:#94a3b8">→ Gratis</button>`}
+            </div>
+          </div>
+        `).join("")}
+      `;
+    }
+  } catch (e) {
+    document.getElementById("admin-users-list").innerHTML = `
+      <div class="alert alert-error">❌ ${esc(e.message)}</div>
+    `;
+  }
+}
+
+async function adminCambiarPlan() {
+  const email = document.getElementById("admin-email").value.trim().toLowerCase();
+  const plan = document.getElementById("admin-plan").value;
+  const resultEl = document.getElementById("admin-result");
+
+  if (!email) {
+    resultEl.innerHTML = `<div class="alert alert-error">❌ Pegá un email primero.</div>`;
+    return;
+  }
+
+  resultEl.innerHTML = `<div class="loading-row" style="padding:12px"><div class="spinner"></div><span style="margin-left:10px;color:#94a3b8">Aplicando cambio…</span></div>`;
+
+  try {
+    const data = await Admin.cambiarPlan(email, plan);
+    resultEl.innerHTML = `
+      <div class="alert alert-success">
+        ✅ ${esc(data.mensaje)}
+        <br><small style="opacity:.7">El usuario debe cerrar sesión y volver a entrar para ver el cambio.</small>
+      </div>
+    `;
+    document.getElementById("admin-email").value = "";
+    // Refrescar lista
+    setTimeout(() => renderAdminPanel(), 1500);
+  } catch (e) {
+    resultEl.innerHTML = `<div class="alert alert-error">❌ ${esc(e.message)}</div>`;
+  }
+}
+
+async function adminActivarRapido(email, plan) {
+  if (!confirm(`¿Cambiar el plan de ${email} a ${plan}?`)) return;
+  try {
+    await Admin.cambiarPlan(email, plan);
+    Toast.success(`✅ ${email} ahora es ${plan}`);
+    setTimeout(() => renderAdminPanel(), 800);
+  } catch (e) {
+    Toast.error(e.message);
+  }
+}
