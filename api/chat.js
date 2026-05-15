@@ -46,6 +46,57 @@ async function checkIPLimit(kv, ip, maxPerHour = 100) {
   return { ok: true };
 }
 
+// ═══════════════════════════════════════════════════════════════
+// HARD CAP GLOBAL — Salvavidas económico del sistema
+// Si el gasto del día llega al límite → bloquea TODAS las llamadas
+// El cap se puede cambiar desde el panel admin (key: "system_cap_usd")
+// ═══════════════════════════════════════════════════════════════
+const DEFAULT_DAILY_CAP_USD = 10; // Fallback si no hay configurado
+
+// Costos estimados por operación (USD)
+const COST_PER_OP = {
+  chat_mini: 0.001,        // gpt-4o-mini por respuesta
+  chat_4o: 0.01,           // gpt-4o por respuesta
+  image_generate: 0.04,    // gpt-image-1 o dall-e-3
+  image_edit: 0.04,        // gpt-image-1 edit
+  web_search: 0.005,       // chat con búsqueda
+};
+
+async function getSystemCap(kv) {
+  const cap = await kv.get("system_cap_usd");
+  return cap ? parseFloat(cap) : DEFAULT_DAILY_CAP_USD;
+}
+
+async function getDailySpent(kv) {
+  const today = new Date().toISOString().split("T")[0];
+  const spent = await kv.get(`system_spent:${today}`);
+  return spent ? parseFloat(spent) : 0;
+}
+
+async function checkSystemCap(kv) {
+  const cap = await getSystemCap(kv);
+  const spent = await getDailySpent(kv);
+  if (spent >= cap) {
+    return {
+      ok: false,
+      message: "Servicio temporalmente saturado. Volvé a intentar en unas horas.",
+      spent,
+      cap,
+    };
+  }
+  return { ok: true, spent, cap };
+}
+
+async function addSystemCost(kv, costUSD) {
+  const today = new Date().toISOString().split("T")[0];
+  const key = `system_spent:${today}`;
+  const current = parseFloat(await kv.get(key) || "0");
+  const newTotal = current + costUSD;
+  // TTL 48hs (mantenemos historia 1 día extra para reportes)
+  await kv.set(key, newTotal.toFixed(4), { ex: 172800 });
+  return newTotal;
+}
+
 // ─── Detector de pedidos de imagen ──────────────────────────────
 // Hace un mini-clasificador con gpt-4o-mini que devuelve true/false.
 // Usado solo en Mentor / Conversación Libre.
@@ -423,6 +474,18 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: ipCheck.message });
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // HARD CAP GLOBAL (salvavidas económico)
+  // Si el sistema gastó más del cap diario → bloquear todo
+  // ═══════════════════════════════════════════════════════════════
+  const capCheck = await checkSystemCap(kvForIP);
+  if (!capCheck.ok) {
+    return res.status(503).json({
+      error: capCheck.message,
+      retry_after_hours: 6,
+    });
+  }
+
   let decoded;
   try { decoded = verifyToken(req); }
   catch { return res.status(401).json({ error: "No autorizado" }); }
@@ -528,6 +591,9 @@ export default async function handler(req, res) {
 
           // Incrementar contador
           await kv.set(imgKey, imgUsed + 1, { ex: 86400 });
+
+          // Sumar costo al hard cap global
+          await addSystemCost(kvForIP, image ? COST_PER_OP.image_edit : COST_PER_OP.image_generate);
 
           return res.status(200).json({
             ok: true,
@@ -658,6 +724,9 @@ export default async function handler(req, res) {
       sendEvent("error", { error: "No se pudo generar respuesta. Probá de nuevo." });
       return res.end();
     }
+
+    // Sumar costo al hard cap global (chat normal)
+    try { await addSystemCost(kvForIP, COST_PER_OP.chat_mini); } catch (e) {}
 
     sendEvent("done", { reply: fullReply });
     return res.end();
