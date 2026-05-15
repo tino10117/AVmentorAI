@@ -15,6 +15,15 @@ function verifyToken(req) {
   return jwt.verify(token, JWT_SECRET);
 }
 
+// KV helper para rate limits de imágenes
+async function getKV() {
+  const { Redis } = await import("@upstash/redis");
+  return new Redis({
+    url: process.env.KV_REST_API_URL,
+    token: process.env.KV_REST_API_TOKEN,
+  });
+}
+
 // ─── Detector de pedidos de imagen ──────────────────────────────
 // Hace un mini-clasificador con gpt-4o-mini que devuelve true/false.
 // Usado solo en Mentor / Conversación Libre.
@@ -410,7 +419,7 @@ export default async function handler(req, res) {
   // ═══════════════════════════════════════════════════════════════
   // DETECTOR DE PEDIDO DE IMAGEN (solo Mentor / Conversación Libre)
   // Si el último mensaje del usuario pide explícitamente generar/editar
-  // una imagen, derivamos a /api/edit-image
+  // una imagen, generamos la imagen acá mismo (sin llamar a otro endpoint)
   // ═══════════════════════════════════════════════════════════════
   const esModoLibre = type === "negocio" && modo === "Conversación Libre";
   if (esModoLibre) {
@@ -419,41 +428,100 @@ export default async function handler(req, res) {
     if (textoUsuario && textoUsuario.length > 0) {
       const pideImagen = await detectarPedidoImagen(textoUsuario, !!image);
       if (pideImagen) {
-        // Reenviamos al endpoint de imagen reusando el mismo token
+        // ─── GENERAR IMAGEN DIRECTAMENTE ───
         try {
-          const baseUrl = req.headers["x-forwarded-proto"]
-            ? `${req.headers["x-forwarded-proto"]}://${req.headers.host}`
-            : `https://${req.headers.host}`;
-          const respImg = await fetch(`${baseUrl}/api/edit-image`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": req.headers.authorization,
-            },
-            body: JSON.stringify({
-              prompt: textoUsuario,
-              image_base64: image || null,
-            }),
-          });
-          const dataImg = await respImg.json();
-          if (!respImg.ok) {
-            return res.status(respImg.status).json(dataImg);
+          // Rate limit de imágenes (separado del límite de chat)
+          const today = new Date().toISOString().split("T")[0];
+          const kv = await getKV();
+          const imgKey = `imggen_limit:${user.email}:${today}`;
+          const imgUsed = (await kv.get(imgKey)) || 0;
+          const imgLimit = user.plan === "Gratis" ? 1 : 999;
+
+          if (imgUsed >= imgLimit) {
+            return res.status(429).json({
+              error: user.plan === "Gratis"
+                ? "Ya usaste tu imagen del día. Subí a Premium para generar más."
+                : "Llegaste al límite diario de imágenes.",
+              used: imgUsed,
+              limit: imgLimit,
+            });
           }
-          // Respondemos como si fuese un mensaje del chat pero con tipo "image"
+
+          // Generar imagen
+          const promptLimpio = textoUsuario.slice(0, 1000);
+          let result;
+          try {
+            // Modo edit si vino imagen, generate si no
+            if (image) {
+              const dataMatch = String(image).match(/^data:(image\/[a-zA-Z+.-]+);base64,(.+)$/);
+              if (!dataMatch) throw new Error("Formato de imagen inválido");
+              const buffer = Buffer.from(dataMatch[2], "base64");
+              if (buffer.length > 4 * 1024 * 1024) throw new Error("La imagen es muy grande (máx 4MB)");
+              const mime = dataMatch[1];
+              const ext = mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : "jpg";
+              const fileLike = (typeof File !== "undefined")
+                ? new File([buffer], `input.${ext}`, { type: mime })
+                : (() => { const b = new Blob([buffer], { type: mime }); b.name = `input.${ext}`; return b; })();
+              result = await openai.images.edit({
+                model: "gpt-image-1",
+                image: fileLike,
+                prompt: promptLimpio,
+                size: "1024x1024",
+              });
+            } else {
+              // Generar sin imagen base — intentar gpt-image-1, fallback dall-e-3
+              try {
+                result = await openai.images.generate({
+                  model: "gpt-image-1",
+                  prompt: promptLimpio,
+                  size: "1024x1024",
+                  n: 1,
+                });
+              } catch (errModel) {
+                const m = (errModel?.message || "").toLowerCase();
+                if (m.includes("model") && (m.includes("not found") || m.includes("does not exist") || m.includes("invalid"))) {
+                  result = await openai.images.generate({
+                    model: "dall-e-3",
+                    prompt: promptLimpio,
+                    size: "1024x1024",
+                    n: 1,
+                    response_format: "b64_json",
+                  });
+                } else throw errModel;
+              }
+            }
+          } catch (errGen) {
+            console.error("Error generando imagen:", errGen);
+            const m = (errGen?.message || "").toLowerCase();
+            if (m.includes("safety") || m.includes("content_policy")) {
+              return res.status(400).json({ error: "El pedido fue rechazado por las políticas de contenido. Probá con otro pedido." });
+            }
+            throw errGen;
+          }
+
+          const imgB64 = result?.data?.[0]?.b64_json;
+          const imgUrl = result?.data?.[0]?.url;
+          const imageUrl = imgB64 ? `data:image/png;base64,${imgB64}` : imgUrl;
+          if (!imageUrl) {
+            return res.status(500).json({ error: "La IA no devolvió imagen" });
+          }
+
+          // Incrementar contador
+          await kv.set(imgKey, imgUsed + 1, { ex: 86400 });
+
           return res.status(200).json({
             ok: true,
             tipo: "image",
-            image_url: dataImg.image_url,
-            modo: dataImg.modo,
-            reply: dataImg.modo === "edit"
-              ? "✨ Listo, acá tenés tu imagen editada."
-              : "✨ Listo, acá tenés tu imagen.",
-            used: dataImg.used,
-            limit: dataImg.limit,
+            image_url: imageUrl,
+            modo: image ? "edit" : "generate",
+            reply: image ? "✨ Listo, acá tenés tu imagen editada." : "✨ Listo, acá tenés tu imagen.",
+            used: imgUsed + 1,
+            limit: imgLimit,
           });
+
         } catch (err) {
-          console.error("Error derivando a edit-image:", err);
-          return res.status(500).json({ error: "Error generando la imagen" });
+          console.error("Error generando imagen en chat:", err);
+          return res.status(500).json({ error: err?.message || "Error generando la imagen" });
         }
       }
     }
