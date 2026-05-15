@@ -6,7 +6,8 @@ import jwt from "jsonwebtoken";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const JWT_SECRET = process.env.JWT_SECRET || "av-mentorai-fixed-secret-2024";
 
-const RATE_LIMITS = { Gratis: 10, Premium: 9999, Empresarial: 9999 };
+const RATE_LIMITS = { Gratis: 10, Premium: 200, Empresarial: 500 };
+const IMAGE_LIMITS = { Gratis: 1, Premium: 30, Empresarial: 100 };
 
 function verifyToken(req) {
   const auth = req.headers.authorization || "";
@@ -435,7 +436,7 @@ export default async function handler(req, res) {
           const kv = await getKV();
           const imgKey = `imggen_limit:${user.email}:${today}`;
           const imgUsed = (await kv.get(imgKey)) || 0;
-          const imgLimit = user.plan === "Gratis" ? 1 : 999;
+          const imgLimit = IMAGE_LIMITS[user.plan] || IMAGE_LIMITS.Gratis;
 
           if (imgUsed >= imgLimit) {
             return res.status(429).json({
@@ -514,14 +515,38 @@ export default async function handler(req, res) {
     }
   }
 
-  // Rate limit básico (plan Gratis)
-  if (user.plan === "Gratis") {
-    const today = new Date().toISOString().split("T")[0];
-    const questionsToday = user.fecha_preguntas === today ? (user.preguntas_hoy || 0) : 0;
-    if (questionsToday >= RATE_LIMITS.Gratis) {
-      return res.status(429).json({ error: "Límite diario de 10 preguntas alcanzado. Actualizá a Premium." });
-    }
+  // ═══════════════════════════════════════════════════════════════
+  // RATE LIMIT REAL (con Redis, atómico, auto-expira)
+  // Aplica a TODOS los planes con su límite correspondiente
+  // ═══════════════════════════════════════════════════════════════
+  const today = new Date().toISOString().split("T")[0];
+  const kv = await getKV();
+  const chatKey = `chat_limit:${user.email}:${today}`;
+  const chatUsed = parseInt(await kv.get(chatKey) || "0", 10);
+  const chatLimit = RATE_LIMITS[user.plan] || RATE_LIMITS.Gratis;
+
+  if (chatUsed >= chatLimit) {
+    return res.status(429).json({
+      error: user.plan === "Gratis"
+        ? `Llegaste al límite diario de ${chatLimit} preguntas. Subí a Premium para tener ${RATE_LIMITS.Premium}/día.`
+        : `Llegaste al límite diario de ${chatLimit} preguntas. Vuelve mañana.`,
+      used: chatUsed,
+      limit: chatLimit,
+    });
   }
+
+  // Anti-burst: máx 8 requests en 30 segundos (anti-spam, anti-bot)
+  const burstKey = `chat_burst:${user.email}`;
+  const burstCount = parseInt(await kv.get(burstKey) || "0", 10);
+  if (burstCount >= 8) {
+    return res.status(429).json({
+      error: "Estás enviando muchas preguntas muy rápido. Esperá unos segundos.",
+    });
+  }
+  await kv.set(burstKey, burstCount + 1, { ex: 30 });
+
+  // Incrementar el contador YA (no después, para evitar race conditions)
+  await kv.set(chatKey, chatUsed + 1, { ex: 86400 });
 
   // Seleccionar system prompt
   let systemPrompt = "";
