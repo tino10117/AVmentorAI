@@ -2200,3 +2200,540 @@ async function doRefinarBienestar(resultId) {
     container.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
   }
 }
+
+
+// ═══════════════════════════════════════════════════════════════
+// JUEGOS — MODO HISTORIA (juego narrativo con IA)
+// ═══════════════════════════════════════════════════════════════
+
+// ─── Escenarios disponibles (datos visuales para los cards) ────
+const ESCENARIOS_HISTORIA = [
+  {
+    id: "startup",
+    emoji: "🚀",
+    titulo: "Lanzá tu startup",
+    desc: "Tenés 25 años, $50.000 USD y una idea. Hoy renunciaste a tu trabajo. ¿Qué construís?",
+    color: "#38bdf8",
+    dificultad: "Media",
+  },
+  {
+    id: "herencia",
+    emoji: "👔",
+    titulo: "Heredás un negocio familiar",
+    desc: "Tu viejo te dejó una distribuidora con 12 empleados que no te tienen confianza. Está en pérdida.",
+    color: "#f97316",
+    dificultad: "Difícil",
+  },
+  {
+    id: "separado",
+    emoji: "💔",
+    titulo: "Recién separado, con un hijo",
+    desc: "$0 en la cuenta, un hijo de 6 años a cargo, $200K/mes de cuota alimentaria. Empezás de cero.",
+    color: "#ef4444",
+    dificultad: "Muy difícil",
+  },
+  {
+    id: "ny",
+    emoji: "🌎",
+    titulo: "Nueva York con $500",
+    desc: "Llegaste a NYC con $500, una mochila, visa de turista y 90 días para conseguir trabajo legal.",
+    color: "#a855f7",
+    dificultad: "Difícil",
+  },
+  {
+    id: "detective",
+    emoji: "🕵️",
+    titulo: "Detective privado",
+    desc: "Una mujer entró con $50K en efectivo. Su marido desapareció hace 3 días. La policía no le cree.",
+    color: "#22c55e",
+    dificultad: "Media",
+  },
+  {
+    id: "influencer",
+    emoji: "🎬",
+    titulo: "Influencer caído",
+    desc: "Eras viral, hoy estás caído. 120K seguidores, $5K USD ahorrados, alquiler vence en 15 días.",
+    color: "#facc15",
+    dificultad: "Media",
+  },
+  {
+    id: "isla",
+    emoji: "🏝️",
+    titulo: "Naufragio en isla desierta",
+    desc: "Cuatro sobrevivientes, un encendedor, una botella de agua. Tenés que sobrevivir y volver.",
+    color: "#06b6d4",
+    dificultad: "Muy difícil",
+  },
+  {
+    id: "libre",
+    emoji: "🎮",
+    titulo: "Modo libre",
+    desc: "Escribí tu propia historia. La IA arranca desde donde vos quieras.",
+    color: "#ec4899",
+    dificultad: "Vos elegís",
+  },
+];
+
+// ─── RENDER PRINCIPAL DEL TAB ─────────────────────────────────
+function renderJuegos() {
+  renderJuegosHistoria();
+  renderJuegosProximamente();
+}
+
+function renderJuegosProximamente() {
+  document.getElementById("juegos-proximamente").innerHTML = `
+    <h3 style="margin-bottom:8px">🔜 Próximamente</h3>
+    <p class="text-muted mb-3">Estos juegos están en desarrollo. ¡Pronto los vas a poder jugar!</p>
+    <div class="grid-2">
+      ${[
+        { e: "💼", t: "Business Empire IA", d: "Empezás con un kiosco. Crecé hasta tener un imperio. La IA arma los problemas." },
+        { e: "🥊", t: "Debate Extremo", d: "La IA te pone una postura contraria. Convencé. Después analiza tu lógica y persuasión." },
+        { e: "🤖", t: "IA vs Humano", d: "Acertijos, creatividad, lógica. ¿Ganás vos o gana la IA? Compartí el resultado." },
+        { e: "🎯", t: "Trivia Emprendedora", d: "Tipo Preguntados pero con 8 categorías para emprendedores LATAM." },
+        { e: "🔮", t: "Adivinanza Inversa", d: "La IA te hace preguntas y adivina lo que pensaste. O al revés." },
+      ].map(j => `
+        <div class="card" style="opacity:.6">
+          <div style="font-size:32px;margin-bottom:6px">${j.e}</div>
+          <div style="font-weight:700;font-size:16px;margin-bottom:6px">${j.t}</div>
+          <div class="text-muted" style="font-size:13px">${j.d}</div>
+          <button class="btn btn-ghost btn-sm mt-3" disabled style="opacity:.5">🔒 Próximamente</button>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+// ─── PANTALLA HISTORIA: lista de partidas + opción de empezar ──
+async function renderJuegosHistoria() {
+  const c = document.getElementById("juegos-historia");
+  c.innerHTML = `
+    <div class="loading-row" style="padding:20px"><div class="spinner"></div>
+      <span style="margin-left:10px;color:#94a3b8">Cargando tus historias…</span></div>
+  `;
+
+  try {
+    const data = await Historia.listar();
+    const partidas = data.partidas || [];
+    const isPremium = App.user?.plan && App.user.plan !== "Gratis";
+    const limiteDiario = isPremium ? 30 : 5;
+
+    let partidasHtml = "";
+    if (partidas.length > 0) {
+      partidasHtml = `
+        <h3 style="margin-bottom:12px">📂 Tus historias activas (${partidas.length}/3)</h3>
+        ${partidas.map(p => `
+          <div class="card mb-3" style="border-left:3px solid #ec4899">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px">
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:700;font-size:15px;margin-bottom:4px">${esc(p.titulo)}</div>
+                <div class="text-muted" style="font-size:12px;margin-bottom:8px">Día ${p.dia} · Última jugada: ${fechaCorta(p.fecha_ultima)}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;font-size:12px">
+              <span style="background:rgba(34,197,94,.15);color:#86efac;padding:3px 8px;border-radius:6px">💰 $${(p.metricas.plata||0).toLocaleString("es-AR")}</span>
+              <span style="background:rgba(239,68,68,.15);color:#fca5a5;padding:3px 8px;border-radius:6px">❤️ ${p.metricas.salud}</span>
+              <span style="background:rgba(250,204,21,.15);color:#fde68a;padding:3px 8px;border-radius:6px">⭐ ${p.metricas.reputacion}</span>
+              <span style="background:rgba(168,85,247,.15);color:#d8b4fe;padding:3px 8px;border-radius:6px">🧠 ${p.metricas.energia}</span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-primary btn-sm" onclick="retomarHistoria('${esc(p.id)}')">▶️ Continuar</button>
+              <button class="btn btn-ghost btn-sm" onclick="borrarHistoria('${esc(p.id)}','${esc(p.titulo)}')" style="color:#f87171">🗑️ Borrar</button>
+            </div>
+          </div>
+        `).join("")}
+      `;
+    }
+
+    const planNote = !isPremium
+      ? `<div style="background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#7dd3fc">
+          💎 <strong>Gratis:</strong> 5 turnos/día. <strong>Premium:</strong> 30 turnos/día. Cada decisión = 1 turno.
+        </div>`
+      : `<div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#86efac">
+          ✅ Tenés 30 turnos por día para jugar.
+        </div>`;
+
+    c.innerHTML = `
+      ${partidas.length > 0 ? partidasHtml : ""}
+
+      ${partidas.length < 3 ? `
+        <h3 style="margin-bottom:8px">🎬 Empezá una nueva historia</h3>
+        <p class="text-muted mb-3">Elegí un escenario o creá uno propio. La IA arma una aventura única que evoluciona con cada decisión tuya.</p>
+
+        ${planNote}
+
+        <div class="grid-2 mb-4">
+          ${ESCENARIOS_HISTORIA.map(s => `
+            <div class="card" style="cursor:pointer;border:1px solid rgba(255,255,255,.08);transition:transform .15s,border-color .15s" onmouseover="this.style.borderColor='${s.color}80'" onmouseout="this.style.borderColor='rgba(255,255,255,.08)'" onclick="elegirEscenarioHistoria('${s.id}')">
+              <div style="font-size:32px;margin-bottom:6px">${s.emoji}</div>
+              <div style="font-weight:700;font-size:15px;margin-bottom:6px;color:${s.color}">${esc(s.titulo)}</div>
+              <div class="text-muted" style="font-size:12px;margin-bottom:10px;line-height:1.5">${esc(s.desc)}</div>
+              <div style="font-size:11px;color:#64748b">⚙️ Dificultad: ${esc(s.dificultad)}</div>
+            </div>
+          `).join("")}
+        </div>
+      ` : `
+        <div class="alert alert-info">
+          ℹ️ Ya tenés 3 partidas activas (máximo permitido). Borrá una para empezar otra.
+        </div>
+      `}
+    `;
+  } catch (e) {
+    c.innerHTML = `<div class="alert alert-error">❌ ${esc(e.message)}</div>`;
+  }
+}
+
+function fechaCorta(iso) {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    const ahora = new Date();
+    const diffMs = ahora - d;
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHs = Math.floor(diffMin / 60);
+    const diffDias = Math.floor(diffHs / 24);
+    if (diffMin < 1) return "Ahora";
+    if (diffMin < 60) return `Hace ${diffMin}m`;
+    if (diffHs < 24) return `Hace ${diffHs}h`;
+    if (diffDias < 7) return `Hace ${diffDias}d`;
+    return d.toLocaleDateString("es-AR");
+  } catch { return "—"; }
+}
+
+// ─── ELEGIR ESCENARIO ────────────────────────────────────────
+function elegirEscenarioHistoria(id) {
+  if (id === "libre") {
+    abrirModalLibre();
+    return;
+  }
+  iniciarHistoria(id, null);
+}
+
+function abrirModalLibre() {
+  const modalHtml = `
+    <div id="historia-libre-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)cerrarModalLibre()">
+      <div style="background:#0f172a;border:1.5px solid rgba(236,72,153,.4);border-radius:16px;max-width:520px;width:100%;padding:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <h3 style="margin:0;font-size:18px">🎮 Modo libre — Escribí tu historia</h3>
+          <button onclick="cerrarModalLibre()" style="background:none;border:none;color:#f87171;font-size:22px;cursor:pointer">✕</button>
+        </div>
+        <p class="text-muted" style="font-size:13px;margin-bottom:14px">Describí cómo querés que arranque la historia. Sé específico: lugar, situación, personajes, conflicto inicial.</p>
+        <textarea class="input" id="historia-libre-input" rows="5" maxlength="500" placeholder="Ej: Soy un emprendedor en Tokio que se queda sin plata y tiene 24 horas para conseguir $10.000 USD antes de que su empresa quiebre. Mi mejor amigo me debe plata pero no me la quiere pagar..."></textarea>
+        <div style="font-size:11px;color:#64748b;margin-top:6px;margin-bottom:14px">Mínimo 10 caracteres, máximo 500.</div>
+        <button class="btn btn-primary" style="width:100%" onclick="iniciarHistoriaLibre()">🚀 Empezar mi historia</button>
+      </div>
+    </div>
+  `;
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = modalHtml;
+  document.body.appendChild(wrapper.firstElementChild);
+}
+
+function cerrarModalLibre() {
+  document.getElementById("historia-libre-modal")?.remove();
+}
+
+function iniciarHistoriaLibre() {
+  const txt = document.getElementById("historia-libre-input")?.value?.trim() || "";
+  if (txt.length < 10) {
+    Toast.error("Escribí al menos 10 caracteres para tu historia.");
+    return;
+  }
+  cerrarModalLibre();
+  iniciarHistoria(null, txt);
+}
+
+// ─── INICIAR HISTORIA ────────────────────────────────────────
+async function iniciarHistoria(escenario_id, escenario_libre) {
+  // Renderizamos la pantalla de juego "vacía" y arrancamos a streamear
+  mostrarPantallaJuego(null);
+
+  const narrativaEl = document.getElementById("hist-narrativa");
+  const statusEl = document.getElementById("hist-status-stream");
+  if (statusEl) statusEl.textContent = "Creando tu historia…";
+
+  try {
+    const data = await Historia.iniciar({
+      escenario_id,
+      escenario_libre,
+      onDelta: (chunk, fullText) => {
+        if (narrativaEl) {
+          // Mostramos texto en vivo pero limpiando los tags meta
+          const limpio = Historia.limpiarNarrativa(fullText);
+          narrativaEl.innerHTML = mdRender(limpio);
+        }
+      },
+    });
+    Historia.partidaActual = data.partida;
+    Historia.ultimasOpciones = data.opciones || [];
+    UserHelper.accion("chat_message"); // suma XP por turno (usa el mismo tope diario)
+    finalizarPantallaJuego(data);
+  } catch (e) {
+    Toast.error(e.message);
+    renderJuegosHistoria(); // volver al menú
+  }
+}
+
+// ─── RETOMAR HISTORIA ────────────────────────────────────────
+async function retomarHistoria(partida_id) {
+  mostrarPantallaJuego(null);
+  const narrativaEl = document.getElementById("hist-narrativa");
+  const statusEl = document.getElementById("hist-status-stream");
+  if (statusEl) statusEl.textContent = "Recordando dónde quedaste…";
+
+  try {
+    const data = await Historia.retomar({
+      partida_id,
+      onDelta: (chunk, fullText) => {
+        if (narrativaEl) {
+          const limpio = Historia.limpiarNarrativa(fullText);
+          narrativaEl.innerHTML = mdRender(limpio);
+        }
+      },
+    });
+    Historia.partidaActual = data.partida;
+    Historia.ultimasOpciones = data.opciones || [];
+    finalizarPantallaJuego(data);
+  } catch (e) {
+    Toast.error(e.message);
+    renderJuegosHistoria();
+  }
+}
+
+// ─── BORRAR HISTORIA ─────────────────────────────────────────
+async function borrarHistoria(partida_id, titulo) {
+  if (!confirm(`¿Borrar la historia "${titulo}"? Esta acción no se puede deshacer.`)) return;
+  try {
+    await Historia.borrar(partida_id);
+    Toast.success("Historia borrada.");
+    renderJuegosHistoria();
+  } catch (e) {
+    Toast.error(e.message);
+  }
+}
+
+// ─── PANTALLA DE JUEGO ───────────────────────────────────────
+function mostrarPantallaJuego(partida) {
+  const c = document.getElementById("juegos-historia");
+  const titulo = partida?.titulo || "Cargando…";
+  const dia = partida?.dia || 1;
+  const m = partida?.metricas || { plata: 0, salud: 100, reputacion: 50, energia: 100 };
+
+  c.innerHTML = `
+    <div style="margin-bottom:12px">
+      <button class="btn btn-ghost btn-sm" onclick="volverAlMenuHistoria()">← Volver al menú</button>
+    </div>
+
+    <div id="hist-status-box" style="background:linear-gradient(135deg,rgba(236,72,153,.12),rgba(168,85,247,.08));border:1.5px solid rgba(236,72,153,.3);border-radius:14px;padding:14px 16px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap">
+        <strong style="font-size:14px;color:#f9a8d4" id="hist-titulo">${esc(titulo)}</strong>
+        <span style="font-size:12px;background:rgba(0,0,0,.3);padding:4px 10px;border-radius:8px;color:#fde68a">📅 Día <span id="hist-dia">${dia}</span></span>
+      </div>
+      <div id="hist-metricas" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        ${renderMetricaChip("plata", m.plata)}
+        ${renderMetricaChip("salud", m.salud)}
+        ${renderMetricaChip("reputacion", m.reputacion)}
+        ${renderMetricaChip("energia", m.energia)}
+      </div>
+    </div>
+
+    <div id="hist-stream-status" class="loading-row" style="padding:10px 14px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:10px;margin-bottom:12px;display:flex;align-items:center">
+      <div class="spinner"></div>
+      <span style="margin-left:10px;font-size:13px;color:#7dd3fc" id="hist-status-stream">Esperando…</span>
+    </div>
+
+    <div class="card" style="border-left:3px solid #ec4899;margin-bottom:14px">
+      <div id="hist-narrativa" class="md-output" style="font-size:14px;line-height:1.7;min-height:60px"></div>
+    </div>
+
+    <div id="hist-opciones" style="display:none"></div>
+    <div id="hist-libre" style="display:none">
+      <div style="border-top:1px solid rgba(168,85,247,.2);padding-top:12px;margin-top:6px">
+        <strong style="font-size:13px;color:#c4b5fd;display:block;margin-bottom:8px">✍️ O escribí tu propia jugada:</strong>
+        <textarea class="input" id="hist-decision-libre" rows="2" placeholder="¿Qué hacés? Sé creativo, la IA reacciona a lo que escribas..."></textarea>
+        <button class="btn btn-purple btn-sm mt-2" onclick="enviarDecisionLibre()">🎯 Hacer esa jugada</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderMetricaChip(tipo, valor) {
+  const cfg = {
+    plata: { emoji: "💰", label: "Plata", color: "#22c55e", bg: "rgba(34,197,94,.15)", fmt: v => "$" + (v||0).toLocaleString("es-AR") },
+    salud: { emoji: "❤️", label: "Salud", color: "#ef4444", bg: "rgba(239,68,68,.15)", fmt: v => v + "/100" },
+    reputacion: { emoji: "⭐", label: "Reput.", color: "#facc15", bg: "rgba(250,204,21,.15)", fmt: v => v + "/100" },
+    energia: { emoji: "🧠", label: "Energía", color: "#a855f7", bg: "rgba(168,85,247,.15)", fmt: v => v + "/100" },
+  }[tipo];
+  if (!cfg) return "";
+  return `<div style="background:${cfg.bg};padding:8px 10px;border-radius:8px;text-align:center">
+    <div style="font-size:18px">${cfg.emoji}</div>
+    <div style="font-size:14px;font-weight:700;color:${cfg.color};margin-top:2px" data-metrica="${tipo}">${cfg.fmt(valor)}</div>
+    <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">${cfg.label}</div>
+  </div>`;
+}
+
+function actualizarMetricasUI(metricas, dia) {
+  const m = document.getElementById("hist-metricas");
+  if (m) {
+    m.innerHTML = `
+      ${renderMetricaChip("plata", metricas.plata)}
+      ${renderMetricaChip("salud", metricas.salud)}
+      ${renderMetricaChip("reputacion", metricas.reputacion)}
+      ${renderMetricaChip("energia", metricas.energia)}
+    `;
+  }
+  const diaEl = document.getElementById("hist-dia");
+  if (diaEl) diaEl.textContent = dia;
+}
+
+// ─── FINALIZAR STREAM Y MOSTRAR OPCIONES ─────────────────────
+function finalizarPantallaJuego(data) {
+  // Actualizar barra de status
+  const statusBox = document.getElementById("hist-stream-status");
+  if (statusBox) {
+    const remaining = (data.limit || 0) - (data.used || 0);
+    statusBox.outerHTML = `
+      <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#86efac">
+        ✅ Te quedan <strong>${remaining}</strong> turnos hoy.
+      </div>`;
+  }
+
+  // Actualizar título, día y métricas
+  if (data.partida) {
+    const tEl = document.getElementById("hist-titulo");
+    if (tEl) tEl.textContent = data.partida.titulo;
+    actualizarMetricasUI(data.partida.metricas, data.partida.dia);
+  }
+
+  // Game over
+  if (data.game_over) {
+    const opc = document.getElementById("hist-opciones");
+    const libre = document.getElementById("hist-libre");
+    if (opc) {
+      opc.style.display = "block";
+      opc.innerHTML = `
+        <div class="card" style="border:2px solid #ef4444;background:rgba(239,68,68,.08);text-align:center;padding:20px">
+          <div style="font-size:48px;margin-bottom:10px">💀</div>
+          <h3 style="color:#fca5a5;margin-bottom:10px">${esc(data.mensaje_fin || "Game Over")}</h3>
+          <p class="text-muted" style="margin-bottom:14px">Esta historia llegó a su fin. ¿Empezás otra?</p>
+          <button class="btn btn-primary" onclick="volverAlMenuHistoria()">📋 Volver al menú</button>
+        </div>
+      `;
+    }
+    if (libre) libre.style.display = "none";
+    return;
+  }
+
+  // Mostrar opciones
+  const opciones = data.opciones || Historia.ultimasOpciones || [];
+  const opcDiv = document.getElementById("hist-opciones");
+  if (opcDiv) {
+    opcDiv.style.display = "block";
+    if (opciones.length > 0) {
+      opcDiv.innerHTML = `
+        <strong style="font-size:13px;color:#fde68a;display:block;margin-bottom:10px">¿Qué hacés?</strong>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${opciones.map((o, i) => `
+            <button class="btn btn-ghost" style="text-align:left;justify-content:flex-start;padding:12px 14px;border:1.5px solid rgba(236,72,153,.3)" onclick="elegirOpcion('${esc(o.letra)}', this)" data-decision="${esc(o.texto)}">
+              <strong style="color:#ec4899;margin-right:8px">${esc(o.letra)})</strong> ${esc(o.texto)}
+            </button>
+          `).join("")}
+        </div>
+      `;
+    } else {
+      opcDiv.innerHTML = `<p class="text-muted" style="font-size:13px">La IA no propuso opciones. Escribí tu jugada abajo ⬇️</p>`;
+    }
+  }
+
+  // Mostrar textarea libre
+  const libre = document.getElementById("hist-libre");
+  if (libre) {
+    libre.style.display = "block";
+    const ta = document.getElementById("hist-decision-libre");
+    if (ta) ta.value = "";
+  }
+}
+
+// ─── ELEGIR UNA OPCIÓN DEL MENÚ ──────────────────────────────
+async function elegirOpcion(letra, btn) {
+  const decision = btn.dataset.decision;
+  if (!decision) return;
+  await avanzarHistoria(`Elijo opción ${letra}: ${decision}`);
+}
+
+// ─── ENVIAR DECISIÓN LIBRE ───────────────────────────────────
+async function enviarDecisionLibre() {
+  const ta = document.getElementById("hist-decision-libre");
+  const txt = ta?.value?.trim() || "";
+  if (!txt) {
+    Toast.error("Escribí qué querés hacer.");
+    return;
+  }
+  if (txt.length > 400) {
+    Toast.error("Máximo 400 caracteres por jugada.");
+    return;
+  }
+  await avanzarHistoria(txt);
+}
+
+// ─── AVANZAR HISTORIA (común para opciones y libre) ──────────
+async function avanzarHistoria(decision) {
+  if (Historia.cargandoTurno) return;
+  if (!Historia.partidaActual) {
+    Toast.error("No hay partida activa.");
+    return;
+  }
+  Historia.cargandoTurno = true;
+
+  // UI: mostrar nuevamente el spinner y limpiar narrativa
+  const narrativaEl = document.getElementById("hist-narrativa");
+  const opcEl = document.getElementById("hist-opciones");
+  const libreEl = document.getElementById("hist-libre");
+  if (narrativaEl) narrativaEl.innerHTML = "";
+  if (opcEl) opcEl.style.display = "none";
+  if (libreEl) libreEl.style.display = "none";
+
+  // Restaurar el spinner status
+  const c = document.getElementById("juegos-historia");
+  const oldStatus = document.getElementById("hist-stream-status");
+  if (!oldStatus) {
+    // Si el viejo se reemplazó por el "te quedan X turnos", lo restauramos
+    const statusGreen = c.querySelector("[style*='Te quedan']");
+    if (statusGreen) {
+      const newStatusEl = document.createElement("div");
+      newStatusEl.id = "hist-stream-status";
+      newStatusEl.className = "loading-row";
+      newStatusEl.style.cssText = "padding:10px 14px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:10px;margin-bottom:12px;display:flex;align-items:center";
+      newStatusEl.innerHTML = `<div class="spinner"></div><span style="margin-left:10px;font-size:13px;color:#7dd3fc" id="hist-status-stream">La IA está pensando…</span>`;
+      statusGreen.replaceWith(newStatusEl);
+    }
+  }
+
+  try {
+    const data = await Historia.avanzar({
+      partida_id: Historia.partidaActual.id,
+      decision,
+      onDelta: (chunk, fullText) => {
+        if (narrativaEl) {
+          const limpio = Historia.limpiarNarrativa(fullText);
+          narrativaEl.innerHTML = mdRender(limpio);
+        }
+      },
+    });
+    Historia.partidaActual = data.partida;
+    Historia.ultimasOpciones = data.opciones || [];
+    UserHelper.accion("chat_message");
+    finalizarPantallaJuego(data);
+  } catch (e) {
+    Toast.error(e.message);
+    // No volvemos al menú — dejamos al usuario donde está para que reintente
+  } finally {
+    Historia.cargandoTurno = false;
+  }
+}
+
+// ─── VOLVER AL MENÚ ──────────────────────────────────────────
+function volverAlMenuHistoria() {
+  Historia.partidaActual = null;
+  Historia.ultimasOpciones = [];
+  renderJuegosHistoria();
+}

@@ -400,6 +400,7 @@ function navigateTo(tabId) {
   if (tabId === "herramientas") { renderHerramientas(); setSubnav("herr","competencia"); }
   if (tabId === "viajes") { renderViajes(); setSubnav("viajes","itinerario"); }
   if (tabId === "vidasana") { renderVidaSana(); setSubnav("vidasana","alimentacion"); }
+  if (tabId === "juegos") { renderJuegos(); setSubnav("juegos","historia"); }
 }
 
 function setSubnav(section, value) {
@@ -1019,5 +1020,152 @@ const Bienestar = {
     navigator.clipboard.writeText(lastAssistant.content)
       .then(() => Toast.success("📋 Plan copiado"))
       .catch(() => Toast.error("No se pudo copiar"));
+  },
+};
+
+// ═══════════════════════════════════════════════
+// MODO HISTORIA — Juego narrativo con IA
+// ═══════════════════════════════════════════════
+const Historia = {
+  // Estado de la partida activa en memoria (se carga desde backend)
+  partidaActual: null,
+  ultimasOpciones: [], // opciones del último turno
+  cargandoTurno: false,
+
+  // ─── LISTAR PARTIDAS ────────────────────────────────────
+  async listar() {
+    const token = localStorage.getItem("av_token");
+    const resp = await fetch("/api/historia", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+      },
+      body: JSON.stringify({ action: "listar" }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Error" }));
+      throw new Error(err.error || "Error listando partidas");
+    }
+    return await resp.json();
+  },
+
+  // ─── BORRAR PARTIDA ─────────────────────────────────────
+  async borrar(partida_id) {
+    const token = localStorage.getItem("av_token");
+    const resp = await fetch("/api/historia", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+      },
+      body: JSON.stringify({ action: "borrar", partida_id }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Error" }));
+      throw new Error(err.error || "Error borrando partida");
+    }
+    return await resp.json();
+  },
+
+  // ─── INICIAR PARTIDA NUEVA ──────────────────────────────
+  async iniciar({ escenario_id, escenario_libre, onDelta }) {
+    return this._streamRequest({
+      action: "iniciar",
+      escenario_id,
+      escenario_libre,
+    }, onDelta);
+  },
+
+  // ─── AVANZAR (decisión del jugador) ─────────────────────
+  async avanzar({ partida_id, decision, onDelta }) {
+    return this._streamRequest({
+      action: "avanzar",
+      partida_id,
+      decision,
+    }, onDelta);
+  },
+
+  // ─── RETOMAR (recap de partida pausada) ─────────────────
+  async retomar({ partida_id, onDelta }) {
+    return this._streamRequest({
+      action: "retomar",
+      partida_id,
+    }, onDelta);
+  },
+
+  // ─── Helper: streaming SSE ──────────────────────────────
+  async _streamRequest(body, onDelta) {
+    const token = localStorage.getItem("av_token");
+    const resp = await fetch("/api/historia", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const contentType = resp.headers.get("content-type") || "";
+    if (!contentType.includes("text/event-stream")) {
+      let errData;
+      try { errData = await resp.json(); } catch { errData = { error: "Error desconocido" }; }
+      throw new Error(errData.error || "Error en la solicitud");
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullReply = "";
+    let finalData = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() || "";
+
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        const lines = part.split("\n");
+        let eventName = "message";
+        let dataStr = "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) eventName = line.slice(7).trim();
+          else if (line.startsWith("data: ")) dataStr += line.slice(6);
+        }
+        if (!dataStr) continue;
+        let parsed;
+        try { parsed = JSON.parse(dataStr); } catch { continue; }
+
+        if (eventName === "delta") {
+          fullReply += parsed.text || "";
+          if (onDelta) onDelta(parsed.text || "", fullReply);
+        } else if (eventName === "done") {
+          finalData = parsed;
+        } else if (eventName === "error") {
+          throw new Error(parsed.error || "Error del servidor");
+        }
+      }
+    }
+
+    if (!finalData) return { reply: fullReply };
+    return finalData;
+  },
+
+  // ─── Limpiar narrativa para mostrar (sin tags meta) ────
+  limpiarNarrativa(texto) {
+    return String(texto || "")
+      // Bloques con cierre
+      .replace(/\[METRICAS\][\s\S]*?\[\/METRICAS\]/gi, "")
+      .replace(/\[OPCIONES\][\s\S]*?\[\/OPCIONES\]/gi, "")
+      // Bloques SIN cierre: cuando llega streaming a medias o gpt-4o-mini no cierra
+      .replace(/\[METRICAS\][\s\S]*$/gi, "")
+      .replace(/\[OPCIONES\][\s\S]*$/gi, "")
+      // Líneas A) B) C) D) sueltas que quedaron afuera de los tags
+      .replace(/(\n\s*[A-D]\s*\)[^\n]*)+\s*$/g, "")
+      .trim();
   },
 };
