@@ -91,14 +91,21 @@ const API = {
       }),
     });
 
-    // Si NO es SSE (error 401/429/etc.), devuelve JSON normal
+    // Si NO es SSE (error 401/429/etc. o respuesta de imagen), devuelve JSON normal
     const contentType = resp.headers.get("content-type") || "";
     if (!contentType.includes("text/event-stream")) {
       let errData;
       try { errData = await resp.json(); } catch { errData = { error: "Error desconocido" }; }
       if (!resp.ok) throw new Error(errData.error || "Error del servidor");
-      // Respuesta JSON normal (compatibilidad backwards)
-      return { reply: errData.reply || "" };
+      // Respuesta JSON normal (compatibilidad backwards + imágenes)
+      return {
+        reply: errData.reply || "",
+        tipo: errData.tipo || "text",
+        image_url: errData.image_url || null,
+        modo: errData.modo || null,
+        used: errData.used,
+        limit: errData.limit,
+      };
     }
 
     // Parsear el stream SSE
@@ -478,7 +485,16 @@ const Chat = {
       // Si NO hubo streaming (respuesta JSON normal), mostramos el mensaje completo de una
       if (!streamingDiv) {
         removeSpinner();
-        this.appendMsg(container, data.reply, msgClass, aiName, aiIcon, avatarGrad, aiColor);
+        // ─── CASO IMAGEN: el backend nos devolvió una imagen ───
+        if (data.tipo === "image" && data.image_url) {
+          this.appendImageMsg(container, data.image_url, data.reply || "✨ Acá tenés tu imagen.", aiName, aiIcon, avatarGrad, aiColor);
+        } else {
+          this.appendMsg(container, data.reply, msgClass, aiName, aiIcon, avatarGrad, aiColor);
+        }
+      } else if (data.tipo === "image" && data.image_url) {
+        // Streaming abrió burbuja pero al final vino imagen → reemplazar burbuja
+        streamingDiv.remove();
+        this.appendImageMsg(container, data.image_url, data.reply || "✨ Acá tenés tu imagen.", aiName, aiIcon, avatarGrad, aiColor);
       }
       const reply = data.reply;
       App.chatMessages[messagesKey].push({ role: "assistant", content: reply });
@@ -615,6 +631,27 @@ const Chat = {
         <span class="chat-name" style="color:${color}">${name}</span>
       </div><div>${mdRender(text)}</div>`;
     }
+    container.appendChild(div);
+    scrollBottom(container);
+  },
+
+  // Renderiza una imagen generada por la IA en el chat
+  appendImageMsg(container, imageUrl, captionText, name, icon, grad, color) {
+    const div = document.createElement("div");
+    div.className = `chat-msg msg-ai`;
+    const id = "imggen_" + Date.now();
+    div.innerHTML = `<div class="chat-msg-header">
+        <div class="chat-avatar" style="background:${grad || 'linear-gradient(135deg,#facc15,#f97316)'}">${icon || '🎨'}</div>
+        <span class="chat-name" style="color:${color || '#facc15'}">${name || 'AV MentorAI'}</span>
+      </div>
+      <div>${mdRender(captionText || '✨ Acá tenés tu imagen.')}</div>
+      <div style="margin-top:10px">
+        <img id="${id}" src="${imageUrl}" style="max-width:100%;width:auto;max-height:380px;border-radius:12px;border:1px solid rgba(255,255,255,.15);display:block;cursor:pointer" onclick="window.open(this.src,'_blank')" alt="Imagen generada" />
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="downloadImage('${id}','imagen-avmentorai.png')">📥 Descargar</button>
+        <button class="btn btn-ghost btn-sm" onclick="window.open(document.getElementById('${id}').src,'_blank')">🔍 Ver grande</button>
+      </div>`;
     container.appendChild(div);
     scrollBottom(container);
   },
@@ -1344,3 +1381,21 @@ function updateAdminVisibility() {
 }
 // Llamar periódicamente para que se active al login
 setInterval(updateAdminVisibility, 1500);
+
+
+// Helper global para descargar imágenes generadas
+function downloadImage(imgId, filename) {
+  const img = document.getElementById(imgId);
+  if (!img) return;
+  try {
+    const a = document.createElement("a");
+    a.href = img.src;
+    a.download = filename || "imagen.png";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch (e) {
+    // Fallback: abrir en nueva pestaña
+    window.open(img.src, "_blank");
+  }
+}
