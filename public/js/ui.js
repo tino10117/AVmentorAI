@@ -2633,7 +2633,7 @@ function finalizarPantallaJuego(data) {
         <strong style="font-size:13px;color:#fde68a;display:block;margin-bottom:10px">¿Qué hacés?</strong>
         <div style="display:flex;flex-direction:column;gap:8px">
           ${opciones.map((o, i) => `
-            <button class="btn btn-ghost" style="text-align:left;justify-content:flex-start;padding:12px 14px;border:1.5px solid rgba(236,72,153,.3)" onclick="elegirOpcion('${esc(o.letra)}', this)" data-decision="${esc(o.texto)}">
+            <button class="btn btn-ghost" style="text-align:left;justify-content:flex-start;padding:12px 14px;border:1.5px solid rgba(236,72,153,.3);white-space:normal;word-break:break-word;line-height:1.5;height:auto;min-height:48px" onclick="elegirOpcion('${esc(o.letra)}', this)" data-decision="${esc(o.texto)}">
               <strong style="color:#ec4899;margin-right:8px">${esc(o.letra)})</strong> ${esc(o.texto)}
             </button>
           `).join("")}
@@ -3041,7 +3041,7 @@ function finalizarPantallaEmpire(data) {
         <strong style="font-size:13px;color:#fde68a;display:block;margin-bottom:10px">¿Qué hacés?</strong>
         <div style="display:flex;flex-direction:column;gap:8px">
           ${opciones.map((o) => `
-            <button class="btn btn-ghost" style="text-align:left;justify-content:flex-start;padding:12px 14px;border:1.5px solid rgba(245,158,11,.3)" onclick="elegirOpcionEmpire('${esc(o.letra)}', this)" data-decision="${esc(o.texto)}">
+            <button class="btn btn-ghost" style="text-align:left;justify-content:flex-start;padding:12px 14px;border:1.5px solid rgba(245,158,11,.3);white-space:normal;word-break:break-word;line-height:1.5;height:auto;min-height:48px" onclick="elegirOpcionEmpire('${esc(o.letra)}', this)" data-decision="${esc(o.texto)}">
               <strong style="color:#fbbf24;margin-right:8px">${esc(o.letra)})</strong> ${esc(o.texto)}
             </button>
           `).join("")}
@@ -3160,7 +3160,7 @@ function abrirGestionarEmpresa() {
             "🏢 Buscar local para abrir 2da sucursal (necesitás capital)",
             "💼 Hablar con el banco sobre un préstamo",
           ].map(act => `
-            <button class="btn btn-ghost" style="text-align:left;justify-content:flex-start;padding:10px 12px;font-size:13px;border:1px solid rgba(245,158,11,.2)" onclick="ejecutarGestion('${esc(act)}')">
+            <button class="btn btn-ghost" style="text-align:left;justify-content:flex-start;padding:10px 12px;font-size:13px;border:1px solid rgba(245,158,11,.2);white-space:normal;word-break:break-word;line-height:1.5;height:auto;min-height:42px" onclick="ejecutarGestion('${esc(act)}')">
               ${act}
             </button>
           `).join("")}
