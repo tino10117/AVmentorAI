@@ -6,7 +6,8 @@ import jwt from "jsonwebtoken";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const JWT_SECRET = process.env.JWT_SECRET || "av-mentorai-fixed-secret-2024";
 
-const RATE_LIMITS = { Gratis: 10, Premium: 9999, Empresarial: 9999 };
+const RATE_LIMITS = { Gratis: 10, Premium: 200, Empresarial: 500 };
+const IMAGE_LIMITS = { Gratis: 1, Premium: 30, Empresarial: 100 };
 
 function verifyToken(req) {
   const auth = req.headers.authorization || "";
@@ -22,6 +23,78 @@ async function getKV() {
     url: process.env.KV_REST_API_URL,
     token: process.env.KV_REST_API_TOKEN,
   });
+}
+
+// Obtener IP real del cliente (Vercel pone el header x-forwarded-for)
+function getClientIP(req) {
+  const xff = req.headers["x-forwarded-for"] || req.headers["x-real-ip"] || "";
+  return xff.split(",")[0].trim() || "unknown";
+}
+
+// Rate limit por IP — anti-bots y abuso desde la misma IP
+async function checkIPLimit(kv, ip, maxPerHour = 100) {
+  if (ip === "unknown") return { ok: true };
+  const hourKey = `ip_limit:${ip}:${new Date().toISOString().slice(0, 13)}`;
+  const count = parseInt(await kv.get(hourKey) || "0", 10);
+  if (count >= maxPerHour) {
+    return {
+      ok: false,
+      message: "Demasiadas peticiones desde tu IP. Esperá un rato y volvé a intentar."
+    };
+  }
+  await kv.set(hourKey, count + 1, { ex: 3600 });
+  return { ok: true };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HARD CAP GLOBAL — Salvavidas económico del sistema
+// Si el gasto del día llega al límite → bloquea TODAS las llamadas
+// El cap se puede cambiar desde el panel admin (key: "system_cap_usd")
+// ═══════════════════════════════════════════════════════════════
+const DEFAULT_DAILY_CAP_USD = 10; // Fallback si no hay configurado
+
+// Costos estimados por operación (USD)
+const COST_PER_OP = {
+  chat_mini: 0.001,        // gpt-4o-mini por respuesta
+  chat_4o: 0.01,           // gpt-4o por respuesta
+  image_generate: 0.04,    // gpt-image-1 o dall-e-3
+  image_edit: 0.04,        // gpt-image-1 edit
+  web_search: 0.005,       // chat con búsqueda
+};
+
+async function getSystemCap(kv) {
+  const cap = await kv.get("system_cap_usd");
+  return cap ? parseFloat(cap) : DEFAULT_DAILY_CAP_USD;
+}
+
+async function getDailySpent(kv) {
+  const today = new Date().toISOString().split("T")[0];
+  const spent = await kv.get(`system_spent:${today}`);
+  return spent ? parseFloat(spent) : 0;
+}
+
+async function checkSystemCap(kv) {
+  const cap = await getSystemCap(kv);
+  const spent = await getDailySpent(kv);
+  if (spent >= cap) {
+    return {
+      ok: false,
+      message: "Servicio temporalmente saturado. Volvé a intentar en unas horas.",
+      spent,
+      cap,
+    };
+  }
+  return { ok: true, spent, cap };
+}
+
+async function addSystemCost(kv, costUSD) {
+  const today = new Date().toISOString().split("T")[0];
+  const key = `system_spent:${today}`;
+  const current = parseFloat(await kv.get(key) || "0");
+  const newTotal = current + costUSD;
+  // TTL 48hs (mantenemos historia 1 día extra para reportes)
+  await kv.set(key, newTotal.toFixed(4), { ex: 172800 });
+  return newTotal;
 }
 
 // ─── Detector de pedidos de imagen ──────────────────────────────
@@ -390,6 +463,29 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
+  // ═══════════════════════════════════════════════════════════════
+  // RATE LIMIT POR IP (anti-bots, anti-abuso desde la misma IP)
+  // 100 requests/hora por IP, sin importar cuántas cuentas tenga
+  // ═══════════════════════════════════════════════════════════════
+  const clientIP = getClientIP(req);
+  const kvForIP = await getKV();
+  const ipCheck = await checkIPLimit(kvForIP, clientIP, 100);
+  if (!ipCheck.ok) {
+    return res.status(429).json({ error: ipCheck.message });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // HARD CAP GLOBAL (salvavidas económico)
+  // Si el sistema gastó más del cap diario → bloquear todo
+  // ═══════════════════════════════════════════════════════════════
+  const capCheck = await checkSystemCap(kvForIP);
+  if (!capCheck.ok) {
+    return res.status(503).json({
+      error: capCheck.message,
+      retry_after_hours: 6,
+    });
+  }
+
   let decoded;
   try { decoded = verifyToken(req); }
   catch { return res.status(401).json({ error: "No autorizado" }); }
@@ -435,7 +531,7 @@ export default async function handler(req, res) {
           const kv = await getKV();
           const imgKey = `imggen_limit:${user.email}:${today}`;
           const imgUsed = (await kv.get(imgKey)) || 0;
-          const imgLimit = user.plan === "Gratis" ? 1 : 999;
+          const imgLimit = IMAGE_LIMITS[user.plan] || IMAGE_LIMITS.Gratis;
 
           if (imgUsed >= imgLimit) {
             return res.status(429).json({
@@ -496,6 +592,9 @@ export default async function handler(req, res) {
           // Incrementar contador
           await kv.set(imgKey, imgUsed + 1, { ex: 86400 });
 
+          // Sumar costo al hard cap global
+          await addSystemCost(kvForIP, image ? COST_PER_OP.image_edit : COST_PER_OP.image_generate);
+
           return res.status(200).json({
             ok: true,
             tipo: "image",
@@ -514,14 +613,38 @@ export default async function handler(req, res) {
     }
   }
 
-  // Rate limit básico (plan Gratis)
-  if (user.plan === "Gratis") {
-    const today = new Date().toISOString().split("T")[0];
-    const questionsToday = user.fecha_preguntas === today ? (user.preguntas_hoy || 0) : 0;
-    if (questionsToday >= RATE_LIMITS.Gratis) {
-      return res.status(429).json({ error: "Límite diario de 10 preguntas alcanzado. Actualizá a Premium." });
-    }
+  // ═══════════════════════════════════════════════════════════════
+  // RATE LIMIT REAL (con Redis, atómico, auto-expira)
+  // Aplica a TODOS los planes con su límite correspondiente
+  // ═══════════════════════════════════════════════════════════════
+  const today = new Date().toISOString().split("T")[0];
+  const kv = await getKV();
+  const chatKey = `chat_limit:${user.email}:${today}`;
+  const chatUsed = parseInt(await kv.get(chatKey) || "0", 10);
+  const chatLimit = RATE_LIMITS[user.plan] || RATE_LIMITS.Gratis;
+
+  if (chatUsed >= chatLimit) {
+    return res.status(429).json({
+      error: user.plan === "Gratis"
+        ? `Llegaste al límite diario de ${chatLimit} preguntas. Subí a Premium para tener ${RATE_LIMITS.Premium}/día.`
+        : `Llegaste al límite diario de ${chatLimit} preguntas. Vuelve mañana.`,
+      used: chatUsed,
+      limit: chatLimit,
+    });
   }
+
+  // Anti-burst: máx 8 requests en 30 segundos (anti-spam, anti-bot)
+  const burstKey = `chat_burst:${user.email}`;
+  const burstCount = parseInt(await kv.get(burstKey) || "0", 10);
+  if (burstCount >= 8) {
+    return res.status(429).json({
+      error: "Estás enviando muchas preguntas muy rápido. Esperá unos segundos.",
+    });
+  }
+  await kv.set(burstKey, burstCount + 1, { ex: 30 });
+
+  // Incrementar el contador YA (no después, para evitar race conditions)
+  await kv.set(chatKey, chatUsed + 1, { ex: 86400 });
 
   // Seleccionar system prompt
   let systemPrompt = "";
@@ -601,6 +724,9 @@ export default async function handler(req, res) {
       sendEvent("error", { error: "No se pudo generar respuesta. Probá de nuevo." });
       return res.end();
     }
+
+    // Sumar costo al hard cap global (chat normal)
+    try { await addSystemCost(kvForIP, COST_PER_OP.chat_mini); } catch (e) {}
 
     sendEvent("done", { reply: fullReply });
     return res.end();

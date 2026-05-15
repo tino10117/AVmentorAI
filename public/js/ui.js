@@ -3317,6 +3317,15 @@ async function renderAdminPanel() {
       </p>
     </div>
 
+    <!-- ─── GASTO Y HARD CAP ─── -->
+    <div class="card mb-4" style="border-left:3px solid #ef4444">
+      <h3 style="font-size:16px;margin-bottom:12px">💰 Gasto del día y Hard Cap</h3>
+      <div id="admin-gasto">
+        <div class="loading-row" style="padding:14px"><div class="spinner"></div>
+          <span style="margin-left:10px;color:#94a3b8">Cargando gasto…</span></div>
+      </div>
+    </div>
+
     <!-- ─── ESTADÍSTICAS ─── -->
     <div class="card mb-4" style="border-left:3px solid #38bdf8">
       <h3 style="font-size:16px;margin-bottom:12px">📊 Estadísticas de la app</h3>
@@ -3360,6 +3369,50 @@ async function renderAdminPanel() {
       </div>
     </div>
   `;
+
+  // Cargar GASTO Y HARD CAP
+  Admin.gasto().then(data => {
+    const gastoEl = document.getElementById("admin-gasto");
+    if (!gastoEl) return;
+    const pct = Math.min(data.porcentaje_usado || 0, 100);
+    const color = pct >= 80 ? "#ef4444" : pct >= 50 ? "#f59e0b" : "#22c55e";
+    const barLabel = data.bloqueado
+      ? `<span style="color:#ef4444;font-weight:700">🚨 SISTEMA BLOQUEADO (cap superado)</span>`
+      : `<span style="color:${color}">${pct.toFixed(1)}% usado</span>`;
+
+    gastoEl.innerHTML = `
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+          <strong style="font-size:18px">$${(data.gasto_hoy || 0).toFixed(2)}</strong>
+          <span style="color:#94a3b8;font-size:13px">de $${(data.cap_actual || 0).toFixed(2)} USD</span>
+        </div>
+        <div style="background:rgba(255,255,255,.08);height:10px;border-radius:5px;overflow:hidden">
+          <div style="background:${color};height:100%;width:${pct}%;transition:width .3s"></div>
+        </div>
+        <div style="margin-top:6px;font-size:12px">${barLabel}</div>
+      </div>
+
+      <div style="display:grid;gap:6px;margin-bottom:14px">
+        <strong style="font-size:13px;color:#cbd5e1">Últimos 7 días:</strong>
+        ${(data.dias_recientes || []).map(d => `
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:#94a3b8">
+            <span>${d.fecha}</span>
+            <span style="color:#cbd5e1">$${(d.gasto || 0).toFixed(3)}</span>
+          </div>
+        `).join("")}
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="number" id="admin-new-cap" class="input" style="max-width:120px" placeholder="${data.cap_actual}" min="1" max="1000" step="1">
+        <button class="btn btn-primary btn-sm" onclick="adminCambiarCap()">💾 Cambiar cap</button>
+        <button class="btn btn-ghost btn-sm" onclick="adminResetGasto()">🔄 Resetear gasto hoy</button>
+      </div>
+      <div id="admin-cap-result" style="margin-top:8px"></div>
+    `;
+  }).catch(e => {
+    const gastoEl = document.getElementById("admin-gasto");
+    if (gastoEl) gastoEl.innerHTML = `<div class="alert alert-error">❌ ${esc(e.message)}</div>`;
+  });
 
   // Cargar estadísticas
   Admin.stats().then(data => {
@@ -3432,6 +3485,41 @@ async function renderAdminPanel() {
     document.getElementById("admin-users-list").innerHTML = `
       <div class="alert alert-error">❌ ${esc(e.message)}</div>
     `;
+  }
+}
+
+async function adminCambiarCap() {
+  const input = document.getElementById("admin-new-cap");
+  const resultEl = document.getElementById("admin-cap-result");
+  const nuevoCap = parseFloat(input.value || "0");
+
+  if (isNaN(nuevoCap) || nuevoCap < 1 || nuevoCap > 1000) {
+    resultEl.innerHTML = `<div class="alert alert-error">❌ El cap debe estar entre $1 y $1000 USD.</div>`;
+    return;
+  }
+
+  if (!confirm(`¿Cambiar el cap diario a $${nuevoCap} USD?`)) return;
+
+  resultEl.innerHTML = `<div class="loading-row" style="padding:8px"><div class="spinner"></div><span style="margin-left:10px;color:#94a3b8">Actualizando…</span></div>`;
+  try {
+    const data = await Admin.setCap(nuevoCap);
+    resultEl.innerHTML = `<div class="alert alert-success">✅ ${esc(data.message)}</div>`;
+    setTimeout(() => renderAdminPanel(), 1500);
+  } catch (e) {
+    resultEl.innerHTML = `<div class="alert alert-error">❌ ${esc(e.message)}</div>`;
+  }
+}
+
+async function adminResetGasto() {
+  if (!confirm("¿Resetear el contador de gasto del día a $0? Esto se hace cuando ves un valor anómalo y querés empezar de cero.")) return;
+  const resultEl = document.getElementById("admin-cap-result");
+  resultEl.innerHTML = `<div class="loading-row" style="padding:8px"><div class="spinner"></div><span style="margin-left:10px;color:#94a3b8">Reseteando…</span></div>`;
+  try {
+    const data = await Admin.resetGasto();
+    resultEl.innerHTML = `<div class="alert alert-success">✅ ${esc(data.message)}</div>`;
+    setTimeout(() => renderAdminPanel(), 1500);
+  } catch (e) {
+    resultEl.innerHTML = `<div class="alert alert-error">❌ ${esc(e.message)}</div>`;
   }
 }
 

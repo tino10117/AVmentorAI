@@ -1371,6 +1371,18 @@ const Admin = {
   async buscarUsuario(email_objetivo) {
     return this._request("buscar_usuario", { email_objetivo });
   },
+
+  async gasto() {
+    return this._request("gasto");
+  },
+
+  async setCap(cap) {
+    return this._request("set_cap", { cap });
+  },
+
+  async resetGasto() {
+    return this._request("reset_gasto");
+  },
 };
 
 // Activar/desactivar sidebar admin según si el user es admin
