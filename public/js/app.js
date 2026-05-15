@@ -1169,3 +1169,126 @@ const Historia = {
       .trim();
   },
 };
+
+// ═══════════════════════════════════════════════
+// BUSINESS EMPIRE IA — Simulador de empresa
+// ═══════════════════════════════════════════════
+const Empire = {
+  partidaActual: null,
+  ultimasOpciones: [],
+  cargandoTurno: false,
+  detalleFinanciero: null, // cache del último detalle pedido
+
+  // ─── LISTAR PARTIDAS + NEGOCIOS DISPONIBLES ────────────
+  async listar() {
+    const token = localStorage.getItem("av_token");
+    const resp = await fetch("/api/empire", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ action: "listar" }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Error" }));
+      throw new Error(err.error || "Error listando empresas");
+    }
+    return await resp.json();
+  },
+
+  async borrar(partida_id) {
+    const token = localStorage.getItem("av_token");
+    const resp = await fetch("/api/empire", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ action: "borrar", partida_id }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Error" }));
+      throw new Error(err.error || "Error borrando partida");
+    }
+    return await resp.json();
+  },
+
+  async detalle(partida_id) {
+    const token = localStorage.getItem("av_token");
+    const resp = await fetch("/api/empire", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ action: "detalle", partida_id }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Error" }));
+      throw new Error(err.error || "Error obteniendo detalle");
+    }
+    return await resp.json();
+  },
+
+  async iniciar({ negocio_id, onDelta }) {
+    return this._streamRequest({ action: "iniciar", negocio_id }, onDelta);
+  },
+
+  async avanzar({ partida_id, decision, onDelta }) {
+    return this._streamRequest({ action: "avanzar", partida_id, decision }, onDelta);
+  },
+
+  async gestionar({ partida_id, gestion_accion, onDelta }) {
+    return this._streamRequest({ action: "gestionar", partida_id, gestion_accion }, onDelta);
+  },
+
+  async retomar({ partida_id, onDelta }) {
+    return this._streamRequest({ action: "retomar", partida_id }, onDelta);
+  },
+
+  async _streamRequest(body, onDelta) {
+    const token = localStorage.getItem("av_token");
+    const resp = await fetch("/api/empire", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify(body),
+    });
+    const contentType = resp.headers.get("content-type") || "";
+    if (!contentType.includes("text/event-stream")) {
+      let errData;
+      try { errData = await resp.json(); } catch { errData = { error: "Error desconocido" }; }
+      throw new Error(errData.error || "Error en la solicitud");
+    }
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "", fullReply = "", finalData = null;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() || "";
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        const lines = part.split("\n");
+        let eventName = "message", dataStr = "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) eventName = line.slice(7).trim();
+          else if (line.startsWith("data: ")) dataStr += line.slice(6);
+        }
+        if (!dataStr) continue;
+        let parsed;
+        try { parsed = JSON.parse(dataStr); } catch { continue; }
+        if (eventName === "delta") {
+          fullReply += parsed.text || "";
+          if (onDelta) onDelta(parsed.text || "", fullReply);
+        } else if (eventName === "done") finalData = parsed;
+        else if (eventName === "error") throw new Error(parsed.error || "Error del servidor");
+      }
+    }
+    if (!finalData) return { reply: fullReply };
+    return finalData;
+  },
+
+  limpiarNarrativa(texto) {
+    return String(texto || "")
+      .replace(/\[METRICAS\][\s\S]*?\[\/METRICAS\]/gi, "")
+      .replace(/\[OPCIONES\][\s\S]*?\[\/OPCIONES\]/gi, "")
+      .replace(/\[METRICAS\][\s\S]*$/gi, "")
+      .replace(/\[OPCIONES\][\s\S]*$/gi, "")
+      .replace(/(\n\s*[A-D]\s*\)[^\n]*)+\s*$/g, "")
+      .trim();
+  },
+};
