@@ -218,7 +218,7 @@ export default async function handler(req, res) {
     }
 
     if (action === "set_cap") {
-      const nuevoCap = parseFloat(body.cap || "10");
+      const nuevoCap = parseFloat((req.body && req.body.cap) || "10");
       if (isNaN(nuevoCap) || nuevoCap < 1 || nuevoCap > 1000) {
         return res.status(400).json({ error: "El cap debe estar entre $1 y $1000 USD" });
       }
