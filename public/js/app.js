@@ -1158,8 +1158,14 @@ const Historia = {
   // ─── Limpiar narrativa para mostrar (sin tags meta) ────
   limpiarNarrativa(texto) {
     return String(texto || "")
+      // Bloques con cierre
       .replace(/\[METRICAS\][\s\S]*?\[\/METRICAS\]/gi, "")
       .replace(/\[OPCIONES\][\s\S]*?\[\/OPCIONES\]/gi, "")
+      // Bloques SIN cierre: cuando llega streaming a medias o gpt-4o-mini no cierra
+      .replace(/\[METRICAS\][\s\S]*$/gi, "")
+      .replace(/\[OPCIONES\][\s\S]*$/gi, "")
+      // Líneas A) B) C) D) sueltas que quedaron afuera de los tags
+      .replace(/(\n\s*[A-D]\s*\)[^\n]*)+\s*$/g, "")
       .trim();
   },
 };
