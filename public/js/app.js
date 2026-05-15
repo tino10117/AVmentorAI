@@ -646,11 +646,11 @@ const Chat = {
       </div>
       <div>${mdRender(captionText || '✨ Acá tenés tu imagen.')}</div>
       <div style="margin-top:10px">
-        <img id="${id}" src="${imageUrl}" style="max-width:100%;width:auto;max-height:380px;border-radius:12px;border:1px solid rgba(255,255,255,.15);display:block;cursor:pointer" onclick="window.open(this.src,'_blank')" alt="Imagen generada" />
+        <img id="${id}" src="${imageUrl}" style="max-width:100%;width:auto;max-height:380px;border-radius:12px;border:1px solid rgba(255,255,255,.15);display:block;cursor:pointer" onclick="openImageLightbox('${id}')" alt="Imagen generada" />
       </div>
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-ghost btn-sm" onclick="downloadImage('${id}','imagen-avmentorai.png')">📥 Descargar</button>
-        <button class="btn btn-ghost btn-sm" onclick="window.open(document.getElementById('${id}').src,'_blank')">🔍 Ver grande</button>
+        <button class="btn btn-ghost btn-sm" onclick="openImageLightbox('${id}')">🔍 Ver grande</button>
       </div>`;
     container.appendChild(div);
     scrollBottom(container);
@@ -1398,4 +1398,50 @@ function downloadImage(imgId, filename) {
     // Fallback: abrir en nueva pestaña
     window.open(img.src, "_blank");
   }
+}
+
+// Helper global: abrir imagen en lightbox (modal fullscreen)
+function openImageLightbox(imgId) {
+  const img = document.getElementById(imgId);
+  if (!img) return;
+  // Crear el overlay
+  const overlay = document.createElement("div");
+  overlay.id = "img-lightbox-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;cursor:zoom-out";
+  overlay.onclick = () => overlay.remove();
+  // Botón cerrar
+  const closeBtn = document.createElement("button");
+  closeBtn.innerHTML = "✕";
+  closeBtn.style.cssText = "position:absolute;top:20px;right:24px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:24px;width:42px;height:42px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center";
+  closeBtn.onclick = (e) => { e.stopPropagation(); overlay.remove(); };
+  // Imagen grande
+  const bigImg = document.createElement("img");
+  bigImg.src = img.src;
+  bigImg.style.cssText = "max-width:95vw;max-height:90vh;border-radius:8px;box-shadow:0 10px 60px rgba(0,0,0,.6)";
+  bigImg.onclick = (e) => e.stopPropagation();
+  // Botón descargar dentro del lightbox
+  const dlBtn = document.createElement("button");
+  dlBtn.innerHTML = "📥 Descargar";
+  dlBtn.style.cssText = "position:absolute;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(245,158,11,.9);border:none;color:#000;font-weight:700;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px";
+  dlBtn.onclick = (e) => {
+    e.stopPropagation();
+    const a = document.createElement("a");
+    a.href = img.src;
+    a.download = "imagen-avmentorai.png";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+  overlay.appendChild(bigImg);
+  overlay.appendChild(closeBtn);
+  overlay.appendChild(dlBtn);
+  document.body.appendChild(overlay);
+  // Cerrar con ESC
+  const escHandler = (e) => {
+    if (e.key === "Escape") {
+      overlay.remove();
+      document.removeEventListener("keydown", escHandler);
+    }
+  };
+  document.addEventListener("keydown", escHandler);
 }
