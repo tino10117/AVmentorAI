@@ -2277,6 +2277,7 @@ const ESCENARIOS_HISTORIA = [
 // ─── RENDER PRINCIPAL DEL TAB ─────────────────────────────────
 function renderJuegos() {
   renderJuegosHistoria();
+  renderJuegosEmpire();
   renderJuegosProximamente();
 }
 
@@ -2286,7 +2287,6 @@ function renderJuegosProximamente() {
     <p class="text-muted mb-3">Estos juegos están en desarrollo. ¡Pronto los vas a poder jugar!</p>
     <div class="grid-2">
       ${[
-        { e: "💼", t: "Business Empire IA", d: "Empezás con un kiosco. Crecé hasta tener un imperio. La IA arma los problemas." },
         { e: "🥊", t: "Debate Extremo", d: "La IA te pone una postura contraria. Convencé. Después analiza tu lógica y persuasión." },
         { e: "🤖", t: "IA vs Humano", d: "Acertijos, creatividad, lógica. ¿Ganás vos o gana la IA? Compartí el resultado." },
         { e: "🎯", t: "Trivia Emprendedora", d: "Tipo Preguntados pero con 8 categorías para emprendedores LATAM." },
@@ -2736,4 +2736,558 @@ function volverAlMenuHistoria() {
   Historia.partidaActual = null;
   Historia.ultimasOpciones = [];
   renderJuegosHistoria();
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// BUSINESS EMPIRE IA — Simulador de empresa
+// ═══════════════════════════════════════════════════════════════
+
+// ─── PANTALLA PRINCIPAL ────────────────────────────────────────
+async function renderJuegosEmpire() {
+  const c = document.getElementById("juegos-empire");
+  if (!c) return;
+  c.innerHTML = `
+    <div class="loading-row" style="padding:20px"><div class="spinner"></div>
+      <span style="margin-left:10px;color:#94a3b8">Cargando tus empresas…</span></div>
+  `;
+
+  try {
+    const data = await Empire.listar();
+    const partidas = data.partidas || [];
+    const negocios = data.negocios_disponibles || [];
+    const isPremium = App.user?.plan && App.user.plan !== "Gratis";
+
+    let partidasHtml = "";
+    if (partidas.length > 0) {
+      partidasHtml = `
+        <h3 style="margin-bottom:12px">📂 Tus empresas activas (${partidas.length}/3)</h3>
+        ${partidas.map(p => {
+          const quebrada = p.plata < 0;
+          return `
+          <div class="card mb-3" style="border-left:3px solid #f59e0b">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px">
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:700;font-size:15px;margin-bottom:4px">
+                  ${p.emoji} ${esc(p.nombre_empresa)}
+                  ${quebrada ? '<span style="color:#f87171;font-size:11px;margin-left:6px">💸 QUEBRÓ</span>' : ''}
+                </div>
+                <div class="text-muted" style="font-size:12px;margin-bottom:8px">
+                  Nivel <strong style="color:#fbbf24">${esc(p.nivel?.nombre || "Micro")}</strong> · Día ${p.dia} · Última jugada: ${fechaCorta(p.fecha_ultima)}
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;font-size:12px">
+              <span style="background:rgba(34,197,94,.15);color:#86efac;padding:3px 8px;border-radius:6px">💰 $${(p.plata||0).toLocaleString("es-AR")}</span>
+              <span style="background:rgba(56,189,248,.15);color:#7dd3fc;padding:3px 8px;border-radius:6px">📈 $${(p.facturacion_mensual||0).toLocaleString("es-AR")}/mes</span>
+              <span style="background:rgba(168,85,247,.15);color:#d8b4fe;padding:3px 8px;border-radius:6px">👥 ${p.empleados} emp.</span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              ${!quebrada ? `<button class="btn btn-primary btn-sm" onclick="retomarEmpire('${esc(p.id)}')">▶️ Continuar</button>` : ''}
+              <button class="btn btn-ghost btn-sm" onclick="borrarEmpire('${esc(p.id)}','${esc(p.nombre_empresa)}')" style="color:#f87171">🗑️ ${quebrada ? 'Borrar' : 'Cerrar empresa'}</button>
+            </div>
+          </div>`;
+        }).join("")}
+      `;
+    }
+
+    const planNote = !isPremium
+      ? `<div style="background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#7dd3fc">
+          💎 <strong>Gratis:</strong> 5 turnos/día. <strong>Premium:</strong> 30 turnos/día. Cada decisión = 1 turno.
+        </div>`
+      : `<div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#86efac">
+          ✅ Tenés 30 turnos por día para gestionar tus empresas.
+        </div>`;
+
+    const colorsByNeg = {
+      kiosco: "#22c55e", cafeteria: "#a855f7", peluqueria: "#ec4899",
+      foodtruck: "#f59e0b", ropa: "#ef4444", ecommerce: "#3b82f6"
+    };
+
+    c.innerHTML = `
+      ${partidas.length > 0 ? partidasHtml : ""}
+
+      ${partidas.length < 3 ? `
+        <h3 style="margin-bottom:8px">💼 Empezá una nueva empresa</h3>
+        <p class="text-muted mb-3">Elegí el rubro de tu negocio. Cada uno tiene capital inicial diferente y desafíos únicos.</p>
+
+        ${planNote}
+
+        <div class="grid-2 mb-4">
+          ${negocios.map(n => `
+            <div class="card" style="cursor:pointer;border:1px solid rgba(255,255,255,.08);transition:transform .15s,border-color .15s" onmouseover="this.style.borderColor='${colorsByNeg[n.id]||'#fbbf24'}80'" onmouseout="this.style.borderColor='rgba(255,255,255,.08)'" onclick="iniciarEmpire('${esc(n.id)}')">
+              <div style="font-size:32px;margin-bottom:6px">${n.emoji}</div>
+              <div style="font-weight:700;font-size:15px;margin-bottom:6px;color:${colorsByNeg[n.id]||'#fbbf24'}">${esc(n.nombre)}</div>
+              <div class="text-muted" style="font-size:12px;margin-bottom:10px;line-height:1.5">${esc(n.descripcion)}</div>
+              <div style="font-size:11px;color:#64748b">💰 Capital: $${n.capital_inicial.toLocaleString("es-AR")}</div>
+            </div>
+          `).join("")}
+        </div>
+      ` : `
+        <div class="alert alert-info">
+          ℹ️ Ya tenés 3 empresas activas (máximo permitido). Borrá una para empezar otra.
+        </div>
+      `}
+    `;
+  } catch (e) {
+    c.innerHTML = `<div class="alert alert-error">❌ ${esc(e.message)}</div>`;
+  }
+}
+
+// ─── INICIAR EMPRESA ──────────────────────────────────────────
+async function iniciarEmpire(negocio_id) {
+  mostrarPantallaEmpire(null);
+  const narrEl = document.getElementById("emp-narrativa");
+  const statusEl = document.getElementById("emp-status-stream");
+  if (statusEl) statusEl.textContent = "Creando tu empresa…";
+
+  try {
+    const data = await Empire.iniciar({
+      negocio_id,
+      onDelta: (chunk, full) => {
+        if (narrEl) {
+          const limpio = Empire.limpiarNarrativa(full);
+          narrEl.innerHTML = mdRender(limpio);
+        }
+      },
+    });
+    Empire.partidaActual = data.partida;
+    Empire.ultimasOpciones = data.opciones || [];
+    UserHelper.accion("chat_message");
+    finalizarPantallaEmpire(data);
+  } catch (e) {
+    Toast.error(e.message);
+    renderJuegosEmpire();
+  }
+}
+
+// ─── RETOMAR ──────────────────────────────────────────────────
+async function retomarEmpire(partida_id) {
+  mostrarPantallaEmpire(null);
+  const narrEl = document.getElementById("emp-narrativa");
+  const statusEl = document.getElementById("emp-status-stream");
+  if (statusEl) statusEl.textContent = "Recordando dónde quedaste…";
+
+  try {
+    const data = await Empire.retomar({
+      partida_id,
+      onDelta: (chunk, full) => {
+        if (narrEl) {
+          const limpio = Empire.limpiarNarrativa(full);
+          narrEl.innerHTML = mdRender(limpio);
+        }
+      },
+    });
+    Empire.partidaActual = data.partida;
+    Empire.ultimasOpciones = data.opciones || [];
+    finalizarPantallaEmpire(data);
+  } catch (e) {
+    Toast.error(e.message);
+    renderJuegosEmpire();
+  }
+}
+
+// ─── BORRAR ───────────────────────────────────────────────────
+async function borrarEmpire(partida_id, nombre) {
+  if (!confirm(`¿Cerrar la empresa "${nombre}"? Esta acción no se puede deshacer.`)) return;
+  try {
+    await Empire.borrar(partida_id);
+    Toast.success("Empresa cerrada.");
+    renderJuegosEmpire();
+  } catch (e) { Toast.error(e.message); }
+}
+
+// ─── PANTALLA DE JUEGO ────────────────────────────────────────
+function mostrarPantallaEmpire(partida) {
+  const c = document.getElementById("juegos-empire");
+  const titulo = partida?.nombre_empresa || "Cargando…";
+  const emoji = partida?.emoji || "💼";
+  const nivel = partida?.nivel?.nombre || "Micro";
+  const sig = partida?.siguiente_nivel;
+  const dia = partida?.dia || 1;
+  const plata = partida?.plata ?? 0;
+  const facturacion = partida?.facturacion_mensual ?? 0;
+  const empleados = partida?.empleados_total ?? 1;
+  const reputacion = partida?.reputacion ?? 50;
+  const estres = partida?.estres ?? 0;
+
+  c.innerHTML = `
+    <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+      <button class="btn btn-ghost btn-sm" onclick="volverAlMenuEmpire()">← Volver al menú</button>
+      <button class="btn btn-ghost btn-sm" onclick="abrirDetalleFinanciero()">📊 Ver detalle financiero</button>
+    </div>
+
+    <div id="emp-status-box" style="background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(168,85,247,.08));border:1.5px solid rgba(245,158,11,.3);border-radius:14px;padding:14px 16px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap">
+        <strong style="font-size:14px;color:#fbbf24" id="emp-titulo">${emoji} ${esc(titulo)}</strong>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span style="font-size:11px;background:rgba(168,85,247,.2);color:#d8b4fe;padding:4px 10px;border-radius:8px" id="emp-nivel">📈 ${esc(nivel)}</span>
+          <span style="font-size:11px;background:rgba(0,0,0,.3);padding:4px 10px;border-radius:8px;color:#fde68a" id="emp-dia">📅 Día ${dia}</span>
+        </div>
+      </div>
+      <div id="emp-metricas" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px">
+        ${renderMetricaEmpire("plata", plata)}
+        ${renderMetricaEmpire("facturacion", facturacion)}
+        ${renderMetricaEmpire("empleados", empleados)}
+        ${renderMetricaEmpire("reputacion", reputacion)}
+        ${renderMetricaEmpire("estres", estres)}
+      </div>
+      ${sig ? `<div style="margin-top:10px;font-size:11px;color:#fde68a">🎯 Siguiente nivel <strong>${esc(sig.nombre)}</strong>: facturá $${sig.facturacion_min.toLocaleString("es-AR")}/mes y tené ${sig.sucursales_min} sucursales</div>` : ''}
+    </div>
+
+    <div id="emp-stream-status" class="loading-row" style="padding:10px 14px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:10px;margin-bottom:12px;display:flex;align-items:center">
+      <div class="spinner"></div>
+      <span style="margin-left:10px;font-size:13px;color:#7dd3fc" id="emp-status-stream">Esperando…</span>
+    </div>
+
+    <div class="card" style="border-left:3px solid #f59e0b;margin-bottom:14px">
+      <div id="emp-narrativa" class="md-output" style="font-size:14px;line-height:1.7;min-height:60px"></div>
+    </div>
+
+    <div id="emp-opciones" style="display:none"></div>
+    <div id="emp-libre" style="display:none">
+      <div style="border-top:1px solid rgba(245,158,11,.2);padding-top:12px;margin-top:6px">
+        <strong style="font-size:13px;color:#fde68a;display:block;margin-bottom:8px">✍️ O escribí tu propia jugada:</strong>
+        <textarea class="input" id="emp-decision-libre" rows="2" placeholder="¿Qué hacés? La IA reacciona a lo que escribas..."></textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <button class="btn btn-primary btn-sm" onclick="enviarDecisionEmpireLibre()">🎯 Hacer esa jugada</button>
+          <button class="btn btn-ghost btn-sm" onclick="abrirGestionarEmpresa()" style="background:rgba(168,85,247,.2);color:#d8b4fe">📋 Gestionar empresa</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderMetricaEmpire(tipo, valor) {
+  const cfg = {
+    plata: { emoji: "💰", label: "Plata", color: "#22c55e", bg: "rgba(34,197,94,.15)", fmt: v => "$" + (v||0).toLocaleString("es-AR") },
+    facturacion: { emoji: "📈", label: "Fact./mes", color: "#7dd3fc", bg: "rgba(56,189,248,.15)", fmt: v => "$" + (v||0).toLocaleString("es-AR") },
+    empleados: { emoji: "👥", label: "Empleados", color: "#d8b4fe", bg: "rgba(168,85,247,.15)", fmt: v => String(v) },
+    reputacion: { emoji: "⭐", label: "Reput.", color: "#facc15", bg: "rgba(250,204,21,.15)", fmt: v => v + "/100" },
+    estres: { emoji: "🧠", label: "Estrés", color: "#fca5a5", bg: "rgba(239,68,68,.15)", fmt: v => v + "/100" },
+  }[tipo];
+  if (!cfg) return "";
+  return `<div style="background:${cfg.bg};padding:8px 10px;border-radius:8px;text-align:center">
+    <div style="font-size:18px">${cfg.emoji}</div>
+    <div style="font-size:13px;font-weight:700;color:${cfg.color};margin-top:2px">${cfg.fmt(valor)}</div>
+    <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">${cfg.label}</div>
+  </div>`;
+}
+
+function actualizarMetricasEmpireUI(p) {
+  const m = document.getElementById("emp-metricas");
+  if (m) {
+    m.innerHTML = `
+      ${renderMetricaEmpire("plata", p.plata)}
+      ${renderMetricaEmpire("facturacion", p.facturacion_mensual)}
+      ${renderMetricaEmpire("empleados", p.empleados_total)}
+      ${renderMetricaEmpire("reputacion", p.reputacion)}
+      ${renderMetricaEmpire("estres", p.estres)}
+    `;
+  }
+  const diaEl = document.getElementById("emp-dia");
+  if (diaEl) diaEl.textContent = `📅 Día ${p.dia}`;
+  const nivelEl = document.getElementById("emp-nivel");
+  if (nivelEl) nivelEl.textContent = `📈 ${p.nivel?.nombre || "Micro"}`;
+}
+
+// ─── FINALIZAR Y MOSTRAR OPCIONES ─────────────────────────────
+function finalizarPantallaEmpire(data) {
+  const statusBox = document.getElementById("emp-stream-status");
+  if (statusBox) {
+    const remaining = (data.limit || 0) - (data.used || 0);
+    let mensaje = `✅ Te quedan <strong>${remaining}</strong> turnos hoy.`;
+    if (data.subio_de_nivel && data.nuevo_nivel) {
+      mensaje = `🎉 <strong>¡Subiste a Nivel ${data.nuevo_nivel.nombre}!</strong> · Te quedan ${remaining} turnos hoy.`;
+    }
+    statusBox.outerHTML = `
+      <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#86efac">
+        ${mensaje}
+      </div>`;
+  }
+
+  if (data.partida) {
+    const tEl = document.getElementById("emp-titulo");
+    if (tEl) tEl.textContent = (data.partida.emoji || "💼") + " " + data.partida.nombre_empresa;
+    actualizarMetricasEmpireUI(data.partida);
+  }
+
+  // Game Over
+  if (data.game_over) {
+    const opc = document.getElementById("emp-opciones");
+    const libre = document.getElementById("emp-libre");
+    if (opc) {
+      opc.style.display = "block";
+      opc.innerHTML = `
+        <div class="card" style="border:2px solid #ef4444;background:rgba(239,68,68,.08);text-align:center;padding:20px">
+          <div style="font-size:48px;margin-bottom:10px">💸</div>
+          <h3 style="color:#fca5a5;margin-bottom:10px">${esc(data.mensaje_fin || "Tu empresa cerró")}</h3>
+          <p class="text-muted" style="margin-bottom:14px">Esta empresa llegó a su fin. ¿Empezás otra?</p>
+          <button class="btn btn-primary" onclick="volverAlMenuEmpire()">📋 Volver al menú</button>
+        </div>
+      `;
+    }
+    if (libre) libre.style.display = "none";
+    return;
+  }
+
+  // Mostrar opciones
+  const opciones = data.opciones || Empire.ultimasOpciones || [];
+  const opcDiv = document.getElementById("emp-opciones");
+  if (opcDiv) {
+    opcDiv.style.display = "block";
+    if (opciones.length > 0) {
+      opcDiv.innerHTML = `
+        <strong style="font-size:13px;color:#fde68a;display:block;margin-bottom:10px">¿Qué hacés?</strong>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${opciones.map((o) => `
+            <button class="btn btn-ghost" style="text-align:left;justify-content:flex-start;padding:12px 14px;border:1.5px solid rgba(245,158,11,.3)" onclick="elegirOpcionEmpire('${esc(o.letra)}', this)" data-decision="${esc(o.texto)}">
+              <strong style="color:#fbbf24;margin-right:8px">${esc(o.letra)})</strong> ${esc(o.texto)}
+            </button>
+          `).join("")}
+        </div>
+      `;
+    } else {
+      opcDiv.innerHTML = `<p class="text-muted" style="font-size:13px">La IA no propuso opciones. Escribí tu jugada abajo ⬇️</p>`;
+    }
+  }
+
+  const libre = document.getElementById("emp-libre");
+  if (libre) {
+    libre.style.display = "block";
+    const ta = document.getElementById("emp-decision-libre");
+    if (ta) ta.value = "";
+  }
+}
+
+// ─── ACCIONES ─────────────────────────────────────────────────
+async function elegirOpcionEmpire(letra, btn) {
+  const decision = btn.dataset.decision;
+  if (!decision) return;
+  await avanzarEmpire(`Elijo opción ${letra}: ${decision}`);
+}
+
+async function enviarDecisionEmpireLibre() {
+  const ta = document.getElementById("emp-decision-libre");
+  const txt = ta?.value?.trim() || "";
+  if (!txt) { Toast.error("Escribí qué querés hacer."); return; }
+  if (txt.length > 400) { Toast.error("Máximo 400 caracteres."); return; }
+  await avanzarEmpire(txt);
+}
+
+async function avanzarEmpire(decision) {
+  if (Empire.cargandoTurno) return;
+  if (!Empire.partidaActual) { Toast.error("No hay partida activa."); return; }
+  Empire.cargandoTurno = true;
+
+  const narrEl = document.getElementById("emp-narrativa");
+  const opcEl = document.getElementById("emp-opciones");
+  const libreEl = document.getElementById("emp-libre");
+  if (narrEl) narrEl.innerHTML = "";
+  if (opcEl) opcEl.style.display = "none";
+  if (libreEl) libreEl.style.display = "none";
+
+  const c = document.getElementById("juegos-empire");
+  const statusGreen = c.querySelector("[style*='Te quedan']");
+  if (statusGreen) {
+    const newStatus = document.createElement("div");
+    newStatus.id = "emp-stream-status";
+    newStatus.className = "loading-row";
+    newStatus.style.cssText = "padding:10px 14px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:10px;margin-bottom:12px;display:flex;align-items:center";
+    newStatus.innerHTML = `<div class="spinner"></div><span style="margin-left:10px;font-size:13px;color:#7dd3fc" id="emp-status-stream">La IA está pensando…</span>`;
+    statusGreen.replaceWith(newStatus);
+  }
+
+  try {
+    const data = await Empire.avanzar({
+      partida_id: Empire.partidaActual.id,
+      decision,
+      onDelta: (chunk, full) => {
+        if (narrEl) {
+          const limpio = Empire.limpiarNarrativa(full);
+          narrEl.innerHTML = mdRender(limpio);
+        }
+      },
+    });
+    Empire.partidaActual = data.partida;
+    Empire.ultimasOpciones = data.opciones || [];
+    UserHelper.accion("chat_message");
+    finalizarPantallaEmpire(data);
+  } catch (e) {
+    Toast.error(e.message);
+  } finally {
+    Empire.cargandoTurno = false;
+  }
+}
+
+// ─── GESTIONAR EMPRESA (modal con acciones rápidas) ────────────
+function abrirGestionarEmpresa() {
+  if (!Empire.partidaActual) return;
+  const p = Empire.partidaActual;
+  const personajes = p.personajes || [];
+
+  const modalHtml = `
+    <div id="empire-gestion-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)cerrarGestionEmpresa()">
+      <div style="background:#0f172a;border:1.5px solid rgba(245,158,11,.4);border-radius:16px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;padding:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h3 style="margin:0;font-size:18px">📋 Gestionar Mi Empresa</h3>
+          <button onclick="cerrarGestionEmpresa()" style="background:none;border:none;color:#f87171;font-size:22px;cursor:pointer">✕</button>
+        </div>
+        <p class="text-muted" style="font-size:12px;margin-bottom:14px">⚡ Cada acción que elijas consume 1 turno.</p>
+
+        <div style="background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.25);border-radius:10px;padding:12px;margin-bottom:14px">
+          <strong style="font-size:13px;color:#d8b4fe;display:block;margin-bottom:8px">👥 Empleados clave</strong>
+          ${personajes.length > 0 ? personajes.map(per => `
+            <div style="font-size:12px;margin-bottom:6px">
+              <strong>${esc(per.nombre)}</strong> (${esc(per.rol)})
+              ${per.sueldo ? `· $${per.sueldo}/mes` : ''}
+              ${per.performance ? ` · ⚡ ${per.performance}/100` : ''}
+              ${per.lealtad ? ` · 🤝 ${per.lealtad}/100` : ''}
+            </div>
+          `).join("") : '<div style="font-size:12px;color:#64748b">Sin empleados clave aún</div>'}
+        </div>
+
+        <strong style="font-size:13px;color:#fde68a;display:block;margin-bottom:10px">Acciones operativas</strong>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${[
+            "📦 Comprar más stock / mercadería para reponer",
+            "📢 Lanzar campaña de marketing en Instagram",
+            "💵 Subir precios un 10% para mejorar margen",
+            "💸 Bajar precios un 10% para atraer clientes",
+            "👤 Contratar un empleado nuevo",
+            "🤝 Reunirme con mi socio para planear la estrategia",
+            "📈 Analizar las ventas del último mes y ajustar",
+            "🏢 Buscar local para abrir 2da sucursal (necesitás capital)",
+            "💼 Hablar con el banco sobre un préstamo",
+          ].map(act => `
+            <button class="btn btn-ghost" style="text-align:left;justify-content:flex-start;padding:10px 12px;font-size:13px;border:1px solid rgba(245,158,11,.2)" onclick="ejecutarGestion('${esc(act)}')">
+              ${act}
+            </button>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+  `;
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = modalHtml;
+  document.body.appendChild(wrapper.firstElementChild);
+}
+
+function cerrarGestionEmpresa() {
+  document.getElementById("empire-gestion-modal")?.remove();
+}
+
+async function ejecutarGestion(accion) {
+  cerrarGestionEmpresa();
+  if (Empire.cargandoTurno) return;
+  if (!Empire.partidaActual) return;
+  Empire.cargandoTurno = true;
+
+  const narrEl = document.getElementById("emp-narrativa");
+  const opcEl = document.getElementById("emp-opciones");
+  const libreEl = document.getElementById("emp-libre");
+  if (narrEl) narrEl.innerHTML = "";
+  if (opcEl) opcEl.style.display = "none";
+  if (libreEl) libreEl.style.display = "none";
+
+  const c = document.getElementById("juegos-empire");
+  const statusGreen = c.querySelector("[style*='Te quedan']");
+  if (statusGreen) {
+    const newStatus = document.createElement("div");
+    newStatus.id = "emp-stream-status";
+    newStatus.className = "loading-row";
+    newStatus.style.cssText = "padding:10px 14px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.25);border-radius:10px;margin-bottom:12px;display:flex;align-items:center";
+    newStatus.innerHTML = `<div class="spinner"></div><span style="margin-left:10px;font-size:13px;color:#d8b4fe">Ejecutando: ${esc(accion).slice(0, 50)}…</span>`;
+    statusGreen.replaceWith(newStatus);
+  }
+
+  try {
+    const data = await Empire.gestionar({
+      partida_id: Empire.partidaActual.id,
+      gestion_accion: accion,
+      onDelta: (chunk, full) => {
+        if (narrEl) {
+          const limpio = Empire.limpiarNarrativa(full);
+          narrEl.innerHTML = mdRender(limpio);
+        }
+      },
+    });
+    Empire.partidaActual = data.partida;
+    Empire.ultimasOpciones = data.opciones || [];
+    UserHelper.accion("chat_message");
+    finalizarPantallaEmpire(data);
+  } catch (e) {
+    Toast.error(e.message);
+  } finally {
+    Empire.cargandoTurno = false;
+  }
+}
+
+// ─── DETALLE FINANCIERO ───────────────────────────────────────
+async function abrirDetalleFinanciero() {
+  if (!Empire.partidaActual) return;
+
+  // Mostrar modal con spinner mientras carga
+  const modalHtml = `
+    <div id="empire-detalle-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)cerrarDetalleFinanciero()">
+      <div style="background:#0f172a;border:1.5px solid rgba(56,189,248,.4);border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;padding:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <h3 style="margin:0;font-size:18px">📊 Detalle Financiero</h3>
+          <button onclick="cerrarDetalleFinanciero()" style="background:none;border:none;color:#f87171;font-size:22px;cursor:pointer">✕</button>
+        </div>
+        <div id="detalle-content">
+          <div class="loading-row" style="padding:20px"><div class="spinner"></div>
+            <span style="margin-left:10px;color:#94a3b8">Calculando números…</span></div>
+        </div>
+      </div>
+    </div>
+  `;
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = modalHtml;
+  document.body.appendChild(wrapper.firstElementChild);
+
+  try {
+    const data = await Empire.detalle(Empire.partidaActual.id);
+    const d = data.detalle;
+    const fmt = v => "$" + (v||0).toLocaleString("es-AR");
+    const ganColor = d.ganancia_neta >= 0 ? "#22c55e" : "#ef4444";
+
+    document.getElementById("detalle-content").innerHTML = `
+      <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:10px;padding:12px;margin-bottom:12px">
+        <strong style="font-size:13px;color:#86efac;display:block;margin-bottom:8px">📈 INGRESOS (mes actual)</strong>
+        <div style="display:flex;justify-content:space-between;font-size:13px"><span>Ventas</span><span>${fmt(d.ingresos.ventas)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;margin-top:6px;padding-top:6px;border-top:1px solid rgba(34,197,94,.2);color:#86efac"><span>TOTAL</span><span>${fmt(d.ingresos.total)}</span></div>
+      </div>
+
+      <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:12px;margin-bottom:12px">
+        <strong style="font-size:13px;color:#fca5a5;display:block;margin-bottom:8px">📉 COSTOS (mes)</strong>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>Mercadería/insumos</span><span>${fmt(d.costos.mercaderia)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>Sueldos</span><span>${fmt(d.costos.sueldos)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>Alquiler + Servicios</span><span>${fmt(d.costos.fijos)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>Marketing</span><span>${fmt(d.costos.marketing)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;margin-top:6px;padding-top:6px;border-top:1px solid rgba(239,68,68,.2);color:#fca5a5"><span>TOTAL</span><span>${fmt(d.costos.total)}</span></div>
+      </div>
+
+      <div style="background:rgba(${d.ganancia_neta >= 0 ? '34,197,94' : '239,68,68'},.12);border:1.5px solid rgba(${d.ganancia_neta >= 0 ? '34,197,94' : '239,68,68'},.4);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${d.ganancia_neta >= 0 ? '✅ GANANCIA NETA' : '⚠️ PÉRDIDA NETA'}</div>
+        <div style="font-size:22px;font-weight:800;color:${ganColor};margin-bottom:4px">${fmt(d.ganancia_neta)}</div>
+        <div style="font-size:12px;color:#94a3b8">Margen: ${d.margen}%</div>
+      </div>
+
+      ${d.ganancia_neta < 0 ? `<div style="margin-top:12px;padding:10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;font-size:12px;color:#fbbf24">💡 <strong>Estás perdiendo plata.</strong> Necesitás aumentar ventas o bajar costos para no quebrar.</div>` : ''}
+    `;
+  } catch (e) {
+    document.getElementById("detalle-content").innerHTML = `<div class="alert alert-error">❌ ${esc(e.message)}</div>`;
+  }
+}
+
+function cerrarDetalleFinanciero() {
+  document.getElementById("empire-detalle-modal")?.remove();
+}
+
+// ─── VOLVER AL MENÚ ──────────────────────────────────────────
+function volverAlMenuEmpire() {
+  Empire.partidaActual = null;
+  Empire.ultimasOpciones = [];
+  renderJuegosEmpire();
 }
