@@ -401,6 +401,7 @@ function navigateTo(tabId) {
   if (tabId === "viajes") { renderViajes(); setSubnav("viajes","itinerario"); }
   if (tabId === "vidasana") { renderVidaSana(); setSubnav("vidasana","alimentacion"); }
   if (tabId === "juegos") { renderJuegos(); setSubnav("juegos","historia"); }
+  if (tabId === "admin") { renderAdminPanel(); }
 }
 
 function setSubnav(section, value) {
@@ -1292,3 +1293,54 @@ const Empire = {
       .trim();
   },
 };
+
+// ═══════════════════════════════════════════════
+// ADMIN PANEL — Solo para Valentino
+// ═══════════════════════════════════════════════
+const Admin = {
+  EMAIL_ADMIN: "valen810a@gmail.com", // sincronizado con backend
+
+  esAdmin() {
+    const email = (App.user?.email || App.user?.username || "").toLowerCase().trim();
+    return email === this.EMAIL_ADMIN;
+  },
+
+  async _request(action, extraBody = {}) {
+    const token = localStorage.getItem("av_token");
+    const resp = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ action, ...extraBody }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Error" }));
+      throw new Error(err.error || `Error ${resp.status}`);
+    }
+    return await resp.json();
+  },
+
+  async listarUsuarios() {
+    return this._request("usuarios");
+  },
+
+  async stats() {
+    return this._request("stats");
+  },
+
+  async cambiarPlan(email_objetivo, nuevo_plan) {
+    return this._request("cambiar_plan", { email_objetivo, nuevo_plan });
+  },
+
+  async buscarUsuario(email_objetivo) {
+    return this._request("buscar_usuario", { email_objetivo });
+  },
+};
+
+// Activar/desactivar sidebar admin según si el user es admin
+function updateAdminVisibility() {
+  const section = document.getElementById("admin-section");
+  if (!section) return;
+  section.style.display = Admin.esAdmin() ? "block" : "none";
+}
+// Llamar periódicamente para que se active al login
+setInterval(updateAdminVisibility, 1500);
