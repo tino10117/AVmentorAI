@@ -15,6 +15,76 @@ function verifyToken(req) {
   return jwt.verify(token, JWT_SECRET);
 }
 
+// KV helper para rate limits de imágenes
+async function getKV() {
+  const { Redis } = await import("@upstash/redis");
+  return new Redis({
+    url: process.env.KV_REST_API_URL,
+    token: process.env.KV_REST_API_TOKEN,
+  });
+}
+
+// ─── Detector de pedidos de imagen ──────────────────────────────
+// Hace un mini-clasificador con gpt-4o-mini que devuelve true/false.
+// Usado solo en Mentor / Conversación Libre.
+async function detectarPedidoImagen(textoUsuario, tieneImagenAdjunta) {
+  try {
+    // Heurística rápida para evitar llamada innecesaria
+    const lower = textoUsuario.toLowerCase();
+    const palabrasGenerar = [
+      "generá una imagen", "genera una imagen", "creá una imagen", "crea una imagen",
+      "hacé una imagen", "hace una imagen", "haceme una imagen", "hazme una imagen",
+      "dibujame", "dibujá", "dibuja", "imagen de", "una foto de", "hazme un dibujo",
+      "create an image", "generate image", "draw me", "imagine",
+    ];
+    const palabrasEditar = [
+      "transformá", "transforma", "mostrámelo", "mostramelo", "mostrame",
+      "editá esta", "edita esta", "convertí esta", "convierte esta",
+      "cambiá el", "cambia el", "modificá", "modifica",
+      "ponele un", "poné un", "agrega un", "agregale", "agregá",
+      "fondo", "estilo", "color", "versión",
+    ];
+
+    // Si tiene imagen adjunta, las palabras de "editar" cuentan más
+    if (tieneImagenAdjunta) {
+      for (const p of palabrasEditar) {
+        if (lower.includes(p)) return true;
+      }
+    }
+    // Palabras claras de "generar imagen"
+    for (const p of palabrasGenerar) {
+      if (lower.includes(p)) return true;
+    }
+
+    // Si no matcheó la heurística pero igual parece dudoso, preguntamos a la IA
+    // Solo si el mensaje es corto (típico de pedidos de imagen)
+    if (textoUsuario.length > 200 && !tieneImagenAdjunta) return false;
+
+    const resp = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `Sos un clasificador. Recibís un mensaje del usuario y respondés SOLO "image" o "chat".
+- "image" = el usuario pide GENERAR, CREAR, DIBUJAR, EDITAR, MODIFICAR, TRANSFORMAR una imagen.
+- "chat" = el usuario quiere conversar, preguntar, pedir consejo, o cualquier otra cosa.
+${tieneImagenAdjunta ? 'CONTEXTO: el usuario adjuntó una imagen.' : ''}
+Respondé con UNA SOLA PALABRA: image o chat.`,
+        },
+        { role: "user", content: textoUsuario },
+      ],
+      max_tokens: 5,
+      temperature: 0,
+    });
+    const out = (resp.choices?.[0]?.message?.content || "").toLowerCase().trim();
+    return out.includes("image");
+  } catch (err) {
+    console.error("Error en detectarPedidoImagen:", err);
+    return false; // si falla, default a chat (más seguro)
+  }
+}
+
+
 // ─── Modos del Mentor (10 especializados + 1 libre) ──────────
 
 const MODOS = {
@@ -344,6 +414,104 @@ export default async function handler(req, res) {
   // Validación: imágenes solo para Premium/Empresarial
   if (image && user.plan === "Gratis") {
     return res.status(403).json({ error: "Subir imágenes es una función Premium. Actualizá tu plan para usarla." });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // DETECTOR DE PEDIDO DE IMAGEN (solo Mentor / Conversación Libre)
+  // Si el último mensaje del usuario pide explícitamente generar/editar
+  // una imagen, generamos la imagen acá mismo (sin llamar a otro endpoint)
+  // ═══════════════════════════════════════════════════════════════
+  const esModoLibre = type === "negocio" && modo === "Conversación Libre";
+  if (esModoLibre) {
+    const ultimoUser = [...messages].reverse().find(m => m.role === "user");
+    const textoUsuario = (ultimoUser?.content || "").toString().trim();
+    if (textoUsuario && textoUsuario.length > 0) {
+      const pideImagen = await detectarPedidoImagen(textoUsuario, !!image);
+      if (pideImagen) {
+        // ─── GENERAR IMAGEN DIRECTAMENTE ───
+        try {
+          // Rate limit de imágenes (separado del límite de chat)
+          const today = new Date().toISOString().split("T")[0];
+          const kv = await getKV();
+          const imgKey = `imggen_limit:${user.email}:${today}`;
+          const imgUsed = (await kv.get(imgKey)) || 0;
+          const imgLimit = user.plan === "Gratis" ? 1 : 999;
+
+          if (imgUsed >= imgLimit) {
+            return res.status(429).json({
+              error: user.plan === "Gratis"
+                ? "Ya usaste tu imagen del día. Subí a Premium para generar más."
+                : "Llegaste al límite diario de imágenes.",
+              used: imgUsed,
+              limit: imgLimit,
+            });
+          }
+
+          // Generar imagen
+          const promptLimpio = textoUsuario.slice(0, 1000);
+          let result;
+          try {
+            // Modo edit si vino imagen, generate si no
+            if (image) {
+              const dataMatch = String(image).match(/^data:(image\/[a-zA-Z+.-]+);base64,(.+)$/);
+              if (!dataMatch) throw new Error("Formato de imagen inválido");
+              const buffer = Buffer.from(dataMatch[2], "base64");
+              if (buffer.length > 4 * 1024 * 1024) throw new Error("La imagen es muy grande (máx 4MB)");
+              const mime = dataMatch[1];
+              const ext = mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : "jpg";
+              const fileLike = (typeof File !== "undefined")
+                ? new File([buffer], `input.${ext}`, { type: mime })
+                : (() => { const b = new Blob([buffer], { type: mime }); b.name = `input.${ext}`; return b; })();
+              result = await openai.images.edit({
+                model: "gpt-image-1",
+                image: fileLike,
+                prompt: promptLimpio,
+                size: "1024x1024",
+              });
+            } else {
+              // Generar sin imagen base — usar gpt-image-1 (calidad superior)
+              result = await openai.images.generate({
+                model: "gpt-image-1",
+                prompt: promptLimpio,
+                size: "1024x1024",
+                quality: "medium",
+              });
+            }
+          } catch (errGen) {
+            console.error("Error generando imagen:", errGen);
+            const m = (errGen?.message || "").toLowerCase();
+            if (m.includes("safety") || m.includes("content_policy")) {
+              return res.status(400).json({ error: "El pedido fue rechazado por las políticas de contenido. Probá con otro pedido." });
+            }
+            throw errGen;
+          }
+
+          const imgB64 = result?.data?.[0]?.b64_json;
+          const imgUrl = result?.data?.[0]?.url;
+          const imageUrl = imgB64 ? `data:image/png;base64,${imgB64}` : imgUrl;
+          if (!imageUrl) {
+            return res.status(500).json({ error: "La IA no devolvió imagen" });
+          }
+
+          // Incrementar contador
+          await kv.set(imgKey, imgUsed + 1, { ex: 86400 });
+
+          return res.status(200).json({
+            ok: true,
+            tipo: "image",
+            image_url: imageUrl,
+            modo: image ? "edit" : "generate",
+            reply: image ? "✨ Listo, acá tenés tu imagen editada." : "✨ Listo, acá tenés tu imagen.",
+            used: imgUsed + 1,
+            limit: imgLimit,
+          });
+
+        } catch (err) {
+          console.error("Error generando imagen en chat:", err);
+          return res.status(500).json({ error: err?.message || "Error generando la imagen" });
+        }
+      }
+    }
   }
 
   // Rate limit básico (plan Gratis)
