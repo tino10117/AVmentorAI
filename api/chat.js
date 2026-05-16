@@ -546,15 +546,29 @@ export default async function handler(req, res) {
         return res.status(503).json({ error: capCheck.message });
       }
 
-      // Generar audio
-      const mp3 = await openai.audio.speech.create({
-        model: "tts-1",
-        voice: "onyx",
-        input: textoTTS,
-        speed: 1.0,
+      // Generar audio con OpenAI TTS (fetch directo, sin SDK)
+      const ttsResponse = await fetch("https://api.openai.com/v1/audio/speech", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "tts-1",
+          voice: "onyx",
+          input: textoTTS,
+          speed: 1.0,
+        }),
       });
 
-      const buffer = Buffer.from(await mp3.arrayBuffer());
+      if (!ttsResponse.ok) {
+        const errText = await ttsResponse.text();
+        console.error("Error OpenAI TTS:", ttsResponse.status, errText);
+        return res.status(500).json({ error: `Error de OpenAI: ${ttsResponse.status}` });
+      }
+
+      const arrayBuffer = await ttsResponse.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
 
       // Incrementar contadores
       await kv.set(ttsKey, ttsUsed + 1, { ex: 86400 });
