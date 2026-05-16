@@ -1,129 +1,188 @@
-// api/voice.js — Whisper (transcribe) + TTS (speak)
-// Rate limit: 5 interacciones de voz por día para plan Gratis
+// ═══════════════════════════════════════════════════════════════
+// voice.js — Sistema de Text-to-Speech con OpenAI (voz onyx)
+// 
+// Funciona observando los mensajes de AVAI y agregando un botón 🔊
+// que reproduce el texto con voz argentina masculina.
+// ═══════════════════════════════════════════════════════════════
 
-import OpenAI from "openai";
-import { toFile } from "openai";
-import jwt from "jsonwebtoken";
+const Voice = {
+  // Audio actualmente reproduciéndose
+  currentAudio: null,
+  currentButton: null,
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const JWT_SECRET = process.env.JWT_SECRET || "av-mentorai-fixed-secret-2024";
+  // Reproducir texto via TTS
+  async speak(text, button) {
+    // Si hay algo reproduciéndose, parar
+    if (Voice.currentAudio) {
+      Voice.currentAudio.pause();
+      Voice.currentAudio = null;
+      if (Voice.currentButton) {
+        Voice.currentButton.innerHTML = "🔊";
+        Voice.currentButton.disabled = false;
+      }
+      // Si era el mismo botón, terminamos
+      if (Voice.currentButton === button) {
+        Voice.currentButton = null;
+        return;
+      }
+      Voice.currentButton = null;
+    }
 
-const VOICE_LIMITS = { Gratis: 5, Premium: 9999, Empresarial: 9999 };
+    if (!text || !text.trim()) return;
 
-async function getKV() {
-  const { Redis } = await import("@upstash/redis");
-  return new Redis({
-    url: process.env.KV_REST_API_URL,
-    token: process.env.KV_REST_API_TOKEN,
-  });
-}
+    const token = localStorage.getItem("avai_token");
+    if (!token) {
+      alert("Necesitás estar logueado para usar voz.");
+      return;
+    }
 
-function verifyToken(req) {
-  const auth = req.headers.authorization || "";
-  const token = auth.replace("Bearer ", "");
-  if (!token) throw new Error("No token");
-  return jwt.verify(token, JWT_SECRET);
-}
+    button.innerHTML = "⏳";
+    button.disabled = true;
 
-async function checkAndIncrement(email, plan) {
-  const limit = VOICE_LIMITS[plan] ?? VOICE_LIMITS.Gratis;
-  if (limit >= 9999) return { ok: true, used: 0, limit };
-  const kv = await getKV();
-  const today = new Date().toISOString().split("T")[0];
-  const key = `voice_limit:${email}:${today}`;
-  const used = (await kv.get(key)) || 0;
-  if (used >= limit) return { ok: false, used, limit };
-  await kv.set(key, used + 1, { ex: 86400 });
-  return { ok: true, used: used + 1, limit };
-}
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: "tts",
+          text: text.slice(0, 2000), // máx 2000 chars
+        }),
+      });
 
-export const config = {
-  api: { bodyParser: { sizeLimit: "10mb" } },
-};
-
-export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST")
-    return res.status(405).json({ error: "Method not allowed" });
-
-  let decoded;
-  try {
-    decoded = verifyToken(req);
-  } catch {
-    return res.status(401).json({ error: "No autorizado" });
-  }
-
-  const action = (req.query.action || "").toLowerCase();
-  const userEmail = decoded.email;
-
-  // Plan del usuario
-  const kv = await getKV();
-  const user = await kv.get(`user:${userEmail}`);
-  const plan = user?.plan || "Gratis";
-
-  try {
-    // ─── TRANSCRIBE (Whisper) ──────────────────────────────────
-    if (action === "transcribe") {
-      // Rate limit aplica solo aquí: 1 transcribe = 1 interacción de voz
-      const check = await checkAndIncrement(userEmail, plan);
-      if (!check.ok) {
-        return res.status(429).json({
-          error: `Llegaste al límite de ${check.limit} interacciones de voz por día. Activá Premium para voz ilimitada.`,
-          limit_reached: true,
-          used: check.used,
-          limit: check.limit,
-        });
+      if (!res.ok) {
+        let errorMsg = "Error al generar voz";
+        try {
+          const errData = await res.json();
+          errorMsg = errData.error || errorMsg;
+        } catch (e) {}
+        alert(errorMsg);
+        button.innerHTML = "🔊";
+        button.disabled = false;
+        return;
       }
 
-      const { audio, language } = req.body || {};
-      if (!audio) return res.status(400).json({ error: "Falta audio" });
+      // Obtener el blob de audio
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
 
-      // Aceptar tanto data URL como base64 puro
-      const base64 = String(audio).replace(/^data:audio\/[^;]+;base64,/, "");
-      const buffer = Buffer.from(base64, "base64");
-      const file = await toFile(buffer, "audio.webm");
+      Voice.currentAudio = audio;
+      Voice.currentButton = button;
+      button.innerHTML = "⏸️";
+      button.disabled = false;
 
-      const transcription = await openai.audio.transcriptions.create({
-        file,
-        model: "whisper-1",
-        language: language || undefined,
+      audio.onended = () => {
+        button.innerHTML = "🔊";
+        Voice.currentAudio = null;
+        Voice.currentButton = null;
+        URL.revokeObjectURL(url);
+      };
+
+      audio.onerror = () => {
+        button.innerHTML = "🔊";
+        Voice.currentAudio = null;
+        Voice.currentButton = null;
+        URL.revokeObjectURL(url);
+      };
+
+      audio.play().catch(err => {
+        console.error("Error reproduciendo audio:", err);
+        button.innerHTML = "🔊";
+        Voice.currentAudio = null;
+        Voice.currentButton = null;
       });
 
-      return res.status(200).json({
-        text: transcription.text,
-        used: check.used,
-        limit: check.limit,
-      });
+    } catch (err) {
+      console.error("Error en TTS:", err);
+      alert("No se pudo generar la voz. Intentá de nuevo.");
+      button.innerHTML = "🔊";
+      button.disabled = false;
     }
+  },
 
-    // ─── SPEAK (TTS) ───────────────────────────────────────────
-    if (action === "speak") {
-      const { text, voice } = req.body || {};
-      if (!text) return res.status(400).json({ error: "Falta texto" });
+  // Extraer texto plano de un mensaje (sin markdown ni emojis raros)
+  extractText(element) {
+    if (!element) return "";
+    // Clonar para no modificar el original
+    const clone = element.cloneNode(true);
+    // Remover elementos no leíbles (botones, imágenes, etc.)
+    clone.querySelectorAll("button, img, .chat-msg-header, .voice-btn").forEach(el => el.remove());
+    // Obtener texto plano
+    let text = clone.innerText || clone.textContent || "";
+    // Limpiar markdown básico
+    text = text.replace(/\*\*/g, "").replace(/\*/g, "").replace(/`/g, "");
+    text = text.replace(/\n\n+/g, ". ").replace(/\n/g, " ");
+    return text.trim();
+  },
 
-      const allowedVoices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"];
-      const v = allowedVoices.includes(voice) ? voice : "alloy";
+  // Inyectar botón 🔊 en un mensaje de la IA
+  attachToMessage(msgEl) {
+    if (!msgEl) return;
+    if (msgEl.querySelector(".voice-btn")) return; // Ya tiene botón
 
-      const mp3 = await openai.audio.speech.create({
-        model: "tts-1",
-        voice: v,
-        input: String(text).slice(0, 2000),
+    // Solo agregar a mensajes de la IA (no del usuario)
+    if (!msgEl.classList.contains("msg-ai")) return;
+
+    const btn = document.createElement("button");
+    btn.className = "voice-btn";
+    btn.innerHTML = "🔊";
+    btn.title = "Escuchar este mensaje";
+    btn.style.cssText = "background:rgba(56,189,248,.15);border:1px solid rgba(56,189,248,.35);color:#38bdf8;padding:4px 10px;border-radius:8px;cursor:pointer;font-size:13px;margin-top:8px;display:inline-flex;align-items:center;gap:4px;transition:all .2s";
+
+    btn.onmouseenter = () => btn.style.background = "rgba(56,189,248,.25)";
+    btn.onmouseleave = () => btn.style.background = "rgba(56,189,248,.15)";
+
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const text = Voice.extractText(msgEl);
+      Voice.speak(text, btn);
+    };
+
+    msgEl.appendChild(btn);
+  },
+
+  // Inicializar observer para agregar el botón automáticamente
+  init() {
+    // Función para procesar mensajes existentes
+    const processMessages = () => {
+      document.querySelectorAll(".chat-msg.msg-ai").forEach(msg => {
+        Voice.attachToMessage(msg);
       });
+    };
 
-      const buffer = Buffer.from(await mp3.arrayBuffer());
-      res.setHeader("Content-Type", "audio/mpeg");
-      res.setHeader("Cache-Control", "no-store");
-      return res.status(200).send(buffer);
-    }
+    // Procesar mensajes al cargar
+    processMessages();
 
-    return res
-      .status(400)
-      .json({ error: "Acción inválida. Usá ?action=transcribe o ?action=speak" });
-  } catch (err) {
-    console.error("Voice error:", err);
-    return res.status(500).json({ error: "Error: " + err.message });
-  }
+    // Observer para nuevos mensajes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType === 1) { // Element node
+            if (node.classList && node.classList.contains("chat-msg") && node.classList.contains("msg-ai")) {
+              Voice.attachToMessage(node);
+            }
+            // Buscar en hijos también
+            node.querySelectorAll && node.querySelectorAll(".chat-msg.msg-ai").forEach(child => {
+              Voice.attachToMessage(child);
+            });
+          }
+        });
+      });
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+  },
+};
+
+// Auto-init cuando el DOM esté listo
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => Voice.init());
+} else {
+  Voice.init();
 }
+
+// Exponer globalmente
+window.Voice = Voice;
