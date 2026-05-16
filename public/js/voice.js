@@ -1,16 +1,22 @@
-// js/voice.js — v2: Modo voz con micrófono + botón 🔊 manual por mensaje
-// Inyecta automáticamente:
-//   - Botón 🎤 al lado del enviar (graba → transcribe → envía)
-//   - Botón 🔊 en cada mensaje de la IA (al tocar, la IA "lee" ese mensaje)
-
+// js/voice.js — v3: Modo voz con micrófono + botón 🔊 manual por mensaje
+// Adaptado para llamar a /api/chat (TTS + transcribe integrados ahí, no a /api/voice)
+// Cambios v3:
+//   - Token: avai_token (compatibilidad con av_token viejo)
+//   - Endpoints: /api/chat con action="tts" / action="transcribe"
+//   - Nombre IA en regex: AVAI (no AV MentorAI)
 (function () {
   // Voces por contexto
   const VOICES = {
     english: "alloy",   // Alex: joven, energética
-    negocio: "onyx",    // Mentor: profesional, autoridad
+    negocio: "onyx",    // AVAI Mentor: profesional, autoridad
     mate: "echo",       // Bruno: cálido, profe
     default: "alloy",
   };
+
+  // Helper: leer token sin importar si está como avai_token o av_token
+  function getToken() {
+    return localStorage.getItem("avai_token") || localStorage.getItem("av_token") || "";
+  }
 
   const Voice = {
     recording: false,
@@ -19,12 +25,11 @@
     activeBtn: null,
     contextType: "default",
     stream: null,
-    currentAudio: null, // para parar audio si tocan otro 🔊
+    currentAudio: null,
 
     // ────────────────────────────────────────────────
     // GRABACIÓN (micrófono → Whisper → input → enviar)
     // ────────────────────────────────────────────────
-
     async startRecording(btn, contextType) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -73,7 +78,7 @@
       if (!inputEl || !sendBtn) return;
 
       const blob = new Blob(this.chunks, { type: "audio/webm" });
-      if (blob.size < 1000) return; // muy corto, ignorar
+      if (blob.size < 1000) return;
 
       const originalPlaceholder = inputEl.placeholder;
       inputEl.placeholder = "🎤 Transcribiendo...";
@@ -109,15 +114,15 @@
 
     async transcribe(blob, contextType) {
       const dataUrl = await this.blobToBase64(blob);
-      const token = localStorage.getItem("av_token") || "";
+      const token = getToken();
       const language = contextType === "english" ? "en" : "es";
-      const r = await fetch("/api/voice?action=transcribe", {
+      const r = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: "Bearer " + token,
         },
-        body: JSON.stringify({ audio: dataUrl, language }),
+        body: JSON.stringify({ action: "transcribe", audio: dataUrl, language }),
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.error || "Error al transcribir");
@@ -127,44 +132,38 @@
     // ────────────────────────────────────────────────
     // REPRODUCCIÓN (botón 🔊 manual por mensaje)
     // ────────────────────────────────────────────────
-
     async speakMessage(btn, text, contextType) {
-      // Si ya hay audio reproduciéndose, pararlo
       if (this.currentAudio) {
         try { this.currentAudio.pause(); } catch (e) {}
         this.currentAudio = null;
       }
 
-      // Limpiar el texto antes de mandarlo a TTS: quitar markdown, emojis, links
       const cleanText = (typeof stripForVoice === "function")
         ? stripForVoice(text)
         : String(text || "").replace(/[\*#`_]/g, "").replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1");
 
-      // Si después de limpiar quedó muy poco texto, no hay nada que leer
       if (!cleanText || cleanText.trim().length < 3) {
         btn.textContent = "🔊";
         btn.disabled = false;
         return;
       }
 
-      // Limitar largo: TTS de OpenAI tiene tope de 4096 caracteres
       const finalText = cleanText.slice(0, 4000);
-
       const originalText = btn.textContent;
       btn.textContent = "⏳";
       btn.disabled = true;
 
       const voice = VOICES[contextType] || VOICES.default;
-      const token = localStorage.getItem("av_token") || "";
+      const token = getToken();
 
       try {
-        const r = await fetch("/api/voice?action=speak", {
+        const r = await fetch("/api/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: "Bearer " + token,
           },
-          body: JSON.stringify({ text: finalText, voice }),
+          body: JSON.stringify({ action: "tts", text: finalText, voice }),
         });
         if (!r.ok) {
           const data = await r.json().catch(() => ({}));
@@ -194,7 +193,6 @@
     },
 
     detectContextType(btn) {
-      // Por contenedor del mensaje o input
       const wrap = btn.closest(".chat-wrap");
       if (wrap) {
         const id = wrap.id || "";
@@ -212,19 +210,17 @@
     },
 
     extractMessageText(msgEl) {
-      // Clonar y limpiar elementos no deseados (avatares, botones, headers)
       const clone = msgEl.cloneNode(true);
       clone.querySelectorAll(".chat-tts-btn, button, .msg-avatar, .msg-name").forEach((el) => el.remove());
       let text = (clone.textContent || "").trim();
-      // Limpiar el nombre del personaje si quedó al inicio
-      text = text.replace(/^(AV MentorAI|Alex — Profesor de Inglés|Bruno — Matemáticas)\s*/i, "");
+      // FIX: AVAI (en vez de AV MentorAI)
+      text = text.replace(/^(AVAI|AV MentorAI|Alex — Profesor de Inglés|Bruno — Matemáticas)\s*/i, "");
       return text;
     },
 
     // ────────────────────────────────────────────────
     // INYECCIÓN DE BOTONES
     // ────────────────────────────────────────────────
-
     injectMicButtons() {
       document.querySelectorAll(".chat-input-row").forEach((row) => {
         if (row.querySelector(".chat-mic-btn")) return;
@@ -252,11 +248,9 @@
     },
 
     injectSpeakButtons() {
-      // Solo mensajes de IA dentro de chat-wrap (NO el header de la página)
       const selector = ".chat-wrap .msg-ai, .chat-wrap .msg-english, .chat-wrap .msg-mate";
       document.querySelectorAll(selector).forEach((msgEl) => {
-        if (msgEl.querySelector(".chat-tts-btn")) return; // ya tiene botón
-        // Evitar agregar botón a mensajes de "typing" (puntos suspensivos solos)
+        if (msgEl.querySelector(".chat-tts-btn")) return;
         const txt = (msgEl.textContent || "").trim();
         if (!txt || txt.length < 5 || /^\.{3,}$/.test(txt)) return;
 
@@ -286,10 +280,8 @@
     },
 
     init() {
-      // Estilos
       const style = document.createElement("style");
       style.textContent = `
-        /* Botón micrófono (al lado del enviar) */
         .chat-mic-btn {
           background: linear-gradient(90deg, #a855f7, #6366f1);
           border: none;
@@ -312,8 +304,6 @@
           0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239,68,68,.5); }
           50% { transform: scale(1.08); box-shadow: 0 0 0 8px rgba(239,68,68,0); }
         }
-
-        /* Botón altavoz (en cada mensaje IA) */
         .chat-wrap .has-tts { position: relative; }
         .chat-tts-btn {
           display: inline-flex;
@@ -345,10 +335,8 @@
       `;
       document.head.appendChild(style);
 
-      // Primera inyección
       this.injectAll();
 
-      // Re-inyectar cuando aparezcan chats nuevos o mensajes nuevos
       const observer = new MutationObserver(() => this.injectAll());
       observer.observe(document.body, { childList: true, subtree: true });
     },
