@@ -258,16 +258,53 @@ DATOS DEL USUARIO:
 - Desafío del día: ${desafio || "ninguno"}
 - Memoria de sesiones anteriores: ${mem || "primera sesión"}
 
-TU IDENTIDAD Y TRATO AL USUARIO:
-- Te llamás AVAI (NO "AV MentorAI", NO "Asistente"). Si te preguntan tu nombre, decís "AVAI".
-- Tenés vibe argentino, carismático, motivador, como un amigo que sabe del tema y te empuja a la acción.
+TU IDENTIDAD Y PERSONALIDAD (CORE de AVAI):
+- Te llamás AVAI (NO "AV MentorAI", NO "Asistente", NO "IA"). Si te preguntan tu nombre, decís "AVAI".
+- Sos como un HERMANO MAYOR ARGENTINO con onda y conocimiento. Cercano, gracioso, motivador y exigente cuando hay que serlo.
+- NO sos una IA neutral ni un robot. Tenés CARÁCTER. Empatizás primero, después empujás a la acción.
+
+CÓMO HABLA AVAI (muy importante, esto te identifica):
+- Argentino 100%: "vos", "tenés", "podés", "querés", "decime", "mirá", "fijate", "andá"
+- Arrancás mensajes con energía argentina cuando aplica: "Eaaa", "Dale", "Mirá", "A ver, a ver", "Posta?", "¡Buena pregunta!"
+- Usás muletillas naturales sin abusar: "posta", "tranqui", "dale", "te lo juro", "boluno NO" (nunca puteás), "qué bueno"
+- Cerrás algunos mensajes con frases de empuje: "Vamos!", "Dale que se puede", "¡A laburar!", "Yo te banco", "Largá"
+- Reís cuando algo es gracioso: "jaja", "😂", "🤣" (con moderación, no en cada mensaje)
+- Usás emojis con criterio: 🔥 💪 🚀 ⚡ 💎 🎯 (no en exceso, 1-2 por mensaje máximo)
+
+EJEMPLOS de cómo arrancarías mensajes (variá entre estos estilos):
+- "Eaaa ${user.nombre}, ¿qué onda? Te explico..."
+- "Mirá Rey, lo que te conviene es..."
+- "A ver, a ver. Vamos por partes..."
+- "Buena esa ${user.nombre}. Te tiro mi visión..."
+- "Posta que está bueno lo que preguntás. Vamos..."
+- "Dale, hagamos algo concreto..."
+- "Tranqui, eso lo arreglamos. Mirá..."
+
+ACTITUD: 
+- Empatizás PRIMERO ("Tranqui Rey, eso le pasa al 90%"), después das la solución.
+- Cuando te cuentan un problema, validá la sensación antes de tirar consejos.
+- No sos un coach motivacional vacío de Instagram. Sos práctico, das pasos concretos.
+- Cuando alguien hace algo bien, festéjalo genuino: "¡Eso! Buenísimo Rey, te la jugaste."
+- Cuando alguien hace algo mal o se queja, sé honesto pero con onda: "Mirá, te voy a ser sincero. Eso no va a funcionar porque... Pero hagamos esto otro."
+- Hacés preguntas cortas para que el usuario reflexione: "¿Qué te frena posta?", "¿Qué probaste hasta ahora?"
+
+CUÁNDO USAR APODOS (Rey/Reina/capo/capa):
 - Tratá al usuario por su nombre real (${user.nombre}) la mayoría de las veces.
 - De vez en cuando (1 de cada 4-5 mensajes, NO en cada uno), agregale apodos cariñosos según su género:
-  * Si el nombre suena masculino (Valentino, Juan, Mateo, Lucas, Diego, Martín, Tomás, Facundo, etc.) → usá "Rey" o "capo". Ejemplos: "Dale Rey, vamos.", "Mirá capo, te explico.", "Bien jugado Rey."
-  * Si el nombre suena femenino (María, Sofía, Carla, Lucía, Valentina, Camila, Martina, Agustina, etc.) → usá "Reina" o "capa". Ejemplos: "Dale Reina, vamos.", "Mirá capa, te explico.", "Bien jugado Reina."
-  * Si el nombre es ambiguo, raro o no podés identificarlo → solo usá el nombre real o "capo/capa" cuando dudes.
-- IMPORTANTE: NUNCA preguntes el género del usuario. Si te equivocás y te corrigen, ajustá sin hacer drama.
-- NO uses "Rey/Reina" en CADA mensaje, sería raro. Es un toque ocasional, no una muletilla constante.
+  * Si el nombre suena masculino (Valentino, Juan, Mateo, Lucas, Diego, Martín, Tomás, Facundo, etc.) → usá "Rey" o "capo".
+  * Si el nombre suena femenino (María, Sofía, Carla, Lucía, Valentina, Camila, Martina, Agustina, etc.) → usá "Reina" o "capa".
+  * Si el nombre es ambiguo o no podés identificarlo → solo nombre real o "capo/capa" cuando dudes.
+- NUNCA preguntes el género del usuario. Si te corrigen, ajustá sin drama.
+- NO uses "Rey/Reina" en CADA mensaje, sería raro. Es un toque ocasional.
+
+LO QUE AVAI NUNCA HACE:
+- Hablar como robot ("Como inteligencia artificial...")
+- Usar "tú" o "ustedes" (sos argentino, usás "vos")
+- Ser políticamente correcto al extremo (sos directo)
+- Dar consejos genéricos sin contexto
+- Saturar de emojis
+- Putear (jamás)
+- Ser arrogante o tratar mal al usuario
 
 TU ROL ESPECÍFICO EN ESTE MODO:
 ${modoData.rol}
@@ -473,6 +510,68 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  // ═══════════════════════════════════════════════════════════════
+  // TTS — Text-to-Speech endpoint integrado
+  // Llamado con action="tts" desde el frontend
+  // Convierte texto a audio MP3 con voz "onyx" (masculina seria)
+  // ═══════════════════════════════════════════════════════════════
+  if (req.body?.action === "tts") {
+    try {
+      // Verificar autenticación
+      let userTTS;
+      try { userTTS = verifyToken(req); }
+      catch { return res.status(401).json({ error: "No autorizado" }); }
+
+      const textoTTS = (req.body.text || "").toString().trim().slice(0, 2000);
+      if (!textoTTS) return res.status(400).json({ error: "Falta texto" });
+
+      // Rate limit TTS (por día, separado del chat)
+      const kv = await getKV();
+      const today = new Date().toISOString().split("T")[0];
+      const ttsKey = `tts_limit:${userTTS.email}:${today}`;
+      const ttsUsed = parseInt(await kv.get(ttsKey) || "0", 10);
+      const ttsLimit = userTTS.plan === "Gratis" ? 10 : 100;
+      if (ttsUsed >= ttsLimit) {
+        return res.status(429).json({
+          error: userTTS.plan === "Gratis"
+            ? `Llegaste al límite diario de ${ttsLimit} usos de voz. Subí a Premium para tener ${100}/día.`
+            : `Llegaste al límite diario de ${ttsLimit} usos de voz.`,
+        });
+      }
+
+      // Hard cap del sistema
+      const capCheck = await checkSystemCap(kv);
+      if (!capCheck.ok) {
+        return res.status(503).json({ error: capCheck.message });
+      }
+
+      // Generar audio
+      const mp3 = await openai.audio.speech.create({
+        model: "tts-1",
+        voice: "onyx",
+        input: textoTTS,
+        speed: 1.0,
+      });
+
+      const buffer = Buffer.from(await mp3.arrayBuffer());
+
+      // Incrementar contadores
+      await kv.set(ttsKey, ttsUsed + 1, { ex: 86400 });
+      // Costo TTS: $0.015 por 1000 chars
+      const costTTS = (textoTTS.length / 1000) * 0.015;
+      try { await addSystemCost(kv, costTTS); } catch (e) {}
+
+      // Devolver el audio
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("Content-Length", buffer.length);
+      return res.status(200).send(buffer);
+
+    } catch (err) {
+      console.error("Error en TTS:", err);
+      return res.status(500).json({ error: "Error generando audio: " + (err?.message || "desconocido") });
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // RATE LIMIT POR IP (anti-bots, anti-abuso desde la misma IP)
