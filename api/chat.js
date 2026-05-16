@@ -512,6 +512,90 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   // ═══════════════════════════════════════════════════════════════
+  // TRANSCRIBE — Whisper endpoint integrado
+  // Llamado con action="transcribe" desde el frontend (botón 🎤)
+  // Convierte audio a texto con Whisper
+  // ═══════════════════════════════════════════════════════════════
+  if (req.body?.action === "transcribe") {
+    try {
+      // Verificar autenticación
+      let userT;
+      try { userT = verifyToken(req); }
+      catch { return res.status(401).json({ error: "No autorizado" }); }
+
+      const audioData = req.body.audio;
+      const language = (req.body.language || "es").toString().slice(0, 5);
+      if (!audioData || typeof audioData !== "string") {
+        return res.status(400).json({ error: "Falta audio" });
+      }
+
+      // Rate limit transcribe (separado del chat)
+      const kv = await getKV();
+      const today = new Date().toISOString().split("T")[0];
+      const trKey = `transcribe_limit:${userT.email}:${today}`;
+      const trUsed = parseInt(await kv.get(trKey) || "0", 10);
+      const trLimit = userT.plan === "Gratis" ? 5 : 100;
+      if (trUsed >= trLimit) {
+        return res.status(429).json({
+          error: userT.plan === "Gratis"
+            ? `Llegaste al límite diario de ${trLimit} transcripciones. Subí a Premium para 100/día.`
+            : `Llegaste al límite diario de ${trLimit} transcripciones.`,
+        });
+      }
+
+      // Hard cap del sistema
+      const capCheckT = await checkSystemCap(kv);
+      if (!capCheckT.ok) {
+        return res.status(503).json({ error: capCheckT.message });
+      }
+
+      // Decodificar base64
+      const m = audioData.match(/^data:(audio\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+      if (!m) return res.status(400).json({ error: "Formato de audio inválido" });
+      const buf = Buffer.from(m[2], "base64");
+      if (buf.length > 25 * 1024 * 1024) {
+        return res.status(400).json({ error: "Audio muy grande (máx 25MB)" });
+      }
+
+      // Construir FormData para Whisper
+      const FormDataModule = (await import("form-data")).default;
+      const form = new FormDataModule();
+      form.append("file", buf, { filename: "audio.webm", contentType: m[1] });
+      form.append("model", "whisper-1");
+      form.append("language", language);
+
+      // Llamar a OpenAI Whisper
+      const whisperRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          ...form.getHeaders(),
+        },
+        body: form,
+      });
+
+      if (!whisperRes.ok) {
+        const errText = await whisperRes.text();
+        console.error("Whisper error:", whisperRes.status, errText);
+        return res.status(500).json({ error: `Error de Whisper: ${whisperRes.status}` });
+      }
+
+      const transcribeData = await whisperRes.json();
+
+      // Incrementar contador
+      await kv.set(trKey, trUsed + 1, { ex: 86400 });
+      // Costo: Whisper = $0.006 por minuto, estimamos 0.5min promedio = $0.003
+      try { await addSystemCost(kv, 0.003); } catch (e) {}
+
+      return res.status(200).json({ text: transcribeData.text || "" });
+
+    } catch (err) {
+      console.error("Error en transcribe:", err);
+      return res.status(500).json({ error: "Error transcribiendo: " + (err?.message || "desconocido") });
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // TTS — Text-to-Speech endpoint integrado
   // Llamado con action="tts" desde el frontend
   // Convierte texto a audio MP3 con voz "onyx" (masculina seria)
@@ -525,6 +609,10 @@ export default async function handler(req, res) {
 
       const textoTTS = (req.body.text || "").toString().trim().slice(0, 2000);
       if (!textoTTS) return res.status(400).json({ error: "Falta texto" });
+      // Voz configurable (default onyx para AVAI)
+      const voiceTTS = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"].includes(req.body.voice)
+        ? req.body.voice
+        : "onyx";
 
       // Rate limit TTS (por día, separado del chat)
       const kv = await getKV();
@@ -555,7 +643,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           model: "tts-1",
-          voice: "onyx",
+          voice: voiceTTS,
           input: textoTTS,
           speed: 1.0,
         }),
