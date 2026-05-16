@@ -3560,3 +3560,4 @@ async function adminActivarRapido(email, plan) {
   } catch (e) {
     Toast.error(e.message);
   }
+}
