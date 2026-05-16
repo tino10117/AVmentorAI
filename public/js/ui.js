@@ -173,7 +173,7 @@ function sendWebSearch(tipo){
     .then(d=>{
       removeSpinner();
       App.chatMessages.negocio.push({role:"assistant",content:d.reply});
-      Chat.appendMsg(c,d.reply,"msg-ai","AV MentorAI","⚡","linear-gradient(135deg,#38bdf8,#6366f1)","#38bdf8");
+      Chat.appendMsg(c,d.reply,"msg-ai","AVAI","⚡","linear-gradient(135deg,#38bdf8,#6366f1)","#38bdf8");
       UserHelper.accion("chat_message");
       if(!App.user.messages)App.user.messages=[];
       App.user.messages=App.chatMessages.negocio.slice(-40);
@@ -428,7 +428,7 @@ function downloadCertificado(nivel,lecciones){
   .nv{font-size:26px;font-weight:800;color:${cm[nivel]||"#facc15"};margin:8px 0}
   .line{height:2px;background:linear-gradient(90deg,transparent,#facc15,transparent);margin:18px 0}
   @media print{body{background:white}}</style></head>
-  <body><div class="c"><h1>⚡ AV MentorAI</h1>
+  <body><div class="c"><h1>⚡ AVAI</h1>
   <div style="color:#38bdf8;margin-bottom:16px">Certificado de Nivel de Inglés</div>
   <div class="line"></div>
   <p style="color:#cbd5e1">Este certificado acredita que</p>
@@ -437,7 +437,7 @@ function downloadCertificado(nivel,lecciones){
   <div class="nv">${nivel}</div>
   <div style="color:#94a3b8;font-size:12px;margin-top:10px">Lecciones: ${lecciones} · Fecha: ${fecha}</div>
   <div class="line"></div><div style="font-size:40px;margin:12px 0">★</div>
-  <div style="color:#64748b;font-size:11px">AV MentorAI — Tu mentor personal</div>
+  <div style="color:#64748b;font-size:11px">AVAI — Tu mentor personal</div>
   <button onclick="window.print()" style="margin-top:18px;padding:10px 24px;background:linear-gradient(90deg,#facc15,#f97316);border:none;border-radius:10px;font-weight:800;cursor:pointer;font-size:14px">🖨️ Guardar como PDF</button>
   </div></body></html>`);
 }
@@ -515,7 +515,7 @@ function downloadCertMate(nivel,lecciones){
   h1{font-family:'Syne',sans-serif;font-size:34px;background:linear-gradient(90deg,#22c55e,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
   .nm{font-family:'Syne',sans-serif;font-size:28px;color:#22c55e;margin:12px 0}
   .nv{font-size:24px;font-weight:800;color:#facc15}.line{height:2px;background:linear-gradient(90deg,transparent,#22c55e,transparent);margin:16px 0}</style>
-  </head><body><div class="c"><h1>⚡ AV MentorAI</h1>
+  </head><body><div class="c"><h1>⚡ AVAI</h1>
   <div style="color:#38bdf8;margin-bottom:16px">Certificado de Matemáticas</div>
   <div class="line"></div><p style="color:#cbd5e1">Certifica que</p>
   <div class="nm">${nombre}</div><p style="color:#cbd5e1">completó el nivel</p>
@@ -1259,7 +1259,7 @@ function renderConfig(){
     <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border)">
       <h4 style="margin-bottom:12px">💬 Feedback</h4>
       <div class="grid-2 mb-3">
-        <div><label class="label">¿Qué tan útil es AV MentorAI? (1-10)</label>
+        <div><label class="label">¿Qué tan útil es AVAI? (1-10)</label>
           <input class="input" id="fb-cal" type="number" min="1" max="10" value="8" style="max-width:80px"></div>
         <div><label class="label">¿Pagarías por esta app?</label>
           <select class="select" id="fb-pag"><option>No sé</option><option>Sí</option><option>No</option></select></div>
@@ -1338,7 +1338,7 @@ function openLogoModal(){
 
         <div class="mb-3">
           <label class="label">Nombre de tu marca <span style="color:#f87171">*</span></label>
-          <input class="input" id="logo-nombre" maxlength="60" placeholder="Bela Store, AV Mentor, Tino Tech…" value="${esc(prefName)}">
+          <input class="input" id="logo-nombre" maxlength="60" placeholder="Bela Store, AVAI, Tino Tech…" value="${esc(prefName)}">
         </div>
 
         <div class="mb-3">
