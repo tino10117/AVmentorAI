@@ -3561,3 +3561,95 @@ async function adminActivarRapido(email, plan) {
     Toast.error(e.message);
   }
 }
+// ═══════════════════════════════════════════════
+// MODALES LEGALES — T&C y Privacidad
+// ═══════════════════════════════════════════════
+// ⚠️ TEXTO PROVISIONAL — Antes del lanzamiento público hay que reemplazar
+//    el contenido de TEXTO_TYC y TEXTO_PRIVACIDAD por los documentos definitivos.
+
+const TEXTO_TYC = `
+**TÉRMINOS Y CONDICIONES DE AVAI — Versión 1.0 (Borrador)**
+
+Los Términos y Condiciones definitivos de AVAI están en proceso de redacción
+y serán publicados antes del lanzamiento público.
+
+Esta versión preliminar es para testing privado.
+
+Al aceptar, declarás bajo juramento que:
+- Sos mayor de 18 años.
+- Usás AVAI bajo tu propia responsabilidad.
+- Entendés que las respuestas de la IA son orientativas y NO reemplazan
+  asesoramiento profesional (legal, médico, financiero, nutricional).
+
+Operador: Valentino Avalos, monotributista (Argentina, jurisdicción Formosa).
+Contacto: soporte@avai.ar
+`;
+
+const TEXTO_PRIVACIDAD = `
+**POLÍTICA DE PRIVACIDAD DE AVAI — Versión 1.0 (Borrador)**
+
+La Política de Privacidad definitiva está en proceso de redacción y será
+publicada antes del lanzamiento público.
+
+Esta versión preliminar es para testing privado.
+
+Resumen de qué hacemos con tus datos:
+- Email y contraseña (hasheada con bcrypt) para tu cuenta.
+- Respuestas del onboarding (objetivo, negocio, dificultades) para personalizar la app.
+- Historial de chats con la IA (últimos 40 mensajes por asistente) para mantener contexto.
+- Datos del módulo Vida Sana (edad, peso, restricciones) si lo usás — datos sensibles
+  bajo Ley 25.326 de Protección de Datos Personales.
+- IP y timestamp del consentimiento (prueba legal).
+
+Subprocesadores que tratan tus datos (todos en EEUU — transferencia internacional):
+- OpenAI (genera las respuestas de la IA).
+- Vercel (hosting de la app).
+- Upstash Redis (almacenamiento de tu cuenta).
+
+Tenés derecho a pedir acceso, rectificación o eliminación de tus datos
+escribiendo a soporte@avai.ar (Ley 25.326, derechos ARCO).
+
+Operador: Valentino Avalos, monotributista (Argentina, jurisdicción Formosa).
+`;
+
+function openLegalModal(tipo) {
+  const titulo = tipo === "tyc" ? "Términos y Condiciones" : "Política de Privacidad";
+  const contenido = tipo === "tyc" ? TEXTO_TYC : TEXTO_PRIVACIDAD;
+
+  closeLegalModal();
+
+  const overlay = document.createElement("div");
+  overlay.id = "legal-modal-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)";
+  overlay.onclick = (e) => { if (e.target === overlay) closeLegalModal(); };
+
+  const box = document.createElement("div");
+  box.style.cssText = "background:#0f172a;border:1.5px solid rgba(250,204,21,.4);border-radius:14px;max-width:600px;width:100%;max-height:85vh;overflow-y:auto;padding:24px;color:#cbd5e1;font-size:14px;line-height:1.7";
+  const contenidoHtml = esc(contenido).replace(/\*\*(.+?)\*\*/g, '<strong style="color:#facc15">$1</strong>');
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:12px">
+      <h3 style="margin:0;color:#facc15;font-family:'Syne',sans-serif;font-size:18px">${titulo}</h3>
+      <button onclick="closeLegalModal()" style="background:none;border:none;color:#f87171;font-size:22px;cursor:pointer;padding:0 4px" title="Cerrar">✕</button>
+    </div>
+    <div style="white-space:pre-line">${contenidoHtml}</div>
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1);text-align:right">
+      <button class="btn btn-primary btn-sm" onclick="closeLegalModal()">Entendido</button>
+    </div>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  const escHandler = (ev) => {
+    if (ev.key === "Escape") {
+      closeLegalModal();
+      document.removeEventListener("keydown", escHandler);
+    }
+  };
+  document.addEventListener("keydown", escHandler);
+}
+
+function closeLegalModal() {
+  const m = document.getElementById("legal-modal-overlay");
+  if (m) m.remove();
+}
