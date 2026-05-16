@@ -368,7 +368,7 @@ function showSpinner(container) {
   div.id = "typing-indicator";
   div.innerHTML = `<div class="chat-msg-header">
     <div class="chat-avatar" style="background:linear-gradient(135deg,#38bdf8,#6366f1)">⚡</div>
-    <span class="chat-name" style="color:#38bdf8">AV MentorAI</span>
+    <span class="chat-name" style="color:#38bdf8">AVAI</span>
   </div>
   <div class="typing-indicator">
     <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
@@ -439,7 +439,7 @@ const Chat = {
     }
 
     const msgClass = type === "english" ? "msg-english" : type === "mate" ? "msg-mate" : "msg-ai";
-    const aiName = type === "english" ? "Alex — Profesor de Inglés" : type === "mate" ? "Bruno — Matemáticas" : "AV MentorAI";
+    const aiName = type === "english" ? "Alex — Profesor de Inglés" : type === "mate" ? "Bruno — Matemáticas" : "AVAI";
     const aiIcon = type === "english" ? "🎓" : type === "mate" ? "🔢" : "⚡";
     const aiColor = type === "english" ? "#a855f7" : type === "mate" ? "#22c55e" : "#38bdf8";
     const avatarGrad = type === "english" ? "linear-gradient(135deg,#a855f7,#6366f1)" : type === "mate" ? "linear-gradient(135deg,#22c55e,#16a34a)" : "linear-gradient(135deg,#38bdf8,#6366f1)";
@@ -642,7 +642,7 @@ const Chat = {
     const id = "imggen_" + Date.now();
     div.innerHTML = `<div class="chat-msg-header">
         <div class="chat-avatar" style="background:${grad || 'linear-gradient(135deg,#facc15,#f97316)'}">${icon || '🎨'}</div>
-        <span class="chat-name" style="color:${color || '#facc15'}">${name || 'AV MentorAI'}</span>
+        <span class="chat-name" style="color:${color || '#facc15'}">${name || 'AVAI'}</span>
       </div>
       <div>${mdRender(captionText || '✨ Acá tenés tu imagen.')}</div>
       <div style="margin-top:10px">
@@ -668,7 +668,7 @@ const Chat = {
     container.innerHTML = "";
     App.chatMessages[messagesKey].forEach(m => {
       const cls = m.role === "user" ? "user" : type === "english" || type === "englishRoleplay" ? "msg-english" : type === "mate" ? "msg-mate" : "msg-ai";
-      const aiName = type === "english" || type === "englishRoleplay" ? "Alex — Profesor de Inglés" : type === "mate" ? "Bruno — Matemáticas" : "AV MentorAI";
+      const aiName = type === "english" || type === "englishRoleplay" ? "Alex — Profesor de Inglés" : type === "mate" ? "Bruno — Matemáticas" : "AVAI";
       const aiIcon = type === "english" || type === "englishRoleplay" ? "🎓" : type === "mate" ? "🔢" : "⚡";
       const aiColor = type === "english" || type === "englishRoleplay" ? "#a855f7" : type === "mate" ? "#22c55e" : "#38bdf8";
       const grad = type === "english" || type === "englishRoleplay" ? "linear-gradient(135deg,#a855f7,#6366f1)" : type === "mate" ? "linear-gradient(135deg,#22c55e,#16a34a)" : "linear-gradient(135deg,#38bdf8,#6366f1)";
@@ -704,8 +704,8 @@ const Chat = {
     } else {
       const obj = u?.objetivo ? ` Tu objetivo: ${u.objetivo}.` : "";
       const neg = u?.negocio ? ` sobre tu negocio de ${u.negocio}` : "";
-      msg = `¡Hola ${n}! Soy AV MentorAI.${obj} Listo para ayudarte${neg}. ¿Por dónde empezamos?`;
-      cls = "msg-ai"; name = "AV MentorAI"; icon = "⚡"; color = "#38bdf8"; grad = "linear-gradient(135deg,#38bdf8,#6366f1)";
+      msg = `¡Hola ${n}! Soy AVAI.${obj} Listo para ayudarte${neg}. ¿Por dónde empezamos?`;
+      cls = "msg-ai"; name = "AVAI"; icon = "⚡"; color = "#38bdf8"; grad = "linear-gradient(135deg,#38bdf8,#6366f1)";
     }
     this.appendMsg(container, msg, cls, name, icon, grad, color);
   },
@@ -876,7 +876,7 @@ const Viajes = {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Mi Viaje — AV MentorAI</title>
+  <title>Mi Viaje — AVAI</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #1f2937; line-height: 1.7; }
     h1, h2, h3 { color: #0f172a; }
@@ -892,7 +892,7 @@ const Viajes = {
 </head>
 <body>
   ${html}
-  <div class="footer">Generado con ⚡ AV MentorAI · ${new Date().toLocaleDateString("es-AR")}</div>
+  <div class="footer">Generado con ⚡ AVAI · ${new Date().toLocaleDateString("es-AR")}</div>
 </body>
 </html>`);
     win.document.close();
@@ -1031,7 +1031,7 @@ const Bienestar = {
     const html = mdRender(lastAssistant.content);
     const titulo = this.lastMode === "alimentacion" ? "Mi Plan de Alimentación" : "Mi Rutina de Ejercicio";
     win.document.write(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>${titulo} — AV MentorAI</title>
+<html><head><meta charset="utf-8"><title>${titulo} — AVAI</title>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #1f2937; line-height: 1.7; }
   h1, h2, h3 { color: #0f172a; }
@@ -1043,7 +1043,7 @@ const Bienestar = {
   @media print { body { margin: 20px; } }
 </style></head><body>
   ${html}
-  <div class="footer">Generado con ⚡ AV MentorAI · ${new Date().toLocaleDateString("es-AR")}</div>
+  <div class="footer">Generado con ⚡ AVAI · ${new Date().toLocaleDateString("es-AR")}</div>
 </body></html>`);
     win.document.close();
     setTimeout(() => win.print(), 500);
