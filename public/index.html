@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AV MentorAI — Tu mentor premium</title>
+<title>AVAI — Tu mentor premium</title>
 <meta name="description" content="Mentor de negocios, inglés, matemáticas y herramientas con IA para LATAM">
 <meta name="theme-color" content="#020617">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
@@ -96,30 +96,49 @@
     .modo-card-label { font-size: 11px; }
     .modo-card-icon { font-size: 20px; }
   }
+  /* Footer del sidebar con links legales */
+  .sidebar-footer {
+    margin-top: 12px;
+    padding: 12px;
+    border-top: 1px solid rgba(255,255,255,.08);
+    font-size: 11px;
+  }
+  .sidebar-footer a {
+    color: #94a3b8;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    transition: color .2s;
+  }
+  .sidebar-footer a:hover { color: #cbd5e1; }
+  .sidebar-footer .copy {
+    margin-top: 10px;
+    text-align: center;
+    font-size: 10px;
+    color: #475569;
+  }
 </style>
 </head>
 <body>
-
 <!-- ── TOAST ── -->
 <div id="toast-container"></div>
-
 <!-- ═══════════════════════════════════════════════ -->
 <!-- LOGIN SCREEN                                    -->
 <!-- ═══════════════════════════════════════════════ -->
 <div id="login-screen">
   <div style="text-align:center;padding:20px 0 28px">
-    <div style="font-family:'Syne',sans-serif;font-size:48px;font-weight:900;background:linear-gradient(90deg,#facc15,#f97316,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px">⚡ AV MentorAI</div>
+    <div style="font-family:'Syne',sans-serif;font-size:48px;font-weight:900;background:linear-gradient(90deg,#facc15,#f97316,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px">⚡ AVAI</div>
     <div style="font-size:16px;color:#cbd5e1;margin-bottom:6px">Tu mentor personal premium para negocios, ventas y crecimiento.</div>
     <div style="font-size:13px;color:#64748b">Mentor de negocios · Inglés · Matemáticas · Herramientas · Todo con IA</div>
   </div>
-
   <div class="stats-row" style="max-width:500px;margin:0 auto 24px">
     <div class="stat-pill"><span class="sv">10</span><span class="sl">Modos mentor</span></div>
     <div class="stat-pill" style="background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.25)"><span class="sv" style="color:#a855f7">22</span><span class="sl">Lecciones</span></div>
     <div class="stat-pill" style="background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.25)"><span class="sv" style="color:#22c55e">6</span><span class="sl">Herramientas IA</span></div>
     <div class="stat-pill" style="background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.25)"><span class="sv" style="color:#38bdf8">8</span><span class="sl">Roleplay</span></div>
   </div>
-
   <div class="feature-grid" style="max-width:500px;margin:0 auto 24px">
     <div class="feature-item" style="background:linear-gradient(135deg,rgba(250,204,21,.1),rgba(249,115,22,.06));border:1px solid rgba(250,204,21,.25);"><b style="color:#facc15">🧠 Mentor de Negocios</b><span>10 modos: ventas, marketing, e-commerce, mindset y más. Con búsqueda en internet 🌐</span></div>
     <div class="feature-item" style="background:linear-gradient(135deg,rgba(168,85,247,.1),rgba(99,102,241,.06));border:1px solid rgba(168,85,247,.25);"><b style="color:#a855f7">📚 Inglés con Alex</b><span>12 lecciones, quiz, roleplay, traductor, diario y certificado PDF</span></div>
@@ -128,20 +147,17 @@
     <div class="feature-item" style="background:linear-gradient(135deg,rgba(56,189,248,.1),rgba(99,102,241,.06));border:1px solid rgba(56,189,248,.25);"><b style="color:#38bdf8">🔍 Analizar Competencia</b><span>Plan de 5 pasos para superar a cualquier competidor</span></div>
     <div class="feature-item" style="background:linear-gradient(135deg,rgba(250,204,21,.1),rgba(34,197,94,.06));border:1px solid rgba(250,204,21,.25);"><b style="color:#facc15">🔥 Gamificación</b><span>XP, rachas, niveles, desafíos diarios y logros desbloqueables</span></div>
   </div>
-
   <div class="login-box" style="margin:0 auto">
     <div class="login-tabs">
       <button class="login-tab active" onclick="setLoginTab('login')">Iniciar sesión</button>
       <button class="login-tab" onclick="setLoginTab('register')">Crear cuenta</button>
     </div>
-
     <div id="panel-login">
       <div class="mb-3"><label class="label">Email</label><input class="input" id="login-email" type="email" placeholder="tuemail@gmail.com / hotmail.com / icloud.com"></div>
       <div class="mb-3"><label class="label">Contraseña</label><input class="input" id="login-pass" type="password" placeholder="Tu contraseña"></div>
       <div id="login-error" class="alert alert-error hidden"></div>
       <button class="btn btn-primary btn-full btn-lg" onclick="doLogin()">⚡ Entrar</button>
     </div>
-
     <div id="panel-register" class="hidden">
       <div class="mb-3"><label class="label">Tu nombre</label><input class="input" id="reg-nombre" type="text" placeholder="Valentino"></div>
       <div class="mb-3"><label class="label">Email</label><input class="input" id="reg-email" type="email" placeholder="tuemail@gmail.com / hotmail.com / icloud.com"></div>
@@ -149,17 +165,20 @@
       <div id="reg-error" class="alert alert-error hidden"></div>
       <button class="btn btn-primary btn-full btn-lg" onclick="doRegister()">🚀 Crear cuenta gratis</button>
     </div>
-
     <p style="text-align:center;font-size:12px;color:#475569;margin-top:14px">Sin tarjeta de crédito · Demo privada v4.0</p>
+    <p style="text-align:center;font-size:11px;color:#475569;margin-top:8px">
+      Al crear cuenta aceptás los
+      <a href="/terminos.html" target="_blank" style="color:#94a3b8">Términos</a> y la
+      <a href="/privacidad.html" target="_blank" style="color:#94a3b8">Política de Privacidad</a>
+    </p>
   </div>
 </div>
-
 <!-- ═══════════════════════════════════════════════ -->
 <!-- ONBOARDING                                      -->
 <!-- ═══════════════════════════════════════════════ -->
 <div id="onboarding" class="hidden">
   <div class="onboarding-inner">
-    <div class="hero-card mb-3"><div class="av-logo">⚡ AV MentorAI</div><div class="av-subtitle">Configurá tu mentor en 1 minuto</div></div>
+    <div class="hero-card mb-3"><div class="av-logo">⚡ AVAI</div><div class="av-subtitle">Configurá tu mentor en 1 minuto</div></div>
     <div class="card mb-3">
       <div class="mb-3"><label class="label">¿Cuál es tu objetivo principal?</label><textarea class="textarea" id="ob-objetivo" placeholder="Ej: vender más, crear un negocio, generar ingresos extra…"></textarea></div>
       <div class="mb-3"><label class="label">¿Tenés un negocio o idea?</label><input class="input" id="ob-negocio" type="text" placeholder="Ej: tienda de ropa, supermercado, servicios…"></div>
@@ -183,23 +202,20 @@
         </select>
       </div>
       <div class="mb-3"><label class="label">¿Qué te cuesta más en tu negocio?</label><textarea class="textarea" id="ob-dificultad" placeholder="Ej: conseguir clientes, organizar las finanzas, saber qué publicar…"></textarea></div>
-      <button class="btn btn-primary btn-full btn-lg" onclick="saveOnboarding()">🚀 Entrar a AV MentorAI</button>
+      <button class="btn btn-primary btn-full btn-lg" onclick="saveOnboarding()">🚀 Entrar a AVAI</button>
     </div>
   </div>
 </div>
-
 <!-- ═══════════════════════════════════════════════ -->
 <!-- MAIN APP                                        -->
 <!-- ═══════════════════════════════════════════════ -->
 <div id="app" class="hidden">
-
   <!-- Hamburger -->
   <button id="hamburger" onclick="toggleSidebar()">☰</button>
   <div id="overlay" onclick="closeSidebar()"></div>
-
   <!-- Sidebar -->
   <nav id="sidebar">
-    <div class="sidebar-logo">⚡ AV MentorAI</div>
+    <div class="sidebar-logo">⚡ AVAI</div>
     <div class="nav-section">APRENDIZAJE</div>
     <button class="nav-btn active" data-tab="mentor" onclick="navigateTo('mentor')"><span class="nav-icon">🧠</span> Mentor</button>
     <button class="nav-btn" data-tab="english" onclick="navigateTo('english')"><span class="nav-icon">📚</span> Inglés</button>
@@ -221,17 +237,21 @@
       <button class="nav-btn" data-tab="admin" onclick="navigateTo('admin')" style="color:#fbbf24"><span class="nav-icon">🛠️</span> Panel Admin</button>
     </div>
     <button class="nav-btn" onclick="doLogout()" style="margin-top:auto;color:#ef4444"><span class="nav-icon">🚪</span> Cerrar sesión</button>
+    <!-- Footer del sidebar con links legales -->
+    <div class="sidebar-footer">
+      <a href="/terminos.html" target="_blank">📋 Términos y Condiciones</a>
+      <a href="/privacidad.html" target="_blank">🔒 Política de Privacidad</a>
+      <a href="mailto:valen810a@gmail.com">📧 Contacto / Soporte</a>
+      <div class="copy">© 2026 AVAI · Formosa, Argentina</div>
+    </div>
   </nav>
-
   <!-- Main Content -->
   <main id="main-content">
-
     <!-- HEADER -->
     <div class="hero-card mb-3">
-      <div class="av-logo">⚡ AV MentorAI</div>
+      <div class="av-logo">⚡ AVAI</div>
       <div class="av-subtitle" id="header-subtitle">Tu mentor personal premium para negocios, ventas y crecimiento.</div>
     </div>
-
     <!-- Metrics -->
     <div class="grid-4 mb-3" id="header-metrics">
       <div class="metric-chip" style="background:linear-gradient(135deg,rgba(250,204,21,.15),rgba(250,204,21,.05));border-color:rgba(250,204,21,.35)">
@@ -247,7 +267,6 @@
         <div style="font-size:24px">💎</div><div class="metric-val text-sky" id="m-plan">Gratis</div><div class="metric-lbl">Plan</div>
       </div>
     </div>
-
     <!-- Progress bar -->
     <div class="card mb-3" style="padding:14px">
       <div style="display:flex;justify-content:space-between;margin-bottom:6px">
@@ -261,9 +280,7 @@
         <span id="stat-objetivos">🎯 0 objetivos</span>
       </div>
     </div>
-
     <!-- ─── TABS ─── -->
-
     <!-- TAB: MENTOR -->
     <div id="tab-mentor" class="tab-content active">
       <div class="modo-card">
@@ -286,7 +303,6 @@
         </select>
         <div class="modo-card-hint">💡 11 modos disponibles · tocá para cambiar</div>
       </div>
-
       <!-- Quick buttons -->
       <div class="quick-btns mb-2">
         <div class="qbtn qbtn-gold" onclick="sendQuickNeg('Dame una idea de negocio rentable para empezar con pocos recursos.')">💡 Idea</div>
@@ -302,7 +318,6 @@
         <div class="qbtn qbtn-sky" style="font-size:11px" onclick="sendWebSearch('competencia')">🔍 Info de competencia</div>
         <div class="qbtn qbtn-green" style="font-size:11px" onclick="sendWebSearch('precios')">💹 Precios del mercado</div>
       </div>
-
       <div id="chat-negocio" class="chat-wrap" style="min-height:200px;max-height:60vh;overflow-y:auto"></div>
       <div id="neg-image-preview" style="display:none"></div>
       <div class="chat-input-wrap">
@@ -314,7 +329,6 @@
         </div>
       </div>
     </div>
-
     <!-- TAB: INGLÉS -->
     <div id="tab-english" class="tab-content hidden">
       <div class="card-blue card mb-3"><h2 style="font-family:'Syne',sans-serif">📚 Aprender Inglés</h2><p class="text-muted">Lecciones offline · Quiz · Roleplay · Traductor · Diario · Certificado</p></div>
@@ -333,7 +347,6 @@
       <div id="english-certificado" data-subpanel="english" data-value="certificado" style="display:none"></div>
       <div id="english-chat" data-subpanel="english" data-value="chat" style="display:none"></div>
     </div>
-
     <!-- TAB: MATE -->
     <div id="tab-mate" class="tab-content hidden">
       <div class="card-green card mb-3"><h2 style="font-family:'Syne',sans-serif">🔢 Aprender Matemáticas</h2><p class="text-muted">Lecciones · Quiz · Calculadora de negocios · Certificado</p></div>
@@ -346,7 +359,6 @@
       <div id="mate-calculadora" data-subpanel="mate" data-value="calculadora" style="display:none"></div>
       <div id="mate-chat" data-subpanel="mate" data-value="chat" style="display:none"></div>
     </div>
-
     <!-- TAB: HERRAMIENTAS -->
     <div id="tab-herramientas" class="tab-content hidden">
       <div class="hero-card mb-3"><h2>🛠️ Herramientas</h2><p class="av-subtitle">Analizá tu competencia, generá contenido y más.</p></div>
@@ -363,7 +375,6 @@
       <div id="herr-marca" data-subpanel="herr" data-value="marca" style="display:none"></div>
       <div id="herr-finanzas" data-subpanel="herr" data-value="finanzas" style="display:none"></div>
     </div>
-
     <!-- TAB: VIAJES -->
     <div id="tab-viajes" class="tab-content hidden">
       <div class="hero-card mb-3"><h2>✈️ Planificador de Viajes</h2><p class="av-subtitle">Armá tu próximo viaje con IA. Itinerarios día por día con precios reales y datos actualizados.</p></div>
@@ -374,7 +385,6 @@
       <div id="viajes-itinerario" data-subpanel="viajes" data-value="itinerario"></div>
       <div id="viajes-inspirame" data-subpanel="viajes" data-value="inspirame" style="display:none"></div>
     </div>
-
     <!-- TAB: VIDA SANA -->
     <div id="tab-vidasana" class="tab-content hidden">
       <div class="hero-card mb-3"><h2>💪 Vida Sana</h2><p class="av-subtitle">Plan de alimentación y rutina de ejercicio con IA, adaptado a tus objetivos.</p></div>
@@ -385,7 +395,6 @@
       <div id="vidasana-alimentacion" data-subpanel="vidasana" data-value="alimentacion"></div>
       <div id="vidasana-ejercicio" data-subpanel="vidasana" data-value="ejercicio" style="display:none"></div>
     </div>
-
     <!-- TAB: JUGÁ CON IA -->
     <div id="tab-juegos" class="tab-content hidden">
       <div class="hero-card mb-3"><h2>🎮 Jugá con IA</h2><p class="av-subtitle">Juegos donde la IA es el alma del juego. Aventuras únicas que cambian con cada decisión.</p></div>
@@ -398,46 +407,38 @@
       <div id="juegos-empire" data-subpanel="juegos" data-value="empire" style="display:none"></div>
       <div id="juegos-proximamente" data-subpanel="juegos" data-value="proximamente" style="display:none"></div>
     </div>
-
     <!-- TAB: PROGRESO -->
     <div id="tab-progreso" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">📈 Mi Progreso</h2>
       <div id="progreso-content"></div>
     </div>
-
     <!-- TAB: DESAFÍOS -->
     <div id="tab-desafios" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">🔥 Desafíos</h2>
       <div id="desafios-content"></div>
     </div>
-
     <!-- TAB: RANKING -->
     <div id="tab-ranking" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">🏆 Ranking</h2>
       <div id="ranking-content"><div class="loading-row"><div class="spinner"></div>Cargando ranking…</div></div>
     </div>
-
     <!-- TAB: PREMIUM -->
     <div id="tab-premium" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">💎 Planes</h2>
       <div class="grid-3" id="planes-content"></div>
     </div>
-
     <!-- TAB: CONFIG -->
     <div id="tab-config" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">⚙️ Configuración</h2>
       <div id="config-content"></div>
     </div>
-
     <!-- TAB: ADMIN (solo visible para Valentino) -->
     <div id="tab-admin" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px;color:#fbbf24">🛡️ Panel Admin</h2>
       <div id="admin-content"></div>
     </div>
-
   </main>
 </div>
-
 <!-- Scripts -->
 <script src="js/lessons.js"></script>
 <script src="js/app.js"></script>
