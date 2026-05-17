@@ -560,7 +560,15 @@ export default async function handler(req, res) {
       // Construir FormData para Whisper
       const FormDataModule = (await import("form-data")).default;
       const form = new FormDataModule();
-      form.append("file", buf, { filename: "audio.webm", contentType: m[1] });
+      // Detectar extensión correcta según el mime type real
+      const mime = m[1].toLowerCase();
+      let ext = "webm";
+      if (mime.includes("mp4") || mime.includes("m4a")) ext = "m4a";
+      else if (mime.includes("ogg")) ext = "ogg";
+      else if (mime.includes("mpeg") || mime.includes("mp3")) ext = "mp3";
+      else if (mime.includes("wav")) ext = "wav";
+      else if (mime.includes("webm")) ext = "webm";
+      form.append("file", buf, { filename: `audio.${ext}`, contentType: m[1] });
       form.append("model", "whisper-1");
       form.append("language", language);
 
@@ -577,7 +585,17 @@ export default async function handler(req, res) {
       if (!whisperRes.ok) {
         const errText = await whisperRes.text();
         console.error("Whisper error:", whisperRes.status, errText);
-        return res.status(500).json({ error: `Error de Whisper: ${whisperRes.status}` });
+        // Intentar parsear el JSON de OpenAI para mostrar mensaje claro
+        let openaiMsg = "";
+        try {
+          const errJson = JSON.parse(errText);
+          openaiMsg = errJson?.error?.message || "";
+        } catch (e) {}
+        return res.status(500).json({
+          error: openaiMsg
+            ? `Whisper: ${openaiMsg}`
+            : `Error de Whisper: ${whisperRes.status}`
+        });
       }
 
       const transcribeData = await whisperRes.json();
