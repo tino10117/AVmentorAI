@@ -34,7 +34,30 @@
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         this.stream = stream;
-        this.mediaRecorder = new MediaRecorder(stream);
+        // Detectar el mejor formato soportado por el navegador
+        const candidates = [
+          "audio/webm;codecs=opus",
+          "audio/webm",
+          "audio/mp4;codecs=mp4a.40.2",
+          "audio/mp4",
+          "audio/ogg;codecs=opus",
+          "audio/ogg",
+        ];
+        let mimeType = "";
+        for (const candidate of candidates) {
+          if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(candidate)) {
+            mimeType = candidate;
+            break;
+          }
+        }
+        this.mimeType = mimeType || "audio/webm";
+        try {
+          this.mediaRecorder = mimeType
+            ? new MediaRecorder(stream, { mimeType })
+            : new MediaRecorder(stream);
+        } catch (e) {
+          this.mediaRecorder = new MediaRecorder(stream);
+        }
         this.chunks = [];
         this.activeBtn = btn;
         this.contextType = contextType;
@@ -77,7 +100,8 @@
       const sendBtn = row.querySelector(".chat-send-btn");
       if (!inputEl || !sendBtn) return;
 
-      const blob = new Blob(this.chunks, { type: "audio/webm" });
+      const realMime = this.mimeType || "audio/webm";
+      const blob = new Blob(this.chunks, { type: realMime });
       if (blob.size < 1000) return;
 
       const originalPlaceholder = inputEl.placeholder;
