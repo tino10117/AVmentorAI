@@ -550,8 +550,16 @@ export default async function handler(req, res) {
       }
 
       // Decodificar base64
-      const m = audioData.match(/^data:(audio\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
-      if (!m) return res.status(400).json({ error: "Formato de audio inválido" });
+      // Regex flexible: acepta cualquier formato audio/* con parámetros extra (codecs=, etc.)
+      const m = audioData.match(/^data:(audio\/[^;,]+)(?:;[^,]*)?;base64,(.+)$/);
+      if (!m) {
+        // Log el prefijo para diagnóstico (primeros 80 chars sin el contenido)
+        const preview = audioData.substring(0, Math.min(80, audioData.indexOf(",") + 1 || 80));
+        console.error("Formato de audio no reconocido. Prefijo:", preview);
+        return res.status(400).json({
+          error: `Formato de audio no reconocido. Recibido: "${preview}"`
+        });
+      }
       const buf = Buffer.from(m[2], "base64");
       if (buf.length > 25 * 1024 * 1024) {
         return res.status(400).json({ error: "Audio muy grande (máx 25MB)" });
