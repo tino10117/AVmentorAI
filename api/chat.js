@@ -565,9 +565,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Audio muy grande (máx 25MB)" });
       }
 
-      // Construir FormData para Whisper
-      const FormDataModule = (await import("form-data")).default;
-      const form = new FormDataModule();
       // Detectar extensión correcta según el mime type real
       const mime = m[1].toLowerCase();
       let ext = "webm";
@@ -576,16 +573,20 @@ export default async function handler(req, res) {
       else if (mime.includes("mpeg") || mime.includes("mp3")) ext = "mp3";
       else if (mime.includes("wav")) ext = "wav";
       else if (mime.includes("webm")) ext = "webm";
-      form.append("file", buf, { filename: `audio.${ext}`, contentType: m[1] });
+
+      // Usar FormData nativo de Node 18+ (más confiable que el módulo form-data)
+      const form = new FormData();
+      const audioBlob = new Blob([buf], { type: m[1] });
+      form.append("file", audioBlob, `audio.${ext}`);
       form.append("model", "whisper-1");
       form.append("language", language);
 
       // Llamar a OpenAI Whisper
+      // NO seteamos Content-Type — fetch lo agrega solo con el boundary correcto
       const whisperRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-          ...form.getHeaders(),
         },
         body: form,
       });
