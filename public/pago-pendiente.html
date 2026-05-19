@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>⏳ Procesando pago · AVAI</title>
+<meta name="theme-color" content="#0a0e27" />
+<style>
+  :root{
+    --bg-deep:#05071a;
+    --bg-card:#0d1133;
+    --avai-yellow:#facc15;
+    --avai-purple:#8b5cf6;
+    --avai-pending:#3b82f6;
+    --avai-pending-glow:#60a5fa;
+    --text-primary:#f8fafc;
+    --text-secondary:#94a3b8;
+    --border-glow:rgba(59,130,246,.4);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+    background:radial-gradient(circle at 30% 30%,#1e3a8a 0%,#05071a 70%);
+    color:var(--text-primary);
+    min-height:100vh;
+    display:grid;
+    place-items:center;
+    padding:24px;
+    overflow:hidden;
+    position:relative;
+  }
+
+  .bg-glow{
+    position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:radial-gradient(circle at 50% 50%,rgba(59,130,246,.15),transparent 60%);
+    animation:breathe 4s ease-in-out infinite;
+  }
+  @keyframes breathe{
+    0%,100%{opacity:.5}
+    50%{opacity:1}
+  }
+
+  .card{
+    position:relative;z-index:2;
+    max-width:540px;width:100%;
+    background:linear-gradient(180deg,rgba(13,17,51,.95),rgba(13,17,51,.85));
+    border:2px solid var(--border-glow);
+    border-radius:24px;
+    padding:48px 36px 40px;
+    text-align:center;
+    box-shadow:
+      0 0 60px rgba(59,130,246,.2),
+      0 25px 50px -12px rgba(0,0,0,.5),
+      inset 0 1px 0 rgba(255,255,255,.05);
+    backdrop-filter:blur(12px);
+    animation:slideUp .7s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  @keyframes slideUp{
+    from{opacity:0;transform:translateY(20px) scale(.96)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+  }
+
+  .logo{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:1.5rem;font-weight:900;letter-spacing:2px;
+    color:var(--avai-yellow);
+    margin-bottom:36px;
+    text-shadow:0 0 20px rgba(250,204,21,.5);
+  }
+  .logo .bolt{animation:flash 2s ease-in-out infinite}
+  @keyframes flash{
+    0%,100%{opacity:1;transform:scale(1)}
+    50%{opacity:.7;transform:scale(1.1)}
+  }
+
+  /* Spinner animado */
+  .spinner-wrap{
+    width:110px;height:110px;
+    margin:0 auto 28px;
+    position:relative;
+  }
+  .spinner-ring{
+    position:absolute;inset:0;
+    border-radius:50%;
+    border:4px solid transparent;
+    border-top-color:var(--avai-pending);
+    border-right-color:var(--avai-pending-glow);
+    animation:spin 1.4s linear infinite;
+    filter:drop-shadow(0 0 12px var(--avai-pending));
+  }
+  .spinner-ring:nth-child(2){
+    inset:12px;
+    border-top-color:transparent;
+    border-right-color:transparent;
+    border-bottom-color:var(--avai-purple);
+    border-left-color:rgba(139,92,246,.5);
+    animation:spinReverse 1.8s linear infinite;
+  }
+  .spinner-icon{
+    position:absolute;inset:0;
+    display:grid;place-items:center;
+    font-size:2.2rem;
+    animation:tick 1s ease-in-out infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes spinReverse{to{transform:rotate(-360deg)}}
+  @keyframes tick{
+    0%,100%{transform:scale(1)}
+    50%{transform:scale(1.1)}
+  }
+
+  h1{
+    font-size:2rem;font-weight:800;
+    background:linear-gradient(135deg,var(--avai-pending-glow) 0%,var(--avai-pending) 100%);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;
+    margin-bottom:14px;
+    line-height:1.15;
+    letter-spacing:-.5px;
+  }
+  .subtitle{
+    color:var(--text-secondary);
+    font-size:1.05rem;
+    line-height:1.55;
+    margin-bottom:28px;
+  }
+
+  /* Steps progress */
+  .steps{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    margin-bottom:28px;
+  }
+  .step{
+    flex:1;height:6px;
+    border-radius:99px;
+    background:rgba(255,255,255,.08);
+    overflow:hidden;
+    position:relative;
+  }
+  .step::after{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(90deg,var(--avai-pending),var(--avai-pending-glow));
+    transform:translateX(-100%);
+    animation:fillStep 2s ease-in-out infinite;
+  }
+  .step:nth-child(2)::after{animation-delay:.5s}
+  .step:nth-child(3)::after{animation-delay:1s}
+  @keyframes fillStep{
+    0%{transform:translateX(-100%)}
+    50%{transform:translateX(0)}
+    100%{transform:translateX(100%)}
+  }
+
+  .info-box{
+    background:rgba(59,130,246,.08);
+    border-left:4px solid var(--avai-pending);
+    border-radius:12px;
+    padding:18px 22px;
+    margin-bottom:32px;
+    text-align:left;
+  }
+  .info-title{
+    color:var(--avai-pending-glow);
+    font-size:.8rem;font-weight:700;
+    text-transform:uppercase;letter-spacing:1.5px;
+    margin-bottom:8px;
+  }
+  .info-text{
+    color:var(--text-primary);
+    font-size:.95rem;
+    line-height:1.55;
+  }
+  .info-text strong{color:var(--avai-yellow);font-weight:700}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;
+    padding:15px 28px;
+    background:rgba(255,255,255,.06);
+    color:var(--text-primary);
+    border:1.5px solid rgba(255,255,255,.15);
+    border-radius:14px;
+    font-size:.95rem;font-weight:700;
+    cursor:pointer;
+    text-decoration:none;
+    transition:all .2s ease;
+  }
+  .btn:hover{
+    background:rgba(255,255,255,.1);
+    border-color:rgba(250,204,21,.4);
+    color:var(--avai-yellow);
+  }
+
+  .helper-text{
+    margin-top:18px;
+    font-size:.85rem;
+    color:var(--text-secondary);
+  }
+  .helper-text a{color:var(--avai-yellow);text-decoration:none;font-weight:600}
+  .helper-text a:hover{text-decoration:underline}
+
+  @media(max-width:480px){
+    .card{padding:36px 24px 32px}
+    h1{font-size:1.6rem}
+    .spinner-wrap{width:90px;height:90px}
+    .spinner-icon{font-size:1.8rem}
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-glow" aria-hidden="true"></div>
+
+<main class="card" role="main">
+
+  <div class="logo">
+    <span class="bolt">⚡</span>
+    <span>AVAI</span>
+  </div>
+
+  <div class="spinner-wrap" aria-label="Procesando pago">
+    <div class="spinner-ring"></div>
+    <div class="spinner-ring"></div>
+    <div class="spinner-icon">⏳</div>
+  </div>
+
+  <h1>Estamos procesando tu pago</h1>
+  <p class="subtitle">
+    Mercado Pago está confirmando la transacción.<br>
+    En cuanto se apruebe, tu Premium se activa automático.
+  </p>
+
+  <div class="steps" aria-hidden="true">
+    <div class="step"></div>
+    <div class="step"></div>
+    <div class="step"></div>
+  </div>
+
+  <div class="info-box">
+    <div class="info-title">¿Qué pasa ahora?</div>
+    <div class="info-text">
+      Esto puede tardar entre <strong>unos minutos y 24 horas</strong>, dependiendo del medio de pago que elegiste (Rapipago, Pago Fácil y débito tardan más que tarjetas).
+      Te vamos a avisar por email cuando se confirme, capo.
+    </div>
+  </div>
+
+  <a href="/" class="btn">
+    <span>←</span>
+    <span>Volver a AVAI</span>
+  </a>
+
+  <div class="helper-text">
+    ¿Pasó más de 24hs sin novedades? Escribinos a <a href="mailto:valen810a@gmail.com">valen810a@gmail.com</a>
+  </div>
+
+</main>
+
+</body>
+</html>

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>✨ Premium Activado · AVAI</title>
+<meta name="theme-color" content="#0a0e27" />
+<style>
+  :root{
+    --bg-deep:#05071a;
+    --bg-card:#0d1133;
+    --avai-yellow:#facc15;
+    --avai-yellow-glow:#fde047;
+    --avai-purple:#8b5cf6;
+    --avai-success:#22d3ee;
+    --avai-green:#10b981;
+    --text-primary:#f8fafc;
+    --text-secondary:#94a3b8;
+    --border-glow:rgba(250,204,21,.4);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+    background:radial-gradient(circle at 20% 20%,#1a1f4d 0%,#05071a 60%);
+    color:var(--text-primary);
+    min-height:100vh;
+    display:grid;
+    place-items:center;
+    padding:24px;
+    overflow:hidden;
+    position:relative;
+  }
+
+  /* Partículas de fondo */
+  .stars{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .star{
+    position:absolute;width:3px;height:3px;border-radius:50%;
+    background:var(--avai-yellow);
+    opacity:0;
+    animation:float 4s ease-in-out infinite;
+    box-shadow:0 0 8px var(--avai-yellow-glow);
+  }
+  .star:nth-child(1){top:15%;left:10%;animation-delay:0s}
+  .star:nth-child(2){top:25%;left:85%;animation-delay:.5s}
+  .star:nth-child(3){top:60%;left:15%;animation-delay:1s;background:var(--avai-purple);box-shadow:0 0 8px var(--avai-purple)}
+  .star:nth-child(4){top:75%;left:80%;animation-delay:1.5s}
+  .star:nth-child(5){top:40%;left:50%;animation-delay:2s;background:var(--avai-success);box-shadow:0 0 8px var(--avai-success)}
+  .star:nth-child(6){top:85%;left:35%;animation-delay:2.5s}
+  .star:nth-child(7){top:20%;left:60%;animation-delay:3s;background:var(--avai-purple);box-shadow:0 0 8px var(--avai-purple)}
+  .star:nth-child(8){top:55%;left:90%;animation-delay:3.5s}
+  @keyframes float{
+    0%,100%{opacity:0;transform:translateY(0)}
+    50%{opacity:1;transform:translateY(-20px)}
+  }
+
+  /* Confetti shower */
+  .confetti{
+    position:fixed;top:-20px;width:10px;height:14px;
+    z-index:1;pointer-events:none;
+    animation:fall 3s linear forwards;
+  }
+  @keyframes fall{
+    to{transform:translateY(110vh) rotate(720deg)}
+  }
+
+  .card{
+    position:relative;z-index:2;
+    max-width:540px;width:100%;
+    background:linear-gradient(180deg,rgba(13,17,51,.95),rgba(13,17,51,.85));
+    border:2px solid var(--border-glow);
+    border-radius:24px;
+    padding:48px 36px 40px;
+    text-align:center;
+    box-shadow:
+      0 0 60px rgba(250,204,21,.15),
+      0 25px 50px -12px rgba(0,0,0,.5),
+      inset 0 1px 0 rgba(255,255,255,.05);
+    backdrop-filter:blur(12px);
+    animation:slideUp .8s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  @keyframes slideUp{
+    from{opacity:0;transform:translateY(30px) scale(.95)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+  }
+
+  .logo{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:1.5rem;font-weight:900;letter-spacing:2px;
+    color:var(--avai-yellow);
+    margin-bottom:32px;
+    text-shadow:0 0 20px rgba(250,204,21,.5);
+  }
+  .logo .bolt{
+    display:inline-block;
+    animation:flash 2s ease-in-out infinite;
+  }
+  @keyframes flash{
+    0%,100%{opacity:1;transform:scale(1)}
+    50%{opacity:.7;transform:scale(1.1)}
+  }
+
+  .check-circle{
+    width:96px;height:96px;
+    margin:0 auto 28px;
+    border-radius:50%;
+    background:linear-gradient(135deg,#10b981,#22d3ee);
+    display:grid;place-items:center;
+    box-shadow:
+      0 0 40px rgba(16,185,129,.5),
+      0 0 80px rgba(34,211,238,.3);
+    animation:pulse 2s ease-in-out infinite,popIn .6s cubic-bezier(.34,1.56,.64,1) .2s backwards;
+  }
+  @keyframes pulse{
+    0%,100%{box-shadow:0 0 40px rgba(16,185,129,.5),0 0 80px rgba(34,211,238,.3)}
+    50%{box-shadow:0 0 60px rgba(16,185,129,.7),0 0 120px rgba(34,211,238,.4)}
+  }
+  @keyframes popIn{
+    from{opacity:0;transform:scale(0)}
+    to{opacity:1;transform:scale(1)}
+  }
+  .check-circle svg{width:48px;height:48px;color:#0d1133;stroke-width:3.5;
+    stroke-dasharray:24;stroke-dashoffset:24;
+    animation:drawCheck .5s ease-out .8s forwards;
+  }
+  @keyframes drawCheck{to{stroke-dashoffset:0}}
+
+  h1{
+    font-size:2rem;font-weight:800;
+    background:linear-gradient(135deg,var(--avai-yellow) 0%,var(--avai-yellow-glow) 100%);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;
+    margin-bottom:12px;
+    line-height:1.15;
+    letter-spacing:-.5px;
+  }
+  .subtitle{
+    color:var(--text-secondary);
+    font-size:1.05rem;
+    line-height:1.5;
+    margin-bottom:28px;
+  }
+
+  .premium-badge{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:10px 20px;
+    background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(139,92,246,.05));
+    border:1.5px solid var(--avai-purple);
+    border-radius:999px;
+    color:var(--avai-purple);
+    font-weight:700;font-size:.85rem;
+    letter-spacing:1px;text-transform:uppercase;
+    margin-bottom:32px;
+    box-shadow:0 0 20px rgba(139,92,246,.3);
+  }
+  .premium-badge .diamond{font-size:1rem}
+
+  .features{
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(250,204,21,.15);
+    border-radius:16px;
+    padding:20px 24px;
+    margin-bottom:32px;
+    text-align:left;
+  }
+  .features-title{
+    font-size:.8rem;
+    color:var(--avai-yellow);
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    font-weight:700;
+    margin-bottom:14px;
+  }
+  .feature{
+    display:flex;align-items:center;gap:12px;
+    padding:6px 0;
+    font-size:.95rem;
+    color:var(--text-primary);
+  }
+  .feature::before{
+    content:"✓";
+    color:var(--avai-green);
+    font-weight:900;
+    font-size:1.1rem;
+  }
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;
+    padding:16px 28px;
+    background:linear-gradient(135deg,var(--avai-yellow) 0%,#f59e0b 100%);
+    color:#0d1133;
+    border:none;border-radius:14px;
+    font-size:1rem;font-weight:800;letter-spacing:.5px;
+    cursor:pointer;
+    text-decoration:none;
+    transition:all .2s ease;
+    box-shadow:0 8px 24px rgba(250,204,21,.4),inset 0 1px 0 rgba(255,255,255,.3);
+    text-transform:uppercase;
+  }
+  .btn:hover{
+    transform:translateY(-2px);
+    box-shadow:0 12px 32px rgba(250,204,21,.5),inset 0 1px 0 rgba(255,255,255,.3);
+  }
+  .btn:active{transform:translateY(0)}
+
+  .countdown{
+    margin-top:18px;
+    font-size:.85rem;
+    color:var(--text-secondary);
+  }
+  .countdown strong{color:var(--avai-yellow);font-weight:700}
+
+  @media(max-width:480px){
+    .card{padding:36px 24px 32px}
+    h1{font-size:1.6rem}
+    .check-circle{width:80px;height:80px}
+    .check-circle svg{width:40px;height:40px}
+  }
+</style>
+</head>
+<body>
+
+<!-- Estrellas de fondo -->
+<div class="stars" aria-hidden="true">
+  <div class="star"></div>
+  <div class="star"></div>
+  <div class="star"></div>
+  <div class="star"></div>
+  <div class="star"></div>
+  <div class="star"></div>
+  <div class="star"></div>
+  <div class="star"></div>
+</div>
+
+<!-- Confetti -->
+<div id="confetti-host" aria-hidden="true"></div>
+
+<main class="card" role="main">
+
+  <div class="logo">
+    <span class="bolt">⚡</span>
+    <span>AVAI</span>
+  </div>
+
+  <div class="check-circle" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="4 12 10 18 20 6"/>
+    </svg>
+  </div>
+
+  <h1>¡Eaaa! Sos Premium</h1>
+  <p class="subtitle">
+    Tu suscripción se activó perfecto. Bienvenido al lado bueno, capo.<br>
+    Ya tenés todo desbloqueado.
+  </p>
+
+  <div class="premium-badge">
+    <span class="diamond">💎</span>
+    <span>Plan Premium Activo</span>
+  </div>
+
+  <div class="features">
+    <div class="features-title">Lo que tenés ahora</div>
+    <div class="feature">Chat ilimitado con AVAI</div>
+    <div class="feature">Búsquedas web integradas</div>
+    <div class="feature">Generación de imágenes</div>
+    <div class="feature">Voz: hablás y AVAI te responde</div>
+    <div class="feature">Todas las herramientas premium</div>
+  </div>
+
+  <a href="/" class="btn" id="back-btn">
+    <span>Ir a AVAI ahora</span>
+    <span>→</span>
+  </a>
+
+  <div class="countdown">
+    Redirigiendo en <strong id="cnt">5</strong> segundos...
+  </div>
+
+</main>
+
+<script>
+  // Confetti shower
+  (function(){
+    const host = document.getElementById('confetti-host');
+    const colors = ['#facc15','#8b5cf6','#22d3ee','#10b981','#fde047'];
+    for(let i=0;i<60;i++){
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = Math.random()*100 + 'vw';
+      c.style.background = colors[Math.floor(Math.random()*colors.length)];
+      c.style.animationDelay = (Math.random()*1.5) + 's';
+      c.style.animationDuration = (2 + Math.random()*2) + 's';
+      c.style.transform = `rotate(${Math.random()*360}deg)`;
+      host.appendChild(c);
+    }
+  })();
+
+  // Countdown + auto-redirect
+  let n = 5;
+  const cnt = document.getElementById('cnt');
+  const timer = setInterval(()=>{
+    n--;
+    if(cnt) cnt.textContent = n;
+    if(n<=0){
+      clearInterval(timer);
+      window.location.href = '/';
+    }
+  },1000);
+
+  // Si el user toca el botón, cancelamos el redirect automático
+  document.getElementById('back-btn').addEventListener('click', ()=>clearInterval(timer));
+</script>
+
+</body>
+</html>
