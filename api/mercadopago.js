@@ -178,41 +178,59 @@ async function crearSuscripcion(req, res, decoded) {
 // 2. ESTADO DE SUSCRIPCIÓN
 // ═══════════════════════════════════════════════════════════════
 async function estadoSuscripcion(req, res, decoded) {
-  const kv = await getKV();
-  const userKey = `user:${decoded.email}`;
-  const user = await kv.get(userKey);
+  // SAFE: nunca tira 500. Si algo falla, devolvemos "sin suscripción"
+  try {
+    const kv = await getKV();
+    const userKey = `user:${decoded.email}`;
+    const user = await kv.get(userKey);
 
-  if (!user) {
-    return res.status(404).json({ error: "Usuario no encontrado" });
-  }
+    // Si no hay user en KV, devolvemos estado por defecto (Gratis, sin suscripción)
+    if (!user) {
+      return res.status(200).json({
+        ok: true,
+        tiene_suscripcion: false,
+        plan: "Gratis",
+      });
+    }
 
-  const subId = user.mp_subscription_id;
-  if (!subId) {
+    const subId = user.mp_subscription_id;
+    if (!subId) {
+      return res.status(200).json({
+        ok: true,
+        tiene_suscripcion: false,
+        plan: user.plan || "Gratis",
+      });
+    }
+
+    // Consultar el estado actual en MP (si falla, usamos datos locales)
+    let mpData = null;
+    try {
+      mpData = await mpFetch(`/preapproval/${subId}`);
+    } catch (e) {
+      console.warn("No se pudo consultar MP, usamos datos locales:", e.message);
+    }
+
+    return res.status(200).json({
+      ok: true,
+      tiene_suscripcion: true,
+      plan: user.plan || "Gratis",
+      subscription_id: subId,
+      status: mpData?.status || user.mp_subscription_status || "unknown",
+      next_payment_date: mpData?.next_payment_date || user.premium_vence || null,
+      amount: PREMIUM_PRICE,
+      currency: PREMIUM_CURRENCY,
+    });
+  } catch (err) {
+    // SAFETY NET: cualquier error en KV o lo que sea, devolvemos estado vacío
+    // Mejor que un 500 que rompa el frontend
+    console.error("Error en estadoSuscripcion:", err);
     return res.status(200).json({
       ok: true,
       tiene_suscripcion: false,
-      plan: user.plan || "Gratis",
+      plan: "Gratis",
+      error_internal: err.message,
     });
   }
-
-  // Consultar el estado actual en MP
-  let mpData = null;
-  try {
-    mpData = await mpFetch(`/preapproval/${subId}`);
-  } catch (e) {
-    console.warn("No se pudo consultar MP, usamos datos locales");
-  }
-
-  return res.status(200).json({
-    ok: true,
-    tiene_suscripcion: true,
-    plan: user.plan || "Gratis",
-    subscription_id: subId,
-    status: mpData?.status || user.mp_subscription_status || "unknown",
-    next_payment_date: mpData?.next_payment_date || user.premium_vence || null,
-    amount: PREMIUM_PRICE,
-    currency: PREMIUM_CURRENCY,
-  });
 }
 
 // ═══════════════════════════════════════════════════════════════
