@@ -3293,7 +3293,8 @@ function volverAlMenuEmpire() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ADMIN PANEL — Solo visible para el admin (valen810a@gmail.com)
+// ADMIN PANEL — Panel completo con eliminar, banear, resetear, CSV
+// REEMPLAZAR la función renderAdminPanel() del ui.js
 // ═══════════════════════════════════════════════════════════════
 
 async function renderAdminPanel() {
@@ -3313,7 +3314,7 @@ async function renderAdminPanel() {
     <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:14px 16px;margin-bottom:18px">
       <strong style="color:#fbbf24">🛡️ Modo Admin activo</strong>
       <p class="text-muted" style="font-size:12px;margin-top:6px;margin-bottom:0">
-        Desde acá podés activar/desactivar Premium a otros usuarios mientras integrás pagos reales.
+        Desde acá podés gestionar usuarios, planes, suscripciones MP y el gasto de la app.
       </p>
     </div>
 
@@ -3326,7 +3327,7 @@ async function renderAdminPanel() {
       </div>
     </div>
 
-    <!-- ─── ESTADÍSTICAS ─── -->
+    <!-- ─── ESTADÍSTICAS COMPLETAS ─── -->
     <div class="card mb-4" style="border-left:3px solid #38bdf8">
       <h3 style="font-size:16px;margin-bottom:12px">📊 Estadísticas de la app</h3>
       <div id="admin-stats">
@@ -3357,12 +3358,27 @@ async function renderAdminPanel() {
       <div id="admin-result" style="margin-top:12px"></div>
     </div>
 
-    <!-- ─── LISTA DE USUARIOS ─── -->
+    <!-- ─── LISTA DE USUARIOS CON ACCIONES COMPLETAS ─── -->
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
         <h3 style="font-size:16px;margin:0">👥 Usuarios registrados</h3>
-        <button class="btn btn-ghost btn-sm" onclick="renderAdminPanel()">🔄 Refrescar</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="adminExportarCSV()" style="background:rgba(34,197,94,.15);color:#86efac">📥 Exportar CSV</button>
+          <button class="btn btn-ghost btn-sm" onclick="renderAdminPanel()">🔄 Refrescar</button>
+        </div>
       </div>
+
+      <!-- Buscador y filtro -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <input type="text" id="admin-search" class="input" placeholder="🔍 Buscar por email o nombre..." style="flex:1;min-width:200px" oninput="filtrarUsuariosAdmin()">
+        <select id="admin-filtro-plan" class="input" style="max-width:160px" onchange="filtrarUsuariosAdmin()">
+          <option value="">Todos los planes</option>
+          <option value="Gratis">Solo Gratis</option>
+          <option value="Premium">Solo Premium</option>
+          <option value="Empresarial">Solo Empresarial</option>
+        </select>
+      </div>
+
       <div id="admin-users-list">
         <div class="loading-row" style="padding:20px"><div class="spinner"></div>
           <span style="margin-left:10px;color:#94a3b8">Cargando usuarios…</span></div>
@@ -3414,11 +3430,12 @@ async function renderAdminPanel() {
     if (gastoEl) gastoEl.innerHTML = `<div class="alert alert-error">❌ ${esc(e.message)}</div>`;
   });
 
-  // Cargar estadísticas
+  // Cargar ESTADÍSTICAS COMPLETAS (mejoradas)
   Admin.stats().then(data => {
     const s = data.stats;
     const statsEl = document.getElementById("admin-stats");
     if (statsEl) {
+      const ingresos = (s.ingresos_estimados_mensual_ars || 0).toLocaleString("es-AR");
       statsEl.innerHTML = `
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:12px">
           <div style="background:rgba(34,197,94,.1);padding:12px;border-radius:10px;text-align:center">
@@ -3429,18 +3446,28 @@ async function renderAdminPanel() {
             <div style="font-size:24px;font-weight:700;color:#d8b4fe">${s.plan.premium}</div>
             <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Premium</div>
           </div>
+          <div style="background:rgba(250,204,21,.1);padding:12px;border-radius:10px;text-align:center">
+            <div style="font-size:18px;font-weight:700;color:#fde68a">$${ingresos}</div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Ingresos/mes</div>
+          </div>
+          <div style="background:rgba(56,189,248,.1);padding:12px;border-radius:10px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:#7dd3fc">${s.nuevos_7d || 0}</div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Nuevos 7d</div>
+          </div>
           <div style="background:rgba(100,116,139,.1);padding:12px;border-radius:10px;text-align:center">
             <div style="font-size:24px;font-weight:700;color:#cbd5e1">${s.plan.gratis}</div>
             <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Gratis</div>
           </div>
-          <div style="background:rgba(56,189,248,.1);padding:12px;border-radius:10px;text-align:center">
-            <div style="font-size:24px;font-weight:700;color:#7dd3fc">${s.conversion_premium}%</div>
-            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Conversión</div>
+          <div style="background:rgba(239,68,68,.1);padding:12px;border-radius:10px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:#fca5a5">${s.baneados || 0}</div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Baneados</div>
           </div>
         </div>
         <div style="display:flex;gap:10px;font-size:12px;color:#94a3b8;flex-wrap:wrap">
-          <span>🔥 Activos últimos 7 días: <strong style="color:#86efac">${s.actividad.activos_7d}</strong></span>
-          <span>📅 Activos últimos 30 días: <strong style="color:#86efac">${s.actividad.activos_30d}</strong></span>
+          <span>🔥 Activos 7d: <strong style="color:#86efac">${s.actividad.activos_7d}</strong></span>
+          <span>📅 Activos 30d: <strong style="color:#86efac">${s.actividad.activos_30d}</strong></span>
+          <span>✉️ Verificados: <strong style="color:#86efac">${s.email_verificados || 0}</strong></span>
+          <span>💎 Conversión: <strong style="color:#86efac">${s.conversion_premium}%</strong></span>
         </div>
       `;
     }
@@ -3449,43 +3476,226 @@ async function renderAdminPanel() {
     if (statsEl) statsEl.innerHTML = `<div class="alert alert-error">❌ ${esc(e.message)}</div>`;
   });
 
-  // Cargar lista de usuarios
+  // Cargar LISTA DE USUARIOS con acciones completas
   try {
     const data = await Admin.listarUsuarios();
-    const users = data.usuarios || [];
-
-    const listEl = document.getElementById("admin-users-list");
-    if (users.length === 0) {
-      listEl.innerHTML = `<p class="text-muted">No hay usuarios registrados aún.</p>`;
-    } else {
-      listEl.innerHTML = `
-        <p class="text-muted" style="font-size:12px;margin-bottom:12px">Total: ${data.total} usuarios</p>
-        ${users.map(u => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid rgba(255,255,255,.06);border-radius:8px;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-            <div style="flex:1;min-width:200px">
-              <div style="font-weight:600;font-size:14px">${esc(u.nombre)}</div>
-              <div style="font-size:11px;color:#94a3b8">${esc(u.email)}</div>
-              <div style="font-size:11px;color:#64748b;margin-top:2px">
-                ${u.xp || 0} XP · 🔥 ${u.racha || 0} días
-              </div>
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-              <span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${u.plan === 'Premium' ? 'rgba(168,85,247,.2);color:#d8b4fe' : u.plan === 'Empresarial' ? 'rgba(245,158,11,.2);color:#fbbf24' : 'rgba(100,116,139,.2);color:#94a3b8'}">
-                ${u.plan}
-              </span>
-              ${u.plan === "Gratis"
-                ? `<button class="btn btn-primary btn-sm" onclick="adminActivarRapido('${esc(u.email)}','Premium')">→ Premium</button>`
-                : `<button class="btn btn-ghost btn-sm" onclick="adminActivarRapido('${esc(u.email)}','Gratis')" style="color:#94a3b8">→ Gratis</button>`}
-            </div>
-          </div>
-        `).join("")}
-      `;
-    }
+    window._adminUsuarios = data.usuarios || []; // guardar para filtro
+    renderListaUsuariosAdmin(window._adminUsuarios);
   } catch (e) {
     document.getElementById("admin-users-list").innerHTML = `
       <div class="alert alert-error">❌ ${esc(e.message)}</div>
     `;
   }
+}
+
+function renderListaUsuariosAdmin(users) {
+  const listEl = document.getElementById("admin-users-list");
+  if (!listEl) return;
+
+  if (users.length === 0) {
+    listEl.innerHTML = `<p class="text-muted" style="text-align:center;padding:20px">No hay usuarios que coincidan con el filtro.</p>`;
+    return;
+  }
+
+  listEl.innerHTML = `
+    <p class="text-muted" style="font-size:12px;margin-bottom:12px">Mostrando: ${users.length} usuarios</p>
+    ${users.map(u => {
+      const planColors = {
+        'Premium': 'background:rgba(168,85,247,.2);color:#d8b4fe',
+        'Empresarial': 'background:rgba(245,158,11,.2);color:#fbbf24',
+        'Gratis': 'background:rgba(100,116,139,.2);color:#94a3b8',
+      };
+      const planStyle = planColors[u.plan] || planColors['Gratis'];
+      const baneadoTag = u.baneado ? '<span style="font-size:10px;background:rgba(239,68,68,.2);color:#fca5a5;padding:2px 6px;border-radius:4px;margin-left:4px">🚫 BAN</span>' : '';
+      const verifTag = u.email_verificado ? '<span title="Email verificado" style="color:#86efac">✓</span>' : '<span title="Email NO verificado" style="color:#64748b">○</span>';
+      const subMpTag = u.tiene_suscripcion_mp ? '<span style="font-size:10px;background:rgba(34,197,94,.2);color:#86efac;padding:2px 6px;border-radius:4px;margin-left:4px">💳 MP</span>' : '';
+      const ciudadTag = u.ciudad ? `· 🏠 ${esc(u.ciudad)}` : '';
+
+      return `
+        <div class="card mb-2" style="padding:12px 14px;border:1px solid rgba(255,255,255,.06)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <div style="font-weight:600;font-size:14px">${esc(u.nombre)} ${baneadoTag}${subMpTag}</div>
+              <div style="font-size:11px;color:#94a3b8">${verifTag} ${esc(u.email)}</div>
+              <div style="font-size:11px;color:#64748b;margin-top:2px">
+                ⭐ ${u.xp || 0} XP · 🔥 ${u.racha || 0} días ${ciudadTag}
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <span style="font-size:11px;padding:3px 8px;border-radius:6px;${planStyle}">${u.plan}</span>
+              <button class="btn btn-ghost btn-sm" onclick="abrirAccionesUsuario('${esc(u.email)}')" style="background:rgba(56,189,248,.15);color:#7dd3fc">⚙️ Acciones</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("")}
+  `;
+}
+
+function filtrarUsuariosAdmin() {
+  const q = (document.getElementById("admin-search")?.value || "").toLowerCase().trim();
+  const plan = document.getElementById("admin-filtro-plan")?.value || "";
+  let lista = window._adminUsuarios || [];
+
+  if (q) {
+    lista = lista.filter(u =>
+      (u.email || "").toLowerCase().includes(q) ||
+      (u.nombre || "").toLowerCase().includes(q)
+    );
+  }
+  if (plan) {
+    lista = lista.filter(u => (u.plan || "Gratis") === plan);
+  }
+  renderListaUsuariosAdmin(lista);
+}
+
+function abrirAccionesUsuario(email) {
+  const u = (window._adminUsuarios || []).find(x => x.email === email);
+  if (!u) return;
+
+  const modalHtml = `
+    <div id="admin-acciones-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)cerrarAccionesUsuario()">
+      <div style="background:#0f172a;border:1.5px solid rgba(56,189,248,.4);border-radius:16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;padding:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h3 style="margin:0;font-size:18px">⚙️ ${esc(u.nombre)}</h3>
+          <button onclick="cerrarAccionesUsuario()" style="background:none;border:none;color:#f87171;font-size:22px;cursor:pointer">✕</button>
+        </div>
+
+        <div style="background:rgba(255,255,255,.04);padding:12px;border-radius:10px;margin-bottom:16px;font-size:12px;color:#cbd5e1">
+          <div style="margin-bottom:4px">📧 ${esc(u.email)} ${u.email_verificado ? '✅' : '⚠️ no verificado'}</div>
+          <div style="margin-bottom:4px">🎯 Plan: <strong style="color:#fbbf24">${u.plan}</strong></div>
+          <div style="margin-bottom:4px">⭐ ${u.xp || 0} XP · 🔥 ${u.racha || 0} días</div>
+          ${u.ciudad ? `<div style="margin-bottom:4px">🏠 ${esc(u.ciudad)}</div>` : ''}
+          ${u.fecha_nacimiento ? `<div style="margin-bottom:4px">📅 ${esc(u.fecha_nacimiento)}</div>` : ''}
+          ${u.fecha_creacion ? `<div style="color:#64748b;font-size:11px;margin-top:6px">Creado: ${new Date(u.fecha_creacion).toLocaleString("es-AR")}</div>` : ''}
+          ${u.tiene_suscripcion_mp ? `<div style="color:#86efac;margin-top:6px;font-size:11px">💳 Suscripción Mercado Pago activa</div>` : ''}
+        </div>
+
+        <div style="display:grid;gap:8px">
+          <div>
+            <label class="label" style="font-size:12px">Cambiar plan</label>
+            <div style="display:flex;gap:6px">
+              <select class="input" id="acc-plan" style="flex:1">
+                <option value="">— Elegí —</option>
+                <option value="Gratis">🆓 Gratis</option>
+                <option value="Premium">💎 Premium</option>
+                <option value="Empresarial">🏢 Empresarial</option>
+              </select>
+              <button class="btn btn-primary btn-sm" onclick="adminAplicarCambioPlan('${esc(u.email)}')">Aplicar</button>
+            </div>
+          </div>
+
+          <button class="btn btn-ghost" style="background:rgba(168,85,247,.15);color:#d8b4fe;text-align:left;padding:10px 12px" onclick="adminResetearPass('${esc(u.email)}')">
+            🔑 Resetear contraseña (genera pass temporal)
+          </button>
+
+          <button class="btn btn-ghost" style="background:rgba(${u.baneado ? '34,197,94' : '245,158,11'},.15);color:${u.baneado ? '#86efac' : '#fbbf24'};text-align:left;padding:10px 12px" onclick="adminBanear('${esc(u.email)}', ${!u.baneado})">
+            ${u.baneado ? '✅ Desbanear usuario' : '🚫 Banear usuario'}
+          </button>
+
+          <button class="btn btn-ghost" style="background:rgba(239,68,68,.15);color:#fca5a5;text-align:left;padding:10px 12px" onclick="adminEliminarUsuario('${esc(u.email)}')">
+            🗑️ ELIMINAR usuario (permanente)
+          </button>
+        </div>
+
+        <div id="acc-msg" style="margin-top:14px;font-size:13px;text-align:center"></div>
+      </div>
+    </div>
+  `;
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = modalHtml;
+  document.body.appendChild(wrapper.firstElementChild);
+}
+
+function cerrarAccionesUsuario() {
+  document.getElementById("admin-acciones-modal")?.remove();
+}
+
+function setAccMsg(txt, ok = true) {
+  const el = document.getElementById("acc-msg");
+  if (el) {
+    el.style.color = ok ? "#86efac" : "#fca5a5";
+    el.innerHTML = (ok ? "✅ " : "❌ ") + esc(txt);
+  }
+}
+
+async function adminAplicarCambioPlan(email) {
+  const nuevo = document.getElementById("acc-plan").value;
+  if (!nuevo) { setAccMsg("Elegí un plan primero", false); return; }
+  try {
+    const data = await Admin.cambiarPlan(email, nuevo);
+    setAccMsg(data.mensaje || "Plan cambiado");
+    setTimeout(() => { cerrarAccionesUsuario(); renderAdminPanel(); }, 1200);
+  } catch (e) { setAccMsg(e.message, false); }
+}
+
+async function adminResetearPass(email) {
+  if (!confirm(`¿Resetear contraseña de ${email}?\n\nSe generará una pass temporal que vas a poder copiar.`)) return;
+  try {
+    const t = localStorage.getItem('avai_token') || localStorage.getItem('av_token');
+    const r = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+      body: JSON.stringify({ action: 'resetear_pass', email_objetivo: email })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Error');
+    alert(`✅ Contraseña reseteada\n\nPASSWORD TEMPORAL:\n${data.password_temporal}\n\nPasásela al usuario. Que la cambie cuando entre.`);
+    setAccMsg("Contraseña reseteada");
+  } catch (e) { setAccMsg(e.message, false); }
+}
+
+async function adminBanear(email, banear) {
+  const acc = banear ? 'banear' : 'desbanear';
+  if (!confirm(`¿${acc.charAt(0).toUpperCase() + acc.slice(1)} a ${email}?`)) return;
+  try {
+    const t = localStorage.getItem('avai_token') || localStorage.getItem('av_token');
+    const r = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+      body: JSON.stringify({ action: 'banear', email_objetivo: email, estado: banear })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Error');
+    setAccMsg(data.mensaje);
+    setTimeout(() => { cerrarAccionesUsuario(); renderAdminPanel(); }, 1200);
+  } catch (e) { setAccMsg(e.message, false); }
+}
+
+async function adminEliminarUsuario(email) {
+  if (!confirm(`⚠️ ¿ELIMINAR a ${email}?\n\nEsto es PERMANENTE. No se puede deshacer.`)) return;
+  if (!confirm(`ÚLTIMA CONFIRMACIÓN:\n\n¿Estás 100% seguro de eliminar ${email}?`)) return;
+  try {
+    const t = localStorage.getItem('avai_token') || localStorage.getItem('av_token');
+    const r = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+      body: JSON.stringify({ action: 'eliminar_usuario', email_objetivo: email, confirmar: 'SI_ELIMINAR' })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Error');
+    setAccMsg(data.mensaje);
+    setTimeout(() => { cerrarAccionesUsuario(); renderAdminPanel(); }, 1200);
+  } catch (e) { setAccMsg(e.message, false); }
+}
+
+async function adminExportarCSV() {
+  try {
+    const t = localStorage.getItem('avai_token') || localStorage.getItem('av_token');
+    const r = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+      body: JSON.stringify({ action: 'exportar_csv' })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Error');
+    const blob = new Blob([data.csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `avai-usuarios-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    Toast.success(`✅ CSV descargado (${data.total} usuarios)`);
+  } catch (e) { Toast.error(e.message); }
 }
 
 async function adminCambiarCap() {
@@ -3544,7 +3754,6 @@ async function adminCambiarPlan() {
       </div>
     `;
     document.getElementById("admin-email").value = "";
-    // Refrescar lista
     setTimeout(() => renderAdminPanel(), 1500);
   } catch (e) {
     resultEl.innerHTML = `<div class="alert alert-error">❌ ${esc(e.message)}</div>`;
