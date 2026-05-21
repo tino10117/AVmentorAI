@@ -1,18 +1,16 @@
-// public/js/auth-extra.js — v2 (con MutationObserver)
-// - Recuperar contraseña ("¿Olvidaste tu contraseña?")
-// - Verificación de email
-// - Editar perfil (fecha nac, ciudad)
+// public/js/auth-extra.js — v3 (fix detector + estilo)
 
 (function() {
   'use strict';
 
-  // ─── Detector inteligente del botón "Entrar" ───
+  // ─── Detector inteligente: prefiere botón "Entrar" sobre tabs ───
   function buscarBotonEntrar() {
-    const buttons = document.querySelectorAll('button');
+    const buttons = Array.from(document.querySelectorAll('button'));
+    // 1. Primero buscar "Entrar" exacto (el botón de submit del login)
     for (const b of buttons) {
       const txt = (b.textContent || '').toLowerCase().trim();
-      // Coincide con "Entrar", "⚡ Entrar", "Iniciar sesión", etc.
-      if (txt === 'entrar' || txt.endsWith('entrar') || txt.includes('iniciar sesi')) {
+      // "Entrar" o "⚡ Entrar" — palabra exacta, no "Iniciar sesión"
+      if (txt === 'entrar' || /^[^a-z]*entrar$/.test(txt)) {
         return b;
       }
     }
@@ -28,36 +26,29 @@
     link.id = 'btn-olvide-pass';
     link.type = 'button';
     link.textContent = '¿Olvidaste tu contraseña?';
-    link.style.cssText = 'background:transparent;border:none;color:#a855f7;cursor:pointer;font-size:13px;margin-top:10px;text-decoration:underline;padding:6px;display:block;width:100%;text-align:center;';
+    link.style.cssText = 'background:transparent;border:none;color:#a855f7;cursor:pointer;font-size:13px;margin-top:14px;text-decoration:underline;padding:8px;display:block;width:100%;text-align:center;font-family:inherit;';
     link.onclick = abrirRecuperar;
+    // Insertar DESPUÉS del botón Entrar
     entrarBtn.parentNode.insertBefore(link, entrarBtn.nextSibling);
-    console.log('[auth-extra] Botón "Olvidé contraseña" agregado');
+    console.log('[auth-extra] Botón "Olvidé contraseña" agregado debajo de Entrar');
     return true;
   }
 
-  // ─── MutationObserver: detecta cuando aparece el form de login ───
   function observarYAgregar() {
-    if (agregarBotonOlvide()) return; // ya está
-
+    if (agregarBotonOlvide()) return;
     const obs = new MutationObserver(() => {
-      if (agregarBotonOlvide()) {
-        obs.disconnect();
-      }
+      if (agregarBotonOlvide()) obs.disconnect();
     });
     obs.observe(document.body, { childList: true, subtree: true });
-
-    // Por si el observer no detecta cambios, reintentar cada 1s por 10 seg
     let intentos = 0;
     const iv = setInterval(() => {
       intentos++;
       if (agregarBotonOlvide() || intentos > 10) {
-        clearInterval(iv);
-        obs.disconnect();
+        clearInterval(iv); obs.disconnect();
       }
     }, 1000);
   }
 
-  // ─── Modal Recuperar contraseña ───
   function abrirRecuperar() {
     const modal = document.createElement('div');
     modal.id = 'modal-rec';
@@ -116,11 +107,8 @@
         av.innerHTML = `🛠️ <strong>Modo dev:</strong> tu código es <strong style="color:#fbbf24;">${data.codigo_dev}</strong>`;
       }
       ok.textContent = data.mensaje || 'Código enviado';
-    } catch (e) {
-      err.textContent = e.message;
-    } finally {
-      btn.disabled = false; btn.textContent = '📧 Enviar código';
-    }
+    } catch (e) { err.textContent = e.message; }
+    finally { btn.disabled = false; btn.textContent = '📧 Enviar código'; }
   }
 
   async function confirmar() {
@@ -149,11 +137,8 @@
         if (data.user) localStorage.setItem('avai_user', JSON.stringify(data.user));
         location.reload();
       }, 1500);
-    } catch (e) {
-      err.textContent = e.message;
-    } finally {
-      btn.disabled = false; btn.textContent = '✅ Cambiar contraseña';
-    }
+    } catch (e) { err.textContent = e.message; }
+    finally { btn.disabled = false; btn.textContent = '✅ Cambiar contraseña'; }
   }
 
   // ─── Banner verificá email ───
@@ -254,7 +239,7 @@
     finally { btn.disabled = false; btn.textContent = '✅ Verificar'; }
   }
 
-  // ─── Editar perfil (global) ───
+  // ─── Editar perfil global ───
   window.renderBloqueEditarPerfil = function() {
     const us = localStorage.getItem('avai_user');
     if (!us) return '';
@@ -303,9 +288,7 @@
     } catch (e) { msg.style.color = '#f87171'; msg.textContent = e.message; }
   };
 
-  // ─── INIT ───
   function init() {
-    // Si no hay token, observar y agregar botón "olvidé"
     if (!localStorage.getItem('avai_token')) {
       observarYAgregar();
     } else {
