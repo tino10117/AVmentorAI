@@ -1,7 +1,15 @@
 // api/admin.js — Endpoint protegido para administradores
-
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+
+// 🆕 Imports AFIP para test/generación manual
+import { 
+  generarFacturaC, 
+  guardarFactura,
+  listarFacturasUsuario,
+  reintentarPendientes 
+} from "./_afip-helper.js";
+import { enviarFacturaPorEmail } from "./_factura-email.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "av-mentorai-fixed-secret-2024";
 
@@ -107,7 +115,6 @@ export default async function handler(req, res) {
       const ahora = Date.now();
       const dia7 = 7 * 24 * 60 * 60 * 1000;
       const dia30 = 30 * 24 * 60 * 60 * 1000;
-
       for (const u of usuarios) {
         const plan = u.plan || "Gratis";
         if (plan === "Premium") premium++;
@@ -115,7 +122,6 @@ export default async function handler(req, res) {
         else gratis++;
         if (u.baneado) baneados++;
         if (u.email_verificado) verificados++;
-
         const ult = u.ultima_actividad || u.last_seen;
         if (ult) {
           const diff = ahora - new Date(ult).getTime();
@@ -125,7 +131,6 @@ export default async function handler(req, res) {
         const fc = u.fecha_creacion || u.created_at;
         if (fc && (ahora - new Date(fc).getTime() < dia7)) nuevos_7d++;
       }
-
       const total = usuarios.length;
       const ingresos_estimados_mensual = premium * 8000;
       return res.status(200).json({
@@ -156,13 +161,11 @@ export default async function handler(req, res) {
       const userKey = `user:${emailNorm}`;
       const usuario = await kv.get(userKey);
       if (!usuario) return res.status(404).json({ error: `Usuario "${emailNorm}" no encontrado` });
-
       const planAnterior = usuario.plan || "Gratis";
       usuario.plan = nuevo_plan;
       usuario.plan_modificado_por = decoded.email;
       usuario.plan_modificado_en = new Date().toISOString();
       await kv.set(userKey, usuario);
-
       return res.status(200).json({
         ok: true,
         mensaje: `Plan de ${emailNorm} cambiado de "${planAnterior}" a "${nuevo_plan}"`,
@@ -191,13 +194,11 @@ export default async function handler(req, res) {
       }
       const usuario = await kv.get(`user:${emailNorm}`);
       if (!usuario) return res.status(404).json({ error: "Usuario no encontrado" });
-
       const baneadoNuevo = estado === undefined ? !usuario.baneado : !!estado;
       usuario.baneado = baneadoNuevo;
       usuario.baneado_por = decoded.email;
       usuario.baneado_en = new Date().toISOString();
       await kv.set(`user:${emailNorm}`, usuario);
-
       return res.status(200).json({
         ok: true,
         mensaje: baneadoNuevo ? `Usuario ${emailNorm} baneado` : `Usuario ${emailNorm} desbaneado`,
@@ -218,12 +219,10 @@ export default async function handler(req, res) {
       }
       const usuario = await kv.get(`user:${emailNorm}`);
       if (!usuario) return res.status(404).json({ error: "Usuario no encontrado" });
-
       await kv.del(`user:${emailNorm}`);
       const emails = (await kv.get("emails")) || [];
       const nuevoEmails = emails.filter(e => e !== emailNorm);
       await kv.set("emails", nuevoEmails);
-
       return res.status(200).json({ ok: true, mensaje: `Usuario ${emailNorm} eliminado` });
     }
 
@@ -234,13 +233,11 @@ export default async function handler(req, res) {
       const emailNorm = String(email_objetivo).toLowerCase().trim();
       const usuario = await kv.get(`user:${emailNorm}`);
       if (!usuario) return res.status(404).json({ error: "Usuario no encontrado" });
-
       const passTemp = Math.random().toString(36).slice(-10) + "A1!";
       usuario.password_hash = await bcrypt.hash(passTemp, 10);
       usuario.pass_reseteado_por = decoded.email;
       usuario.pass_reseteado_en = new Date().toISOString();
       await kv.set(`user:${emailNorm}`, usuario);
-
       return res.status(200).json({
         ok: true,
         mensaje: `Contraseña reseteada`,
@@ -298,12 +295,11 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, csv, total: usuarios.length });
     }
 
-    // GASTO Y CAP (preservado)
+    // GASTO Y CAP
     if (action === "gasto") {
       const today = new Date().toISOString().split("T")[0];
       const capActual = parseFloat(await kv.get("system_cap_usd") || "10");
       const gastoHoy = parseFloat(await kv.get(`system_spent:${today}`) || "0");
-
       const dias = [];
       for (let i = 0; i < 7; i++) {
         const d = new Date();
@@ -312,7 +308,6 @@ export default async function handler(req, res) {
         const monto = parseFloat(await kv.get(`system_spent:${dStr}`) || "0");
         dias.push({ fecha: dStr, gasto: monto });
       }
-
       return res.status(200).json({
         ok: true,
         gasto_hoy: gastoHoy,
@@ -345,8 +340,106 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.status(400).json({ error: `Acción desconocida: ${action}` });
+    // ═══════════════════════════════════════════════════════════
+    // 🆕 NUEVAS ACCIONES — AFIP / FACTURACIÓN
+    // ═══════════════════════════════════════════════════════════
 
+    // 🧾 TEST AFIP — Genera factura de prueba en homologación
+    if (action === "test_afip_factura") {
+      const emailDestino = req.body?.email_destino || decoded.email;
+      const importe = parseFloat(req.body?.importe || 8000);
+
+      console.log(`[ADMIN] Test factura AFIP solicitado para ${emailDestino}, importe ${importe}`);
+
+      try {
+        const factura = await generarFacturaC({
+          importe,
+          emailCliente: emailDestino,
+          nombreCliente: "Test AVAI (Homologación)",
+          concepto: "Prueba de facturación electrónica",
+          mpPaymentId: `test-${Date.now()}`,
+        });
+
+        await guardarFactura(factura);
+
+        // Enviar email (no esperamos a que termine)
+        const emailResult = await enviarFacturaPorEmail(factura);
+
+        return res.status(200).json({
+          ok: true,
+          mensaje: "Factura de prueba generada exitosamente",
+          factura: {
+            numero: factura.numero,
+            puntoVenta: factura.puntoVenta,
+            cae: factura.cae,
+            caeVencimiento: factura.caeVencimiento,
+            importe: factura.importe,
+            tipo: factura.tipo,
+            production: factura.production,
+            emailCliente: factura.emailCliente,
+          },
+          email_enviado: emailResult.ok,
+          email_error: emailResult.ok ? null : emailResult.error,
+        });
+
+      } catch (err) {
+        console.error("[ADMIN] Error en test_afip_factura:", err);
+        return res.status(500).json({
+          ok: false,
+          error: err.message || "Error generando factura",
+          stack: err.stack?.split("\n").slice(0, 5).join("\n"),
+        });
+      }
+    }
+
+    // 📋 LISTAR FACTURAS DE UN USUARIO
+    if (action === "facturas_usuario") {
+      const emailObjetivo = req.body?.email_objetivo;
+      if (!emailObjetivo) return res.status(400).json({ error: "Falta email_objetivo" });
+
+      try {
+        const facturas = await listarFacturasUsuario(emailObjetivo);
+        return res.status(200).json({
+          ok: true,
+          email: emailObjetivo.toLowerCase().trim(),
+          total: facturas.length,
+          facturas,
+        });
+      } catch (err) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
+
+    // 🔄 REINTENTAR FACTURAS PENDIENTES
+    if (action === "reintentar_pendientes") {
+      try {
+        const resultado = await reintentarPendientes();
+        return res.status(200).json({
+          ok: true,
+          mensaje: `Procesadas ${resultado.total} pendientes. Exitosas: ${resultado.exitosas}, Fallidas: ${resultado.fallidas}`,
+          resultado,
+        });
+      } catch (err) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
+
+    // 📊 ESTADO CONFIG AFIP (verificar variables sin exponerlas)
+    if (action === "afip_status") {
+      return res.status(200).json({
+        ok: true,
+        config: {
+          cuit_configurado: !!process.env.AFIP_CUIT,
+          punto_venta: parseInt(process.env.AFIP_PUNTO_VENTA || "0", 10),
+          production: process.env.AFIP_PRODUCTION === "true",
+          cert_configurado: !!process.env.AFIP_CERT && process.env.AFIP_CERT.length > 100,
+          key_configurado: !!process.env.AFIP_KEY && process.env.AFIP_KEY.length > 100,
+          resend_configurado: !!process.env.RESEND_API_KEY,
+        },
+      });
+    }
+
+    return res.status(400).json({ error: `Acción desconocida: ${action}` });
   } catch (err) {
     console.error("Error en admin:", err);
     return res.status(500).json({ error: err.message || "Error interno" });
