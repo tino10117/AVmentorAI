@@ -3,7 +3,7 @@
 // NO es una función serverless de Vercel (empieza con _)
 // 
 // Maneja:
-//   ✅ Inicialización del SDK con cert + key desde env vars
+//   ✅ Inicialización del SDK con cert + key + access_token desde env vars
 //   ✅ Obtener próximo número de factura
 //   ✅ Generar Factura C (consumidor final - monotributo)
 //   ✅ Guardar factura en Redis
@@ -18,6 +18,7 @@ const AFIP_PUNTO_VENTA = parseInt(process.env.AFIP_PUNTO_VENTA || "1", 10);
 const AFIP_PRODUCTION = process.env.AFIP_PRODUCTION === "true";
 const AFIP_CERT = process.env.AFIP_CERT;
 const AFIP_KEY = process.env.AFIP_KEY;
+const AFIP_SDK_TOKEN = process.env.AFIP_SDK_TOKEN;
 
 // ─── SINGLETON ─────────────────────────────────────────────────
 let afipInstance = null;
@@ -25,8 +26,13 @@ let afipInstance = null;
 function getAfip() {
   if (afipInstance) return afipInstance;
   
-  if (!AFIP_CUIT || !AFIP_CERT || !AFIP_KEY) {
-    throw new Error("AFIP no configurado: faltan variables de entorno");
+  if (!AFIP_CUIT || !AFIP_CERT || !AFIP_KEY || !AFIP_SDK_TOKEN) {
+    const faltantes = [];
+    if (!AFIP_CUIT) faltantes.push("AFIP_CUIT");
+    if (!AFIP_CERT) faltantes.push("AFIP_CERT");
+    if (!AFIP_KEY) faltantes.push("AFIP_KEY");
+    if (!AFIP_SDK_TOKEN) faltantes.push("AFIP_SDK_TOKEN");
+    throw new Error(`AFIP no configurado: faltan variables ${faltantes.join(", ")}`);
   }
   
   afipInstance = new Afip({
@@ -34,6 +40,7 @@ function getAfip() {
     production: AFIP_PRODUCTION,
     cert: AFIP_CERT,
     key: AFIP_KEY,
+    access_token: AFIP_SDK_TOKEN,
   });
   
   console.log(`AFIP inicializado: CUIT=${AFIP_CUIT}, Prod=${AFIP_PRODUCTION}, PV=${AFIP_PUNTO_VENTA}`);
