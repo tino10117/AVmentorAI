@@ -7,7 +7,7 @@
 <meta name="description" content="11 modos mentor, juegos con IA, inglés, matemáticas, herramientas reales y gamificación. El primer mentor de IA pensado para argentinos.">
 <meta name="theme-color" content="#020617">
 
-<!-- Open Graph (para que se vea lindo cuando lo compartas en WhatsApp/IG) -->
+<!-- Open Graph -->
 <meta property="og:title" content="AVAI — Tu mentor argentino con IA">
 <meta property="og:description" content="ChatGPT te responde. AVAI te transforma. 11 modos mentor, juegos con IA, gamificación, certificados y mucho más.">
 <meta property="og:type" content="website">
@@ -16,7 +16,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 <link rel="stylesheet" href="css/styles.css">
 <style>
-  /* === Card del Modo Activo (Estilo A — destacado con borde brillante) === */
+  /* === Card del Modo Activo === */
   .modo-card {
     position: relative;
     background: linear-gradient(135deg, rgba(250, 204, 21, 0.08), rgba(249, 115, 22, 0.05));
@@ -72,7 +72,7 @@
   .sidebar-footer .copy { margin-top: 10px; text-align: center; font-size: 10px; color: #475569; }
 
   /* ════════════════════════════════════════════════════════════ */
-  /* 🆕 LANDING PAGE — Estilos                                   */
+  /* LANDING PAGE                                                 */
   /* ════════════════════════════════════════════════════════════ */
   #landing-screen {
     position: fixed; inset: 0;
@@ -81,8 +81,6 @@
     font-family: 'Inter', sans-serif;
   }
   .lnd-container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
-
-  /* NAVBAR */
   .lnd-nav {
     position: sticky; top: 0; z-index: 100;
     background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(12px);
@@ -109,8 +107,6 @@
     cursor: pointer; border: none; transition: all .2s;
   }
   .lnd-btn-primary:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(250, 204, 21, 0.3); }
-
-  /* HERO */
   .lnd-hero { padding: 60px 0 50px; text-align: center; }
   .lnd-hero-badge {
     display: inline-block; padding: 6px 14px; border-radius: 20px;
@@ -151,11 +147,7 @@
     cursor: pointer; transition: all .2s;
   }
   .lnd-cta-ghost:hover { background: rgba(250, 204, 21, 0.1); }
-  .lnd-hero-note {
-    font-size: 13px; color: #64748b; margin-top: 18px;
-  }
-
-  /* STATS BAR */
+  .lnd-hero-note { font-size: 13px; color: #64748b; margin-top: 18px; }
   .lnd-stats-bar {
     display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px;
     padding: 30px 0 50px;
@@ -168,8 +160,6 @@
     background-clip: text; line-height: 1;
   }
   .lnd-stat-label { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 6px; }
-
-  /* MOCKUP DEMO */
   .lnd-mockup-wrap {
     background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(56, 189, 248, 0.05));
     border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 20px;
@@ -232,8 +222,6 @@
     animation: floatBadge 3s ease-in-out infinite;
   }
   @keyframes floatBadge { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-
-  /* SECTION TITLE */
   .lnd-section { padding: 70px 0; }
   .lnd-section-title {
     font-family: 'Syne', sans-serif; font-size: 42px; font-weight: 900;
@@ -245,8 +233,6 @@
     background-clip: text;
   }
   .lnd-section-sub { text-align: center; color: #94a3b8; font-size: 17px; max-width: 680px; margin: 0 auto 50px; line-height: 1.6; }
-
-  /* VS CHATGPT */
   .lnd-vs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 920px; margin: 0 auto; }
   .lnd-vs-card {
     background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.15);
@@ -261,8 +247,6 @@
   .lnd-vs-list li { padding: 8px 0; font-size: 14px; color: #cbd5e1; display: flex; align-items: flex-start; gap: 10px; line-height: 1.55; }
   .lnd-vs-list li::before { content: "✗"; color: #ef4444; font-weight: 800; flex-shrink: 0; }
   .lnd-vs-card.good .lnd-vs-list li::before { content: "✓"; color: #22c55e; }
-
-  /* FEATURES GRID */
   .lnd-features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; max-width: 1000px; margin: 0 auto; }
   .lnd-feature {
     background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.15);
@@ -282,8 +266,6 @@
   .lnd-feature.blue h3 { color: #7dd3fc; }
   .lnd-feature.orange { border-color: rgba(249, 115, 22, 0.3); }
   .lnd-feature.orange h3 { color: #fb923c; }
-
-  /* TODO EN UN LUGAR */
   .lnd-allinone {
     background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(56, 189, 248, 0.05));
     border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 24px;
@@ -298,8 +280,6 @@
     padding: 10px 16px; border-radius: 12px; font-size: 14px; color: #cbd5e1;
     display: flex; align-items: center; gap: 8px; font-weight: 600;
   }
-
-  /* HOW IT WORKS */
   .lnd-how { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 980px; margin: 0 auto; }
   .lnd-how-step {
     background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.15);
@@ -313,8 +293,6 @@
   }
   .lnd-how-step h3 { font-family: 'Syne', sans-serif; font-size: 19px; margin-bottom: 8px; }
   .lnd-how-step p { color: #94a3b8; font-size: 14px; line-height: 1.6; margin: 0; }
-
-  /* PLANS */
   .lnd-plans-toggle {
     display: inline-flex; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(148, 163, 184, 0.2);
     border-radius: 12px; padding: 4px; margin: 0 auto 40px;
@@ -370,8 +348,6 @@
   .lnd-plan-btn.ghost { background: transparent; border: 1.5px solid rgba(250, 204, 21, 0.3); color: #cbd5e1; }
   .lnd-plan-btn.ghost:hover { background: rgba(250, 204, 21, 0.08); color: #facc15; }
   .lnd-plan-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  /* FAQ */
   .lnd-faq { max-width: 760px; margin: 0 auto; }
   .lnd-faq-item {
     background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.15);
@@ -388,8 +364,6 @@
   .lnd-faq-a {
     padding: 0 24px 20px; color: #94a3b8; font-size: 14px; line-height: 1.7;
   }
-
-  /* FINAL CTA */
   .lnd-final {
     background: linear-gradient(135deg, rgba(250, 204, 21, 0.1), rgba(56, 189, 248, 0.06));
     border: 1px solid rgba(250, 204, 21, 0.3); border-radius: 24px;
@@ -405,8 +379,6 @@
     background-clip: text;
   }
   .lnd-final p { color: #cbd5e1; font-size: 17px; margin-bottom: 30px; }
-
-  /* FOOTER */
   .lnd-footer { padding: 50px 0 30px; border-top: 1px solid rgba(148, 163, 184, 0.1); margin-top: 50px; }
   .lnd-footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; margin-bottom: 30px; }
   .lnd-footer h4 { font-family: 'Syne', sans-serif; font-size: 14px; color: #facc15; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 1px; }
@@ -422,8 +394,6 @@
     background: rgba(15, 23, 42, 0.6); border: 1px dashed rgba(148, 163, 184, 0.2);
     border-radius: 8px; font-size: 11px; color: #475569;
   }
-
-  /* RESPONSIVE */
   @media (max-width: 880px) {
     .lnd-hero h1 { font-size: 38px; }
     .lnd-hero-sub { font-size: 16px; }
@@ -447,6 +417,143 @@
     .lnd-hero-cta { flex-direction: column; align-items: stretch; }
     .lnd-nav-cta .lnd-btn-link { display: none; }
   }
+
+  /* ════════════════════════════════════════════════════════════ */
+  /* LOGIN SCREEN v2 — Minimalista premium                       */
+  /* ════════════════════════════════════════════════════════════ */
+  #login-screen {
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at top, #1f2937 0%, #0b1120 50%, #020617 100%);
+    z-index: 999; overflow-y: auto;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 40px 20px;
+    font-family: 'Inter', sans-serif;
+    animation: loginFadeIn 0.4s ease;
+  }
+  @keyframes loginFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .login-v2-wrap {
+    width: 100%; max-width: 440px;
+    display: flex; flex-direction: column; align-items: stretch;
+  }
+  .login-v2-back {
+    background: transparent; border: none; color: #94a3b8;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    padding: 8px 0; margin-bottom: 24px;
+    display: inline-flex; align-items: center; gap: 8px;
+    align-self: flex-start; transition: color 0.2s ease;
+    font-family: inherit;
+  }
+  .login-v2-back:hover { color: #facc15; }
+  .login-v2-header { text-align: center; margin-bottom: 32px; }
+  .login-v2-logo {
+    font-family: 'Syne', sans-serif; font-size: 42px; font-weight: 900;
+    background: linear-gradient(90deg, #facc15, #f97316, #38bdf8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: 18px;
+    letter-spacing: -1px; display: inline-block;
+  }
+  .login-v2-title {
+    font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800;
+    color: #f8fafc; margin-bottom: 8px;
+    letter-spacing: -0.5px; line-height: 1.2;
+  }
+  .login-v2-subtitle { font-size: 15px; color: #94a3b8; line-height: 1.5; }
+  .login-v2-card {
+    background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: 18px; padding: 28px;
+    backdrop-filter: blur(20px); box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+  }
+  .login-v2-tabs {
+    display: flex; background: rgba(2, 6, 23, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 12px; padding: 4px; margin-bottom: 24px;
+  }
+  .login-v2-tab {
+    flex: 1; background: transparent; border: none; color: #94a3b8;
+    font-size: 14px; font-weight: 700; padding: 10px 14px;
+    border-radius: 9px; cursor: pointer; transition: all 0.25s ease;
+    font-family: inherit;
+  }
+  .login-v2-tab.active {
+    background: linear-gradient(90deg, #facc15, #f97316); color: #111827;
+    box-shadow: 0 4px 14px rgba(250, 204, 21, 0.25);
+  }
+  .login-v2-field { margin-bottom: 16px; }
+  .login-v2-label {
+    display: block; font-size: 13px; font-weight: 600;
+    color: #cbd5e1; margin-bottom: 7px; letter-spacing: 0.2px;
+  }
+  .login-v2-input {
+    width: 100%; background: rgba(2, 6, 23, 0.7);
+    border: 1.5px solid rgba(148, 163, 184, 0.18);
+    border-radius: 11px; padding: 13px 15px;
+    font-size: 15px; color: #f8fafc;
+    font-family: inherit; transition: all 0.2s ease;
+    outline: none; box-sizing: border-box;
+  }
+  .login-v2-input::placeholder { color: #64748b; }
+  .login-v2-input:focus {
+    border-color: #facc15; background: rgba(2, 6, 23, 0.9);
+    box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.12);
+  }
+  .login-v2-error {
+    background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 10px; padding: 10px 14px;
+    color: #fca5a5; font-size: 13px; margin-bottom: 14px;
+    display: flex; align-items: flex-start; gap: 8px; line-height: 1.5;
+  }
+  .login-v2-error.hidden { display: none; }
+  .login-v2-cta {
+    width: 100%; background: linear-gradient(90deg, #facc15, #f97316);
+    color: #111827; border: none; border-radius: 12px;
+    padding: 14px 18px; font-size: 16px; font-weight: 800;
+    cursor: pointer; margin-top: 8px;
+    transition: all 0.2s ease; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 8px 24px rgba(250, 204, 21, 0.2);
+  }
+  .login-v2-cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 32px rgba(250, 204, 21, 0.35);
+  }
+  .login-v2-cta:active { transform: translateY(0); }
+  .login-v2-divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 24px 0 16px; color: #475569;
+    font-size: 12px; font-weight: 600;
+  }
+  .login-v2-divider::before, .login-v2-divider::after {
+    content: ""; flex: 1; height: 1px;
+    background: rgba(148, 163, 184, 0.15);
+  }
+  .login-v2-benefits { list-style: none; padding: 0; margin: 0 0 16px; }
+  .login-v2-benefits li {
+    font-size: 13px; color: #cbd5e1; padding: 5px 0;
+    display: flex; align-items: center; gap: 10px; line-height: 1.5;
+  }
+  .login-v2-benefits li::before {
+    content: "✓"; color: #22c55e;
+    font-weight: 800; font-size: 14px; flex-shrink: 0;
+  }
+  .login-v2-footer {
+    text-align: center; font-size: 12px; color: #475569;
+    margin-top: 18px; line-height: 1.6;
+  }
+  .login-v2-footer a {
+    color: #94a3b8; text-decoration: none;
+    font-weight: 500; transition: color 0.2s ease;
+  }
+  .login-v2-footer a:hover { color: #facc15; }
+  .login-v2-panel.hidden { display: none; }
+  @media (max-width: 500px) {
+    #login-screen { padding: 24px 16px; }
+    .login-v2-logo { font-size: 36px; }
+    .login-v2-title { font-size: 24px; }
+    .login-v2-card { padding: 22px 20px; }
+  }
 </style>
 </head>
 <body>
@@ -454,10 +561,9 @@
 <div id="toast-container"></div>
 
 <!-- ═══════════════════════════════════════════════ -->
-<!-- 🆕 LANDING SCREEN — Pública                    -->
+<!-- LANDING SCREEN — Pública                       -->
 <!-- ═══════════════════════════════════════════════ -->
 <div id="landing-screen">
-  <!-- NAVBAR -->
   <nav class="lnd-nav">
     <div class="lnd-container lnd-nav-inner">
       <div class="lnd-logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">⚡ AVAI</div>
@@ -469,7 +575,6 @@
     </div>
   </nav>
 
-  <!-- HERO -->
   <section class="lnd-hero">
     <div class="lnd-container">
       <div class="lnd-hero-badge">🇦🇷 En beta · Acceso temprano</div>
@@ -488,33 +593,16 @@
     </div>
   </section>
 
-  <!-- STATS -->
   <div class="lnd-container">
     <div class="lnd-stats-bar">
-      <div class="lnd-stat">
-        <div class="lnd-stat-num">11</div>
-        <div class="lnd-stat-label">Modos mentor</div>
-      </div>
-      <div class="lnd-stat">
-        <div class="lnd-stat-num">22</div>
-        <div class="lnd-stat-label">Lecciones</div>
-      </div>
-      <div class="lnd-stat">
-        <div class="lnd-stat-num">6</div>
-        <div class="lnd-stat-label">Herramientas IA</div>
-      </div>
-      <div class="lnd-stat">
-        <div class="lnd-stat-num">8</div>
-        <div class="lnd-stat-label">Juegos con IA</div>
-      </div>
-      <div class="lnd-stat">
-        <div class="lnd-stat-num">2</div>
-        <div class="lnd-stat-label">Idiomas</div>
-      </div>
+      <div class="lnd-stat"><div class="lnd-stat-num">11</div><div class="lnd-stat-label">Modos mentor</div></div>
+      <div class="lnd-stat"><div class="lnd-stat-num">22</div><div class="lnd-stat-label">Lecciones</div></div>
+      <div class="lnd-stat"><div class="lnd-stat-num">6</div><div class="lnd-stat-label">Herramientas IA</div></div>
+      <div class="lnd-stat"><div class="lnd-stat-num">8</div><div class="lnd-stat-label">Juegos con IA</div></div>
+      <div class="lnd-stat"><div class="lnd-stat-num">2</div><div class="lnd-stat-label">Idiomas</div></div>
     </div>
   </div>
 
-  <!-- MOCKUP DEMO -->
   <div class="lnd-container">
     <div class="lnd-mockup-wrap" style="position:relative">
       <div class="lnd-mockup-floating">⚡ Demo en vivo</div>
@@ -560,7 +648,6 @@
     </div>
   </div>
 
-  <!-- VS CHATGPT -->
   <section class="lnd-section" id="lnd-vs-section">
     <div class="lnd-container">
       <h2 class="lnd-section-title">Por qué AVAI rompe con <span class="grad">ChatGPT</span></h2>
@@ -594,43 +681,36 @@
     </div>
   </section>
 
-  <!-- FEATURES -->
   <section class="lnd-section" id="lnd-features-section">
     <div class="lnd-container">
       <h2 class="lnd-section-title">Todo lo que <span class="grad">AVAI</span> hace por vos</h2>
       <p class="lnd-section-sub">Una sola app. Sin pagar 5 herramientas distintas. Sin pelearte con prompts.</p>
-
       <div class="lnd-features">
         <div class="lnd-feature gold">
           <div class="lnd-feature-icon">🧠</div>
           <h3>11 Modos Mentor</h3>
           <p>Ventas, marketing, e-commerce, mindset, ideas de negocio, simulación con clientes difíciles, planificador de objetivos, especialista en reventa, mentor millonario, y <b>Conversación Libre con búsqueda en internet</b> para charlar de lo que sea con datos reales del día. Tocás un botón y listo.</p>
         </div>
-
         <div class="lnd-feature blue">
           <div class="lnd-feature-icon">🎮</div>
           <h3>Jugá con IA (único en el mercado)</h3>
           <p><b>Modo Historia:</b> simulás vidas — lanzás una startup, heredás un negocio familiar, llegás a Nueva York con $500, sobrevivís en una isla. Cada decisión cambia la historia. <b>Business Empire:</b> arrancás con un kiosco y lo escalás a empresa con sucursales. La IA reacciona a cada movimiento.</p>
         </div>
-
         <div class="lnd-feature purple">
           <div class="lnd-feature-icon">📚</div>
           <h3>Inglés con Alex</h3>
           <p>Tu profesor de inglés con IA. <b>12 lecciones</b> por nivel (Principiante, Intermedio, Avanzado), <b>roleplay</b> de situaciones reales (entrevista de trabajo, restaurante, aeropuerto), traductor inteligente, diario en inglés con corrección automática y <b>certificado PDF descargable</b> al terminar el nivel.</p>
         </div>
-
         <div class="lnd-feature green">
           <div class="lnd-feature-icon">🔢</div>
           <h3>Mate con Bruno</h3>
           <p>Aprendé matemáticas aplicadas a negocios. <b>10 lecciones</b> por nivel + <b>calculadora interactiva</b>: margen de ganancia, punto de equilibrio, ROI, precio ideal, proyección de ventas. Todo explicado con ejemplos reales argentinos. Certificado al terminar.</p>
         </div>
-
         <div class="lnd-feature orange">
           <div class="lnd-feature-icon">🛠️</div>
           <h3>Herramientas Pro</h3>
           <p><b>Análisis de competencia</b> (plan en 5 pasos para superarla), <b>generador de contenido</b> (posts Instagram, WhatsApp, Mercado Libre), <b>plantillas listas</b> personalizables, <b>creador de marca personal</b> con generación de logo IA, y <b>finanzas personales</b> con IA.</p>
         </div>
-
         <div class="lnd-feature blue">
           <div class="lnd-feature-icon">✈️</div>
           <h3>Viajes + Vida Sana</h3>
@@ -640,7 +720,6 @@
     </div>
   </section>
 
-  <!-- TODO EN UN LUGAR -->
   <section class="lnd-section">
     <div class="lnd-container">
       <div class="lnd-allinone">
@@ -662,7 +741,6 @@
     </div>
   </section>
 
-  <!-- HOW IT WORKS -->
   <section class="lnd-section">
     <div class="lnd-container">
       <h2 class="lnd-section-title">Empezás en <span class="grad">1 minuto</span></h2>
@@ -687,21 +765,17 @@
     </div>
   </section>
 
-  <!-- PLANS -->
   <section class="lnd-section" id="lnd-plans-section">
     <div class="lnd-container">
       <h2 class="lnd-section-title">Planes <span class="grad">simples</span></h2>
       <p class="lnd-section-sub">Empezá gratis. Subí cuando quieras. Cancelás cuando quieras.</p>
-
       <div class="lnd-plans-toggle-wrap">
         <div class="lnd-plans-toggle">
           <button class="lnd-toggle-btn active" id="lnd-toggle-mensual" onclick="lndTogglePlan('mensual')">Mensual</button>
           <button class="lnd-toggle-btn" id="lnd-toggle-anual" onclick="lndTogglePlan('anual')">Anual <span class="lnd-toggle-badge">-20%</span></button>
         </div>
       </div>
-
       <div class="lnd-plans">
-        <!-- GRATIS -->
         <div class="lnd-plan">
           <h3>Gratis</h3>
           <div class="lnd-plan-desc">Para probar todo sin pagar nada.</div>
@@ -721,18 +795,12 @@
           </ul>
           <button class="lnd-plan-btn ghost" onclick="landingShowRegister()">Empezar gratis</button>
         </div>
-
-        <!-- PREMIUM -->
         <div class="lnd-plan featured">
           <div class="lnd-plan-pop">⭐ Más elegido</div>
           <h3>Premium ⚡</h3>
           <div class="lnd-plan-desc">Para los que van en serio.</div>
-          <div class="lnd-plan-price" id="lnd-price-mensual">
-            <span class="currency">$</span>8.000
-          </div>
-          <div class="lnd-plan-price" id="lnd-price-anual" style="display:none">
-            <span class="currency">$</span>76.800
-          </div>
+          <div class="lnd-plan-price" id="lnd-price-mensual"><span class="currency">$</span>8.000</div>
+          <div class="lnd-plan-price" id="lnd-price-anual" style="display:none"><span class="currency">$</span>76.800</div>
           <div class="lnd-plan-cycle" id="lnd-cycle-mensual">ARS / mes · Cancelás cuando quieras</div>
           <div class="lnd-plan-cycle" id="lnd-cycle-anual" style="display:none">ARS / año · Ahorrás $19.200 (2 meses gratis)</div>
           <ul class="lnd-plan-feat">
@@ -750,8 +818,6 @@
           <button class="lnd-plan-btn primary" onclick="landingShowRegister()">💎 Empezar gratis</button>
           <p style="text-align:center;font-size:11px;color:#64748b;margin-top:10px">Probás gratis · Pagás cuando estés listo</p>
         </div>
-
-        <!-- EMPRESARIAL -->
         <div class="lnd-plan">
           <h3>Empresarial 🔒</h3>
           <div class="lnd-plan-desc">Para equipos y empresas.</div>
@@ -771,7 +837,6 @@
     </div>
   </section>
 
-  <!-- FAQ -->
   <section class="lnd-section">
     <div class="lnd-container">
       <h2 class="lnd-section-title">Preguntas <span class="grad">frecuentes</span></h2>
@@ -813,7 +878,6 @@
     </div>
   </section>
 
-  <!-- FINAL CTA -->
   <section class="lnd-section">
     <div class="lnd-container">
       <div class="lnd-final">
@@ -825,7 +889,6 @@
     </div>
   </section>
 
-  <!-- FOOTER -->
   <footer class="lnd-footer">
     <div class="lnd-container">
       <div class="lnd-footer-grid">
@@ -856,54 +919,62 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════ -->
-<!-- LOGIN SCREEN (inicia oculto, se muestra al clickear) -->
+<!-- LOGIN SCREEN v2 — Minimalista premium          -->
 <!-- ═══════════════════════════════════════════════ -->
 <div id="login-screen" style="display:none">
-  <div style="width:100%;max-width:420px;margin:0 auto">
-    <button onclick="landingShowFromLogin()" style="background:transparent;border:none;color:#94a3b8;font-size:14px;cursor:pointer;margin-bottom:14px;padding:8px 12px;display:flex;align-items:center;gap:6px">← Volver</button>
-  </div>
-  <div style="text-align:center;padding:20px 0 28px">
-    <div style="font-family:'Syne',sans-serif;font-size:48px;font-weight:900;background:linear-gradient(90deg,#facc15,#f97316,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px">⚡ AVAI</div>
-    <div style="font-size:16px;color:#cbd5e1;margin-bottom:6px">Tu mentor personal premium para negocios, ventas y crecimiento.</div>
-    <div style="font-size:13px;color:#64748b">Mentor de negocios · Inglés · Matemáticas · Herramientas · Todo con IA</div>
-  </div>
-  <div class="stats-row" style="max-width:500px;margin:0 auto 24px">
-    <div class="stat-pill"><span class="sv">10</span><span class="sl">Modos mentor</span></div>
-    <div class="stat-pill" style="background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.25)"><span class="sv" style="color:#a855f7">22</span><span class="sl">Lecciones</span></div>
-    <div class="stat-pill" style="background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.25)"><span class="sv" style="color:#22c55e">6</span><span class="sl">Herramientas IA</span></div>
-    <div class="stat-pill" style="background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.25)"><span class="sv" style="color:#38bdf8">8</span><span class="sl">Roleplay</span></div>
-  </div>
-  <div class="feature-grid" style="max-width:500px;margin:0 auto 24px">
-    <div class="feature-item" style="background:linear-gradient(135deg,rgba(250,204,21,.1),rgba(249,115,22,.06));border:1px solid rgba(250,204,21,.25);"><b style="color:#facc15">🧠 Mentor de Negocios</b><span>10 modos: ventas, marketing, e-commerce, mindset y más. Con búsqueda en internet 🌐</span></div>
-    <div class="feature-item" style="background:linear-gradient(135deg,rgba(168,85,247,.1),rgba(99,102,241,.06));border:1px solid rgba(168,85,247,.25);"><b style="color:#a855f7">📚 Inglés con Alex</b><span>12 lecciones, quiz, roleplay, traductor, diario y certificado PDF</span></div>
-    <div class="feature-item" style="background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(16,185,129,.06));border:1px solid rgba(34,197,94,.25);"><b style="color:#22c55e">🔢 Mate con Bruno</b><span>10 lecciones, calculadora de negocios, ROI, punto de equilibrio</span></div>
-    <div class="feature-item" style="background:linear-gradient(135deg,rgba(249,115,22,.1),rgba(239,68,68,.06));border:1px solid rgba(249,115,22,.25);"><b style="color:#f97316">✍️ Generar Contenido</b><span>Posts Instagram, WhatsApp, Mercado Libre listos para publicar</span></div>
-    <div class="feature-item" style="background:linear-gradient(135deg,rgba(56,189,248,.1),rgba(99,102,241,.06));border:1px solid rgba(56,189,248,.25);"><b style="color:#38bdf8">🔍 Analizar Competencia</b><span>Plan de 5 pasos para superar a cualquier competidor</span></div>
-    <div class="feature-item" style="background:linear-gradient(135deg,rgba(250,204,21,.1),rgba(34,197,94,.06));border:1px solid rgba(250,204,21,.25);"><b style="color:#facc15">🔥 Gamificación</b><span>XP, rachas, niveles, desafíos diarios y logros desbloqueables</span></div>
-  </div>
-  <div class="login-box" style="margin:0 auto">
-    <div class="login-tabs">
-      <button class="login-tab active" onclick="setLoginTab('login')">Iniciar sesión</button>
-      <button class="login-tab" onclick="setLoginTab('register')">Crear cuenta</button>
+  <div class="login-v2-wrap">
+    <button class="login-v2-back" onclick="landingShowFromLogin()">
+      <span style="font-size:16px">←</span> Volver
+    </button>
+    <div class="login-v2-header">
+      <div class="login-v2-logo">⚡ AVAI</div>
+      <h1 class="login-v2-title" id="login-v2-title">Crear tu cuenta gratis</h1>
+      <p class="login-v2-subtitle" id="login-v2-subtitle">Empezás a usar AVAI en menos de 30 segundos.</p>
     </div>
-    <div id="panel-login">
-      <div class="mb-3"><label class="label">Email</label><input class="input" id="login-email" type="email" placeholder="tuemail@gmail.com / hotmail.com / icloud.com"></div>
-      <div class="mb-3"><label class="label">Contraseña</label><input class="input" id="login-pass" type="password" placeholder="Tu contraseña"></div>
-      <div id="login-error" class="alert alert-error hidden"></div>
-      <button class="btn btn-primary btn-full btn-lg" onclick="doLogin()">⚡ Entrar</button>
+    <div class="login-v2-card">
+      <div class="login-v2-tabs">
+        <button class="login-v2-tab active" id="tab-btn-register" onclick="setLoginTab('register')">Crear cuenta</button>
+        <button class="login-v2-tab" id="tab-btn-login" onclick="setLoginTab('login')">Iniciar sesión</button>
+      </div>
+      <div id="panel-register" class="login-v2-panel">
+        <div class="login-v2-field">
+          <label class="login-v2-label" for="reg-nombre">Tu nombre</label>
+          <input class="login-v2-input" id="reg-nombre" type="text" placeholder="Valentino" autocomplete="name">
+        </div>
+        <div class="login-v2-field">
+          <label class="login-v2-label" for="reg-email">Email</label>
+          <input class="login-v2-input" id="reg-email" type="email" placeholder="tuemail@gmail.com" autocomplete="email">
+        </div>
+        <div class="login-v2-field">
+          <label class="login-v2-label" for="reg-pass">Contraseña <span style="color:#64748b;font-weight:400">(mín. 6 caracteres)</span></label>
+          <input class="login-v2-input" id="reg-pass" type="password" placeholder="••••••••" autocomplete="new-password">
+        </div>
+        <div id="reg-error" class="login-v2-error hidden"></div>
+        <button class="login-v2-cta" onclick="doRegister()">🚀 Crear cuenta gratis</button>
+        <div class="login-v2-divider">QUÉ INCLUYE</div>
+        <ul class="login-v2-benefits">
+          <li>Sin tarjeta de crédito</li>
+          <li>Plan gratis para siempre</li>
+          <li>Cancelás cuando quieras</li>
+        </ul>
+      </div>
+      <div id="panel-login" class="login-v2-panel hidden">
+        <div class="login-v2-field">
+          <label class="login-v2-label" for="login-email">Email</label>
+          <input class="login-v2-input" id="login-email" type="email" placeholder="tuemail@gmail.com" autocomplete="email">
+        </div>
+        <div class="login-v2-field">
+          <label class="login-v2-label" for="login-pass">Contraseña</label>
+          <input class="login-v2-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <div id="login-error" class="login-v2-error hidden"></div>
+        <button class="login-v2-cta" onclick="doLogin()">⚡ Entrar a mi cuenta</button>
+      </div>
     </div>
-    <div id="panel-register" class="hidden">
-      <div class="mb-3"><label class="label">Tu nombre</label><input class="input" id="reg-nombre" type="text" placeholder="Valentino"></div>
-      <div class="mb-3"><label class="label">Email</label><input class="input" id="reg-email" type="email" placeholder="tuemail@gmail.com / hotmail.com / icloud.com"></div>
-      <div class="mb-3"><label class="label">Contraseña (mín. 6 caracteres)</label><input class="input" id="reg-pass" type="password" placeholder="Creá tu contraseña"></div>
-      <div id="reg-error" class="alert alert-error hidden"></div>
-      <button class="btn btn-primary btn-full btn-lg" onclick="doRegister()">🚀 Crear cuenta gratis</button>
-    </div>
-    <p style="text-align:center;font-size:12px;color:#475569;margin-top:14px">Sin tarjeta de crédito · Demo privada v4.0</p>
-    <p style="text-align:center;font-size:11px;color:#475569;margin-top:8px">
-      Al crear cuenta aceptás los
-      <a href="/terminos.html" target="_blank" style="color:#94a3b8">Términos</a> y la
-      <a href="/privacidad.html" target="_blank" style="color:#94a3b8">Política de Privacidad</a>
+    <p class="login-v2-footer">
+      Al crear cuenta aceptás los<br>
+      <a href="/terminos.html" target="_blank">Términos</a> y la
+      <a href="/privacidad.html" target="_blank">Política de Privacidad</a>
     </p>
   </div>
 </div>
@@ -946,10 +1017,8 @@
 <!-- MAIN APP                                        -->
 <!-- ═══════════════════════════════════════════════ -->
 <div id="app" class="hidden">
-  <!-- Hamburger -->
   <button id="hamburger" onclick="toggleSidebar()">☰</button>
   <div id="overlay" onclick="closeSidebar()"></div>
-  <!-- Sidebar -->
   <nav id="sidebar">
     <div class="sidebar-logo">⚡ AVAI</div>
     <div class="nav-section">APRENDIZAJE</div>
@@ -980,7 +1049,6 @@
       <div class="copy">© 2026 AVAI · Formosa, Argentina</div>
     </div>
   </nav>
-  <!-- Main Content -->
   <main id="main-content">
     <div class="hero-card mb-3">
       <div class="av-logo">⚡ AVAI</div>
@@ -1012,7 +1080,6 @@
         <span id="stat-objetivos">🎯 0 objetivos</span>
       </div>
     </div>
-    <!-- TAB: MENTOR -->
     <div id="tab-mentor" class="tab-content active">
       <div class="modo-card">
         <div class="modo-card-header">
@@ -1059,7 +1126,6 @@
         </div>
       </div>
     </div>
-    <!-- TAB: INGLÉS -->
     <div id="tab-english" class="tab-content hidden">
       <div class="card-blue card mb-3"><h2 style="font-family:'Syne',sans-serif">📚 Aprender Inglés</h2><p class="text-muted">Lecciones offline · Quiz · Roleplay · Traductor · Diario · Certificado</p></div>
       <div class="subnav">
@@ -1077,7 +1143,6 @@
       <div id="english-certificado" data-subpanel="english" data-value="certificado" style="display:none"></div>
       <div id="english-chat" data-subpanel="english" data-value="chat" style="display:none"></div>
     </div>
-    <!-- TAB: MATE -->
     <div id="tab-mate" class="tab-content hidden">
       <div class="card-green card mb-3"><h2 style="font-family:'Syne',sans-serif">🔢 Aprender Matemáticas</h2><p class="text-muted">Lecciones · Quiz · Calculadora de negocios · Certificado</p></div>
       <div class="subnav">
@@ -1089,7 +1154,6 @@
       <div id="mate-calculadora" data-subpanel="mate" data-value="calculadora" style="display:none"></div>
       <div id="mate-chat" data-subpanel="mate" data-value="chat" style="display:none"></div>
     </div>
-    <!-- TAB: HERRAMIENTAS -->
     <div id="tab-herramientas" class="tab-content hidden">
       <div class="hero-card mb-3"><h2>🛠️ Herramientas</h2><p class="av-subtitle">Analizá tu competencia, generá contenido y más.</p></div>
       <div class="subnav">
@@ -1105,7 +1169,6 @@
       <div id="herr-marca" data-subpanel="herr" data-value="marca" style="display:none"></div>
       <div id="herr-finanzas" data-subpanel="herr" data-value="finanzas" style="display:none"></div>
     </div>
-    <!-- TAB: VIAJES -->
     <div id="tab-viajes" class="tab-content hidden">
       <div class="hero-card mb-3"><h2>✈️ Planificador de Viajes</h2><p class="av-subtitle">Armá tu próximo viaje con IA. Itinerarios día por día con precios reales y datos actualizados.</p></div>
       <div class="subnav">
@@ -1115,7 +1178,6 @@
       <div id="viajes-itinerario" data-subpanel="viajes" data-value="itinerario"></div>
       <div id="viajes-inspirame" data-subpanel="viajes" data-value="inspirame" style="display:none"></div>
     </div>
-    <!-- TAB: VIDA SANA -->
     <div id="tab-vidasana" class="tab-content hidden">
       <div class="hero-card mb-3"><h2>💪 Vida Sana</h2><p class="av-subtitle">Plan de alimentación y rutina de ejercicio con IA, adaptado a tus objetivos.</p></div>
       <div class="subnav">
@@ -1125,7 +1187,6 @@
       <div id="vidasana-alimentacion" data-subpanel="vidasana" data-value="alimentacion"></div>
       <div id="vidasana-ejercicio" data-subpanel="vidasana" data-value="ejercicio" style="display:none"></div>
     </div>
-    <!-- TAB: JUGÁ CON IA -->
     <div id="tab-juegos" class="tab-content hidden">
       <div class="hero-card mb-3"><h2>🎮 Jugá con IA</h2><p class="av-subtitle">Juegos donde la IA es el alma del juego. Aventuras únicas que cambian con cada decisión.</p></div>
       <div class="subnav">
@@ -1137,32 +1198,26 @@
       <div id="juegos-empire" data-subpanel="juegos" data-value="empire" style="display:none"></div>
       <div id="juegos-proximamente" data-subpanel="juegos" data-value="proximamente" style="display:none"></div>
     </div>
-    <!-- TAB: PROGRESO -->
     <div id="tab-progreso" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">📈 Mi Progreso</h2>
       <div id="progreso-content"></div>
     </div>
-    <!-- TAB: DESAFÍOS -->
     <div id="tab-desafios" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">🔥 Desafíos</h2>
       <div id="desafios-content"></div>
     </div>
-    <!-- TAB: RANKING -->
     <div id="tab-ranking" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">🏆 Ranking</h2>
       <div id="ranking-content"><div class="loading-row"><div class="spinner"></div>Cargando ranking…</div></div>
     </div>
-    <!-- TAB: PREMIUM -->
     <div id="tab-premium" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">💎 Planes</h2>
       <div class="grid-3" id="planes-content"></div>
     </div>
-    <!-- TAB: CONFIG -->
     <div id="tab-config" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">⚙️ Configuración</h2>
       <div id="config-content"></div>
     </div>
-    <!-- TAB: ADMIN (solo visible para Valentino) -->
     <div id="tab-admin" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px;color:#fbbf24">🛡️ Panel Admin</h2>
       <div id="admin-content"></div>
@@ -1171,50 +1226,42 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════ -->
-<!-- 🆕 LANDING SCRIPT — control de show/hide        -->
+<!-- LANDING + LOGIN SCRIPT                          -->
 <!-- ═══════════════════════════════════════════════ -->
 <script>
-  // Si ya hay token guardado, NO mostramos la landing → vamos directo a la app
-  // Si NO hay token, mostramos la landing pública
   (function() {
     const hasToken = !!localStorage.getItem('av_token') || !!localStorage.getItem('avai_token');
     const landing = document.getElementById('landing-screen');
     const login = document.getElementById('login-screen');
     if (hasToken) {
-      // Usuario ya logueado: oculta landing y login, la app va a aparecer por ui.js
       if (landing) landing.style.display = 'none';
       if (login) login.style.display = 'none';
     } else {
-      // Visitante nuevo: muestra landing, oculta login
       if (landing) landing.style.display = 'block';
       if (login) login.style.display = 'none';
     }
   })();
 
-  // Botón "Iniciar sesión" desde la landing
   function landingShowLogin() {
     document.getElementById('landing-screen').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
-    if (typeof setLoginTab === 'function') setLoginTab('login');
+    setLoginTab('login');
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
-  // Botón "Probar gratis" / "Empezar gratis" desde la landing
   function landingShowRegister() {
     document.getElementById('landing-screen').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
-    if (typeof setLoginTab === 'function') setLoginTab('register');
+    setLoginTab('register');
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
-  // Botón "← Volver" desde el login → muestra landing de nuevo
   function landingShowFromLogin() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('landing-screen').style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
-  // Toggle mensual / anual en los planes
   function lndTogglePlan(tipo) {
     const btnM = document.getElementById('lnd-toggle-mensual');
     const btnA = document.getElementById('lnd-toggle-anual');
@@ -1232,9 +1279,33 @@
       cycleM.style.display = 'block'; cycleA.style.display = 'none';
     }
   }
+
+  window.setLoginTab = function(tab) {
+    const panelRegister = document.getElementById('panel-register');
+    const panelLogin = document.getElementById('panel-login');
+    const btnRegister = document.getElementById('tab-btn-register');
+    const btnLogin = document.getElementById('tab-btn-login');
+    const title = document.getElementById('login-v2-title');
+    const subtitle = document.getElementById('login-v2-subtitle');
+    if (tab === 'login') {
+      panelLogin.classList.remove('hidden');
+      panelRegister.classList.add('hidden');
+      btnLogin.classList.add('active');
+      btnRegister.classList.remove('active');
+      if (title) title.textContent = 'Iniciar sesión';
+      if (subtitle) subtitle.textContent = '¡Bienvenido de vuelta, capo!';
+    } else {
+      panelRegister.classList.remove('hidden');
+      panelLogin.classList.add('hidden');
+      btnRegister.classList.add('active');
+      btnLogin.classList.remove('active');
+      if (title) title.textContent = 'Crear tu cuenta gratis';
+      if (subtitle) subtitle.textContent = 'Empezás a usar AVAI en menos de 30 segundos.';
+    }
+  };
 </script>
 
-<!-- Scripts originales (sin tocar) -->
+<!-- Scripts originales -->
 <script src="js/lessons.js"></script>
 <script src="js/app.js"></script>
 <script src="js/ui.js"></script>
@@ -1245,9 +1316,7 @@
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 
-<!-- ════════════════════════════════════════ -->
-<!-- 🐛 SENTRY - Error Tracking               -->
-<!-- ════════════════════════════════════════ -->
+<!-- Sentry -->
 <script
   src="https://js.sentry-cdn.com/aa0d7094952c3388c2f00fb4b7487953.min.js"
   crossorigin="anonymous"
@@ -1278,7 +1347,6 @@
           'AbortError'
         ]
       });
-
       if (typeof window !== 'undefined' && window.localStorage) {
         try {
           var token = localStorage.getItem('av_token') || localStorage.getItem('avai_token');
