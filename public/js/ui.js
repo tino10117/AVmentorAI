@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
   Store.load();
-  ...  if (App.user && App.token) {
+    if (App.user && App.token) {
     if (!App.user.onboarding_completo) showOnboarding();
     else showApp();
   } else {
