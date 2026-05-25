@@ -1,4 +1,8 @@
 // api/chat.js — Llamadas a OpenAI (mentor, english, mate)
+// ✨ ACTUALIZADO: Generación/edición de imágenes con calidad profesional estilo ChatGPT
+//    - Enriquecedor automático de prompt con gpt-4o-mini + vision
+//    - Quality AUTO: high con imagen adjunta, medium sin imagen
+//    - Memoria de imagen 30 min en Redis (permite "retocá" sin re-adjuntar)
 
 import OpenAI from "openai";
 import jwt from "jsonwebtoken";
@@ -48,18 +52,19 @@ async function checkIPLimit(kv, ip, maxPerHour = 100) {
 
 // ═══════════════════════════════════════════════════════════════
 // HARD CAP GLOBAL — Salvavidas económico del sistema
-// Si el gasto del día llega al límite → bloquea TODAS las llamadas
-// El cap se puede cambiar desde el panel admin (key: "system_cap_usd")
 // ═══════════════════════════════════════════════════════════════
-const DEFAULT_DAILY_CAP_USD = 10; // Fallback si no hay configurado
+const DEFAULT_DAILY_CAP_USD = 10;
 
 // Costos estimados por operación (USD)
+// ✨ Actualizado: image_edit_high y image_generate_high para quality auto
 const COST_PER_OP = {
-  chat_mini: 0.001,        // gpt-4o-mini por respuesta
-  chat_4o: 0.01,           // gpt-4o por respuesta
-  image_generate: 0.04,    // gpt-image-1 o dall-e-3
-  image_edit: 0.04,        // gpt-image-1 edit
-  web_search: 0.005,       // chat con búsqueda
+  chat_mini: 0.001,
+  chat_4o: 0.01,
+  image_generate: 0.04,        // medium (sin imagen adjunta)
+  image_edit: 0.19,            // high (con imagen adjunta - calidad ChatGPT)
+  image_generate_high: 0.19,   // high si el usuario explícitamente pidió calidad
+  prompt_enrichment: 0.002,    // gpt-4o-mini con vision para enriquecer prompt
+  web_search: 0.005,
 };
 
 async function getSystemCap(kv) {
@@ -92,23 +97,168 @@ async function addSystemCost(kv, costUSD) {
   const key = `system_spent:${today}`;
   const current = parseFloat(await kv.get(key) || "0");
   const newTotal = current + costUSD;
-  // TTL 48hs (mantenemos historia 1 día extra para reportes)
   await kv.set(key, newTotal.toFixed(4), { ex: 172800 });
   return newTotal;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// ✨ NUEVO: MEMORIA DE IMAGEN ENTRE MENSAJES
+// Guarda la última imagen del usuario por 30 min en Redis.
+// Si en mensajes siguientes pide modificar SIN re-adjuntar imagen,
+// usamos esta como referencia automáticamente.
+// ═══════════════════════════════════════════════════════════════
+const IMAGE_MEMORY_TTL = 30 * 60; // 30 minutos
+
+async function saveLastImage(kv, email, imageBase64) {
+  if (!email || !imageBase64) return;
+  try {
+    // Guardamos solo si la imagen no es enorme (límite Redis Upstash)
+    // 1MB de base64 ≈ 750KB real. Si pasa, no guardamos (se podrá usar la siguiente).
+    if (imageBase64.length > 1_500_000) return;
+    const key = `last_image:${email}`;
+    await kv.set(key, imageBase64, { ex: IMAGE_MEMORY_TTL });
+  } catch (e) {
+    console.warn("No se pudo guardar última imagen:", e?.message);
+  }
+}
+
+async function getLastImage(kv, email) {
+  if (!email) return null;
+  try {
+    const key = `last_image:${email}`;
+    const img = await kv.get(key);
+    return img || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function clearLastImage(kv, email) {
+  if (!email) return;
+  try {
+    await kv.del(`last_image:${email}`);
+  } catch (e) {}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ✨ NUEVO: ENRIQUECEDOR DE PROMPT PARA IMÁGENES
+// Usa gpt-4o-mini con vision para convertir el pedido CRUDO del usuario
+// en un mega-prompt profesional para gpt-image-1.
+// Esto es EXACTAMENTE lo que hace ChatGPT por debajo.
+//
+// Input: "Haceme una publicidad" + [imagen del logo Santa Rita]
+// Output: "Create a professional Argentine retail flyer using THIS
+//          exact logo as the main brand element. Include shopping cart
+//          with real products (oil, papel higiénico, yerba mate, ...),
+//          headline in Spanish, benefit icons, store hours, blue/red
+//          palette matching the logo. Photorealistic, print-ready."
+// ═══════════════════════════════════════════════════════════════
+async function enriquecerPromptImagen(textoUsuario, imageBase64, contextoHistorial = "") {
+  try {
+    const tieneImagen = !!imageBase64;
+
+    // System prompt del enriquecedor — IS EL CORAZÓN del fix
+    const systemEnriquecedor = `Sos un experto en escribir prompts profesionales para generación de imágenes con gpt-image-1 (similar a DALL-E 3). Tu trabajo es convertir un pedido casual del usuario en un prompt detallado y profesional EN INGLÉS que produzca resultados de calidad de agencia publicitaria.
+
+REGLAS CRÍTICAS:
+1. Respondé SOLO con el prompt en inglés. NO agregues explicaciones, comentarios, ni texto extra. NO uses markdown ni comillas.
+2. Si hay imagen adjunta: analizala bien y referenciala explícitamente con "THIS exact logo/image/element" para que la IA la respete.
+3. Detectá el TIPO de pedido y aplicá el template correspondiente:
+
+   📢 PUBLICIDAD/FLYER/AFICHE (palabras: "publicidad", "publi", "flyer", "afiche", "promoción", "anuncio"):
+   - Estilo: "professional Argentine/Latin American retail advertisement flyer, vibrant, print-ready"
+   - SI hay logo adjunto: "using THIS exact logo prominently displayed at the top, preserving original colors, typography, and brand elements"
+   - Incluí: shopping cart or products related to the business, Spanish headline that rhymes or has impact, benefit icons (low prices, quality, variety), store info bar at bottom (hours, address placeholder)
+   - Mencioná tipografía bold sans-serif, alto contraste, colores que matchean con el logo
+   - Productos REALES y específicos si es comercio (yerba mate, aceite, papel higiénico, etc. para mayoristas argentinos)
+
+   🎨 EDICIÓN DE IMAGEN (palabras: "editá", "cambiá", "modificá", "agregale", "ponele", "retocá", "ajustá"):
+   - "Edit THIS image maintaining the original composition and key elements"
+   - Especificá qué cambiar y qué preservar
+   - "Photorealistic, seamless edit, professional quality"
+
+   🏷️ LOGO (palabras: "logo", "marca", "identidad"):
+   - "Professional vector-style logo, flat design, centered on white background"
+   - "Bold typography, memorable, suitable for business cards and social media"
+
+   📸 FOTO/IMAGEN GENERAL (sin imagen adjunta):
+   - Describí escena con detalle: iluminación, composición, estilo (photorealistic, illustration, etc.)
+   - Mencioná aspectos técnicos: lens type, lighting setup, depth of field
+
+   💼 POST PARA REDES SOCIALES (palabras: "post", "instagram", "story", "redes"):
+   - "Square 1:1 social media post, Instagram-ready"
+   - Diseño moderno, espacios para texto, llamada a la acción visual
+
+4. Si el pedido es ambiguo, asumí que es para uso PROFESIONAL/COMERCIAL en Argentina.
+5. SIEMPRE terminá con: "High quality, professional, sharp details, vivid colors, no watermarks, no extra text overlays beyond what's specified."
+6. NUNCA copies texto del usuario tal cual: SIEMPRE traducí y expandí a inglés profesional.
+7. Máximo 250 palabras. Conciso pero rico en detalles visuales.
+
+CONTEXTO ADICIONAL (si hay):
+${contextoHistorial ? `Historial de la conversación: ${contextoHistorial.slice(0, 500)}` : "Sin contexto previo."}
+
+Ejemplo de transformación:
+Usuario: "Haceme una publicidad" + [logo Santa Rita mayorista]
+Output: "Create a professional Argentine wholesale store advertisement flyer using THIS exact Santa Rita logo prominently displayed at the top, preserving the original blue background, red 'Santa Rita' typography, and the nun illustration. Below the logo, design a vibrant retail layout featuring: a Spanish headline 'Mayorista que rinde, precios que sorprenden' in bold red and blue colors, a photorealistic shopping cart full of products (cooking oil, papel higiénico, yerba mate packages, canned goods, pasta), benefit icons row showing: low prices tag, shopping cart variety, family attention, savings badge. Include a store info bar at bottom with horario corrido hours placeholder and 'Encontranos en tu barrio' text. Color palette: bright blue (#1e40af), vivid red (#dc2626), warm yellow accents, clean white background. Professional graphic design, print-ready quality, sharp details, vivid colors, no watermarks."`;
+
+    // Construir el mensaje para gpt-4o-mini
+    const userMessage = tieneImagen
+      ? [
+          { type: "text", text: `PEDIDO DEL USUARIO (en español argentino): "${textoUsuario}"\n\nAnalizá la imagen adjunta y construí el prompt profesional en inglés según las reglas.` },
+          { type: "image_url", image_url: { url: imageBase64, detail: "low" } }
+        ]
+      : `PEDIDO DEL USUARIO (en español argentino): "${textoUsuario}"\n\nConstruí el prompt profesional en inglés según las reglas.`;
+
+    const resp = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemEnriquecedor },
+        { role: "user", content: userMessage },
+      ],
+      max_tokens: 500,
+      temperature: 0.3, // bajo para que sea consistente
+    });
+
+    const promptEnriquecido = (resp.choices?.[0]?.message?.content || "").trim();
+
+    // Sanitizar: quitar comillas externas si las puso, quitar markdown
+    let clean = promptEnriquecido
+      .replace(/^["'`]+|["'`]+$/g, "")
+      .replace(/^```[\w]*\n?|\n?```$/g, "")
+      .trim();
+
+    // Fallback: si la IA devolvió algo muy corto o vacío, usar prompt básico
+    if (clean.length < 30) {
+      console.warn("Enriquecedor devolvió prompt muy corto, usando fallback");
+      return tieneImagen
+        ? `Edit or transform THIS image based on this request: "${textoUsuario}". Maintain the key visual elements. Professional, high quality, photorealistic.`
+        : `${textoUsuario}. High quality, professional, sharp details, vivid colors.`;
+    }
+
+    return clean;
+  } catch (err) {
+    console.error("Error en enriquecerPromptImagen:", err);
+    // Fallback al prompt crudo si falla
+    return imageBase64
+      ? `Edit or transform THIS image based on this request: "${textoUsuario}". Maintain key visual elements. Professional, high quality.`
+      : `${textoUsuario}. High quality, professional, sharp details.`;
+  }
+}
+
 // ─── Detector de pedidos de imagen ──────────────────────────────
-// Hace un mini-clasificador con gpt-4o-mini que devuelve true/false.
-// Usado solo en Mentor / Conversación Libre.
 async function detectarPedidoImagen(textoUsuario, tieneImagenAdjunta) {
   try {
-    // Heurística rápida para evitar llamada innecesaria
     const lower = textoUsuario.toLowerCase();
     const palabrasGenerar = [
       "generá una imagen", "genera una imagen", "creá una imagen", "crea una imagen",
       "hacé una imagen", "hace una imagen", "haceme una imagen", "hazme una imagen",
       "dibujame", "dibujá", "dibuja", "imagen de", "una foto de", "hazme un dibujo",
       "create an image", "generate image", "draw me", "imagine",
+      // ✨ NUEVO: detectar pedidos de publicidad/flyer/logo
+      "haceme una publi", "hace una publi", "haceme un flyer", "hace un flyer",
+      "haceme un afiche", "haceme un anuncio", "haceme un poster",
+      "haceme una promo", "haceme un post", "haceme una placa",
+      "diseñame", "diseñá", "diseña",
     ];
     const palabrasEditar = [
       "transformá", "transforma", "mostrámelo", "mostramelo", "mostrame",
@@ -116,21 +266,31 @@ async function detectarPedidoImagen(textoUsuario, tieneImagenAdjunta) {
       "cambiá el", "cambia el", "modificá", "modifica",
       "ponele un", "poné un", "agrega un", "agregale", "agregá",
       "fondo", "estilo", "color", "versión",
+      // ✨ NUEVO: pedidos de "retocá la anterior", "mejorá esa", etc.
+      "retocá", "retoca", "ajustá", "ajusta", "mejorá esa", "mejora esa",
+      "hacela de nuevo", "hacelo de nuevo", "rehace", "rehacela", "rehacelo",
+      "otra versión", "otra vuelta", "otro intento", "probá de nuevo",
+      "no me gustó", "no me gusto", "no era esa", "no es esa",
+      "fijate el logo", "fijate la imagen", "mirá el logo", "mira el logo",
     ];
 
-    // Si tiene imagen adjunta, las palabras de "editar" cuentan más
     if (tieneImagenAdjunta) {
       for (const p of palabrasEditar) {
         if (lower.includes(p)) return true;
       }
     }
-    // Palabras claras de "generar imagen"
     for (const p of palabrasGenerar) {
       if (lower.includes(p)) return true;
     }
 
-    // Si no matcheó la heurística pero igual parece dudoso, preguntamos a la IA
-    // Solo si el mensaje es corto (típico de pedidos de imagen)
+    // ✨ NUEVO: si NO tiene imagen adjunta pero la frase implica edición,
+    // igual podría ser que quiera modificar la "última imagen" guardada
+    if (!tieneImagenAdjunta) {
+      for (const p of palabrasEditar) {
+        if (lower.includes(p)) return true;
+      }
+    }
+
     if (textoUsuario.length > 200 && !tieneImagenAdjunta) return false;
 
     const resp = await openai.chat.completions.create({
@@ -139,7 +299,7 @@ async function detectarPedidoImagen(textoUsuario, tieneImagenAdjunta) {
         {
           role: "system",
           content: `Sos un clasificador. Recibís un mensaje del usuario y respondés SOLO "image" o "chat".
-- "image" = el usuario pide GENERAR, CREAR, DIBUJAR, EDITAR, MODIFICAR, TRANSFORMAR una imagen.
+- "image" = el usuario pide GENERAR, CREAR, DIBUJAR, EDITAR, MODIFICAR, TRANSFORMAR una imagen, hacer publicidad/flyer/afiche/post, o pide retocar/rehacer una imagen anterior.
 - "chat" = el usuario quiere conversar, preguntar, pedir consejo, o cualquier otra cosa.
 ${tieneImagenAdjunta ? 'CONTEXTO: el usuario adjuntó una imagen.' : ''}
 Respondé con UNA SOLA PALABRA: image o chat.`,
@@ -153,7 +313,7 @@ Respondé con UNA SOLA PALABRA: image o chat.`,
     return out.includes("image");
   } catch (err) {
     console.error("Error en detectarPedidoImagen:", err);
-    return false; // si falla, default a chat (más seguro)
+    return false;
   }
 }
 
@@ -532,12 +692,9 @@ export default async function handler(req, res) {
 
   // ═══════════════════════════════════════════════════════════════
   // TRANSCRIBE — Whisper endpoint integrado
-  // Llamado con action="transcribe" desde el frontend (botón 🎤)
-  // Convierte audio a texto con Whisper
   // ═══════════════════════════════════════════════════════════════
   if (req.body?.action === "transcribe") {
     try {
-      // Verificar autenticación
       let userT;
       try { userT = verifyToken(req); }
       catch { return res.status(401).json({ error: "No autorizado" }); }
@@ -548,7 +705,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Falta audio" });
       }
 
-      // Rate limit transcribe (separado del chat)
       const kv = await getKV();
       const today = new Date().toISOString().split("T")[0];
       const trKey = `transcribe_limit:${userT.email}:${today}`;
@@ -562,17 +718,13 @@ export default async function handler(req, res) {
         });
       }
 
-      // Hard cap del sistema
       const capCheckT = await checkSystemCap(kv);
       if (!capCheckT.ok) {
         return res.status(503).json({ error: capCheckT.message });
       }
 
-      // Decodificar base64
-      // Regex flexible: acepta cualquier formato audio/* con parámetros extra (codecs=, etc.)
       const m = audioData.match(/^data:(audio\/[^;,]+)(?:;[^,]*)?;base64,(.+)$/);
       if (!m) {
-        // Log el prefijo para diagnóstico (primeros 80 chars sin el contenido)
         const preview = audioData.substring(0, Math.min(80, audioData.indexOf(",") + 1 || 80));
         console.error("Formato de audio no reconocido. Prefijo:", preview);
         return res.status(400).json({
@@ -584,7 +736,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Audio muy grande (máx 25MB)" });
       }
 
-      // Detectar extensión correcta según el mime type real
       const mime = m[1].toLowerCase();
       let ext = "webm";
       if (mime.includes("mp4") || mime.includes("m4a")) ext = "m4a";
@@ -593,15 +744,12 @@ export default async function handler(req, res) {
       else if (mime.includes("wav")) ext = "wav";
       else if (mime.includes("webm")) ext = "webm";
 
-      // Usar FormData nativo de Node 18+ (más confiable que el módulo form-data)
       const form = new FormData();
       const audioBlob = new Blob([buf], { type: m[1] });
       form.append("file", audioBlob, `audio.${ext}`);
       form.append("model", "whisper-1");
       form.append("language", language);
 
-      // Llamar a OpenAI Whisper
-      // NO seteamos Content-Type — fetch lo agrega solo con el boundary correcto
       const whisperRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
         method: "POST",
         headers: {
@@ -613,7 +761,6 @@ export default async function handler(req, res) {
       if (!whisperRes.ok) {
         const errText = await whisperRes.text();
         console.error("Whisper error:", whisperRes.status, errText);
-        // Intentar parsear el JSON de OpenAI para mostrar mensaje claro
         let openaiMsg = "";
         try {
           const errJson = JSON.parse(errText);
@@ -628,9 +775,7 @@ export default async function handler(req, res) {
 
       const transcribeData = await whisperRes.json();
 
-      // Incrementar contador
       await kv.set(trKey, trUsed + 1, { ex: 86400 });
-      // Costo: Whisper = $0.006 por minuto, estimamos 0.5min promedio = $0.003
       try { await addSystemCost(kv, 0.003); } catch (e) {}
 
       return res.status(200).json({ text: transcribeData.text || "" });
@@ -643,24 +788,19 @@ export default async function handler(req, res) {
 
   // ═══════════════════════════════════════════════════════════════
   // TTS — Text-to-Speech endpoint integrado
-  // Llamado con action="tts" desde el frontend
-  // Convierte texto a audio MP3 con voz "onyx" (masculina seria)
   // ═══════════════════════════════════════════════════════════════
   if (req.body?.action === "tts") {
     try {
-      // Verificar autenticación
       let userTTS;
       try { userTTS = verifyToken(req); }
       catch { return res.status(401).json({ error: "No autorizado" }); }
 
       const textoTTS = (req.body.text || "").toString().trim().slice(0, 2000);
       if (!textoTTS) return res.status(400).json({ error: "Falta texto" });
-      // Voz configurable (default onyx para AVAI)
       const voiceTTS = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"].includes(req.body.voice)
         ? req.body.voice
         : "onyx";
 
-      // Rate limit TTS (por día, separado del chat)
       const kv = await getKV();
       const today = new Date().toISOString().split("T")[0];
       const ttsKey = `tts_limit:${userTTS.email}:${today}`;
@@ -674,13 +814,11 @@ export default async function handler(req, res) {
         });
       }
 
-      // Hard cap del sistema
       const capCheck = await checkSystemCap(kv);
       if (!capCheck.ok) {
         return res.status(503).json({ error: capCheck.message });
       }
 
-      // Generar audio con OpenAI TTS (fetch directo, sin SDK)
       const ttsResponse = await fetch("https://api.openai.com/v1/audio/speech", {
         method: "POST",
         headers: {
@@ -704,13 +842,10 @@ export default async function handler(req, res) {
       const arrayBuffer = await ttsResponse.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
-      // Incrementar contadores
       await kv.set(ttsKey, ttsUsed + 1, { ex: 86400 });
-      // Costo TTS: $0.015 por 1000 chars
       const costTTS = (textoTTS.length / 1000) * 0.015;
       try { await addSystemCost(kv, costTTS); } catch (e) {}
 
-      // Devolver el audio
       res.setHeader("Content-Type", "audio/mpeg");
       res.setHeader("Content-Length", buffer.length);
       return res.status(200).send(buffer);
@@ -722,8 +857,7 @@ export default async function handler(req, res) {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // RATE LIMIT POR IP (anti-bots, anti-abuso desde la misma IP)
-  // 100 requests/hora por IP, sin importar cuántas cuentas tenga
+  // RATE LIMIT POR IP
   // ═══════════════════════════════════════════════════════════════
   const clientIP = getClientIP(req);
   const kvForIP = await getKV();
@@ -733,8 +867,7 @@ export default async function handler(req, res) {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // HARD CAP GLOBAL (salvavidas económico)
-  // Si el sistema gastó más del cap diario → bloquear todo
+  // HARD CAP GLOBAL
   // ═══════════════════════════════════════════════════════════════
   const capCheck = await checkSystemCap(kvForIP);
   if (!capCheck.ok) {
@@ -749,16 +882,16 @@ export default async function handler(req, res) {
   catch { return res.status(401).json({ error: "No autorizado" }); }
 
   const {
-    type,           // "negocio" | "english" | "mate" | "content" | "brand" | "competitor" | "finance"
-    messages,       // array de {role, content}
-    user,           // datos del usuario (sin password)
-    modo,           // modo actual del mentor
-    desafio,        // desafío del día
-    leccion,        // lección activa (english/mate)
-    englishModo,    // "chat" | "roleplay" | "traductor" | "diario"
-    mateModo,       // "chat" | "calculadora"
-    useWebSearch,   // boolean
-    image,          // string base64 (data:image/...) opcional, solo Premium
+    type,
+    messages,
+    user,
+    modo,
+    desafio,
+    leccion,
+    englishModo,
+    mateModo,
+    useWebSearch,
+    image,
   } = req.body || {};
 
   if (!type || !messages || !user) {
@@ -772,8 +905,7 @@ export default async function handler(req, res) {
 
   // ═══════════════════════════════════════════════════════════════
   // DETECTOR DE PEDIDO DE IMAGEN (solo Mentor / Conversación Libre)
-  // Si el último mensaje del usuario pide explícitamente generar/editar
-  // una imagen, generamos la imagen acá mismo (sin llamar a otro endpoint)
+  // ✨ ACTUALIZADO con enriquecedor de prompt + quality auto + memoria de imagen
   // ═══════════════════════════════════════════════════════════════
   const esModoLibre = type === "negocio" && modo === "Conversación Libre";
   if (esModoLibre) {
@@ -782,9 +914,8 @@ export default async function handler(req, res) {
     if (textoUsuario && textoUsuario.length > 0) {
       const pideImagen = await detectarPedidoImagen(textoUsuario, !!image);
       if (pideImagen) {
-        // ─── GENERAR IMAGEN DIRECTAMENTE ───
+        // ─── GENERAR IMAGEN CON LÓGICA MEJORADA ───
         try {
-          // Rate limit de imágenes (separado del límite de chat)
           const today = new Date().toISOString().split("T")[0];
           const kv = await getKV();
           const imgKey = `imggen_limit:${user.email}:${today}`;
@@ -801,13 +932,43 @@ export default async function handler(req, res) {
             });
           }
 
-          // Generar imagen
-          const promptLimpio = textoUsuario.slice(0, 1000);
+          // ✨ NUEVO: si NO viene imagen pero hay una guardada en sesión, la usamos
+          let imagenParaUsar = image;
+          let usandoMemoria = false;
+          if (!imagenParaUsar) {
+            const ultimaImagen = await getLastImage(kvForIP, user.email);
+            if (ultimaImagen) {
+              imagenParaUsar = ultimaImagen;
+              usandoMemoria = true;
+              console.log(`[IMG] Usando imagen guardada en sesión para ${user.email}`);
+            }
+          }
+
+          // ✨ NUEVO: ENRIQUECER EL PROMPT con gpt-4o-mini + vision
+          // Esto es EL fix principal — convertir el pedido casual en mega-prompt profesional
+          const historialContexto = messages.slice(-4)
+            .map(m => `${m.role === "user" ? "Usuario" : "AVAI"}: ${typeof m.content === "string" ? m.content.slice(0, 200) : "(contenido)"}`)
+            .join("\n");
+
+          const promptEnriquecido = await enriquecerPromptImagen(
+            textoUsuario,
+            imagenParaUsar,
+            historialContexto
+          );
+
+          console.log("[IMG] Prompt enriquecido:", promptEnriquecido.slice(0, 200));
+
+          // Sumar costo del enriquecimiento (gpt-4o-mini con vision)
+          try { await addSystemCost(kvForIP, COST_PER_OP.prompt_enrichment); } catch (e) {}
+
           let result;
+          let usedQuality = "medium";
+          let usedCost = COST_PER_OP.image_generate;
+
           try {
-            // Modo edit si vino imagen, generate si no
-            if (image) {
-              const dataMatch = String(image).match(/^data:(image\/[a-zA-Z+.-]+);base64,(.+)$/);
+            if (imagenParaUsar) {
+              // ─── MODO EDIT con imagen de referencia ───
+              const dataMatch = String(imagenParaUsar).match(/^data:(image\/[a-zA-Z+.-]+);base64,(.+)$/);
               if (!dataMatch) throw new Error("Formato de imagen inválido");
               const buffer = Buffer.from(dataMatch[2], "base64");
               if (buffer.length > 4 * 1024 * 1024) throw new Error("La imagen es muy grande (máx 4MB)");
@@ -816,17 +977,27 @@ export default async function handler(req, res) {
               const fileLike = (typeof File !== "undefined")
                 ? new File([buffer], `input.${ext}`, { type: mime })
                 : (() => { const b = new Blob([buffer], { type: mime }); b.name = `input.${ext}`; return b; })();
+
+              // ✨ QUALITY AUTO: con imagen adjunta = HIGH (calidad ChatGPT)
+              usedQuality = "high";
+              usedCost = COST_PER_OP.image_edit;
+
               result = await openai.images.edit({
                 model: "gpt-image-1",
                 image: fileLike,
-                prompt: promptLimpio,
+                prompt: promptEnriquecido,
                 size: "1024x1024",
+                quality: "high",
               });
             } else {
-              // Generar sin imagen base — usar gpt-image-1 (calidad superior)
+              // ─── MODO GENERATE sin imagen base ───
+              // ✨ QUALITY AUTO: sin imagen = MEDIUM (más económico, calidad buena)
+              usedQuality = "medium";
+              usedCost = COST_PER_OP.image_generate;
+
               result = await openai.images.generate({
                 model: "gpt-image-1",
-                prompt: promptLimpio,
+                prompt: promptEnriquecido,
                 size: "1024x1024",
                 quality: "medium",
               });
@@ -851,16 +1022,41 @@ export default async function handler(req, res) {
           await kv.set(imgKey, imgUsed + 1, { ex: 86400 });
 
           // Sumar costo al hard cap global
-          await addSystemCost(kvForIP, image ? COST_PER_OP.image_edit : COST_PER_OP.image_generate);
+          await addSystemCost(kvForIP, usedCost);
+
+          // ✨ NUEVO: guardar la imagen ORIGINAL (la que mandó el user, no la generada)
+          // así si pide otra vuelta puede seguir usando la misma referencia
+          if (image) {
+            await saveLastImage(kvForIP, user.email, image);
+          }
+          // Si no había imagen pero se usó la guardada, refrescamos el TTL
+          else if (usandoMemoria && imagenParaUsar) {
+            await saveLastImage(kvForIP, user.email, imagenParaUsar);
+          }
+
+          // Mensaje de respuesta variado según el caso
+          let mensajeReply;
+          if (image) {
+            mensajeReply = "✨ Listo, acá tenés tu imagen. Si querés ajustar algo, decime qué cambiar.";
+          } else if (usandoMemoria) {
+            mensajeReply = "✨ Acá tenés otra versión, usando la imagen que me pasaste antes.";
+          } else {
+            mensajeReply = "✨ Listo, acá tenés tu imagen.";
+          }
 
           return res.status(200).json({
             ok: true,
             tipo: "image",
             image_url: imageUrl,
-            modo: image ? "edit" : "generate",
-            reply: image ? "✨ Listo, acá tenés tu imagen editada." : "✨ Listo, acá tenés tu imagen.",
+            modo: imagenParaUsar ? "edit" : "generate",
+            reply: mensajeReply,
             used: imgUsed + 1,
             limit: imgLimit,
+            _debug: {
+              quality: usedQuality,
+              usandoMemoria,
+              prompt_length: promptEnriquecido.length,
+            },
           });
 
         } catch (err) {
@@ -872,8 +1068,7 @@ export default async function handler(req, res) {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // RATE LIMIT REAL (con Redis, atómico, auto-expira)
-  // Aplica a TODOS los planes con su límite correspondiente
+  // RATE LIMIT REAL (chat normal)
   // ═══════════════════════════════════════════════════════════════
   const today = new Date().toISOString().split("T")[0];
   const kv = await getKV();
@@ -891,7 +1086,7 @@ export default async function handler(req, res) {
     });
   }
 
-  // Anti-burst: máx 8 requests en 30 segundos (anti-spam, anti-bot)
+  // Anti-burst
   const burstKey = `chat_burst:${user.email}`;
   const burstCount = parseInt(await kv.get(burstKey) || "0", 10);
   if (burstCount >= 8) {
@@ -901,8 +1096,13 @@ export default async function handler(req, res) {
   }
   await kv.set(burstKey, burstCount + 1, { ex: 30 });
 
-  // Incrementar el contador YA (no después, para evitar race conditions)
   await kv.set(chatKey, chatUsed + 1, { ex: 86400 });
+
+  // ✨ NUEVO: si el usuario subió una imagen (aunque no genere imagen),
+  // la guardamos en sesión por si después pide modificarla
+  if (image && user.email) {
+    await saveLastImage(kvForIP, user.email, image);
+  }
 
   // Seleccionar system prompt
   let systemPrompt = "";
@@ -918,11 +1118,10 @@ export default async function handler(req, res) {
   }
 
   // ─── MODO STREAMING ─────────────────────────────────────────
-  // Configurar headers de Server-Sent Events (SSE)
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no"); // Importante para Vercel
+  res.setHeader("X-Accel-Buffering", "no");
   if (res.flushHeaders) res.flushHeaders();
 
   const sendEvent = (event, data) => {
@@ -931,7 +1130,6 @@ export default async function handler(req, res) {
   };
 
   try {
-    // Si hay imagen, la inyectamos en el último mensaje del usuario en formato vision
     let finalMessages = [...messages];
     if (image && finalMessages.length > 0) {
       const lastIdx = finalMessages.length - 1;
@@ -947,10 +1145,8 @@ export default async function handler(req, res) {
       }
     }
 
-    // Si hay imagen + web search activo: web-search no soporta imágenes → forzamos gpt-4o
     const effectiveWebSearch = useWebSearch && !image;
 
-    // Armar parámetros de OpenAI según si hay web search o no
     const openaiParams = effectiveWebSearch
       ? {
           model: "gpt-4o-search-preview",
@@ -983,7 +1179,6 @@ export default async function handler(req, res) {
       return res.end();
     }
 
-    // Sumar costo al hard cap global (chat normal)
     try { await addSystemCost(kvForIP, COST_PER_OP.chat_mini); } catch (e) {}
 
     sendEvent("done", { reply: fullReply });
