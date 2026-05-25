@@ -619,7 +619,7 @@ const Chat = {
   appendMsg(container, text, cls, name, icon, grad, color, imageDataUrl) {
     const div = document.createElement("div");
     div.className = `chat-msg ${cls}`;
-    const imageHtml = imageDataUrl ? `<div style="margin-bottom:8px"><img src="${imageDataUrl}" style="max-width:280px;max-height:280px;border-radius:10px;border:1px solid rgba(255,255,255,.15);display:block" /></div>` : "";
+    const imageHtml = imageDataUrl ? `<div style="margin-bottom:8px"><img src="${imageDataUrl}" style="max-width:280px;max-height:280px;object-fit:contain;border-radius:10px;border:1px solid rgba(255,255,255,.15);display:block" /></div>` : "";
     if (cls === "user") {
       div.innerHTML = `<div class="chat-msg-header">
         <div class="chat-avatar" style="background:linear-gradient(135deg,#facc15,#f97316)">😊</div>
@@ -635,7 +635,8 @@ const Chat = {
     scrollBottom(container);
   },
 
-  // Renderiza una imagen generada por la IA en el chat
+  // ✨ FIX: Renderiza una imagen generada por la IA en el chat
+  // Cambios: object-fit:contain + height:auto + max-height:500px (antes 380px)
   appendImageMsg(container, imageUrl, captionText, name, icon, grad, color) {
     const div = document.createElement("div");
     div.className = `chat-msg msg-ai`;
@@ -645,11 +646,14 @@ const Chat = {
         <span class="chat-name" style="color:${color || '#facc15'}">${name || 'AVAI'}</span>
       </div>
       <div>${mdRender(captionText || '✨ Acá tenés tu imagen.')}</div>
-      <div style="margin-top:10px">
-        <img id="${id}" src="${imageUrl}" style="max-width:100%;width:auto;max-height:380px;border-radius:12px;border:1px solid rgba(255,255,255,.15);display:block;cursor:pointer" onclick="openImageLightbox('${id}')" alt="Imagen generada" />
+      <div style="margin-top:10px;background:rgba(0,0,0,.2);border-radius:12px;padding:6px;border:1px solid rgba(255,255,255,.08)">
+        <img id="${id}" src="${imageUrl}"
+          style="max-width:100%;width:auto;height:auto;max-height:500px;object-fit:contain;border-radius:8px;display:block;margin:0 auto;cursor:zoom-in"
+          onclick="openImageLightbox('${id}')"
+          alt="Imagen generada" />
       </div>
-      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-ghost btn-sm" onclick="downloadImage('${id}','imagen-avmentorai.png')">📥 Descargar</button>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="downloadImage('${id}','imagen-avai.png')">📥 Descargar</button>
         <button class="btn btn-ghost btn-sm" onclick="openImageLightbox('${id}')">🔍 Ver grande</button>
       </div>`;
     container.appendChild(div);
@@ -1412,42 +1416,104 @@ function downloadImage(imgId, filename) {
   }
 }
 
-// Helper global: abrir imagen en lightbox (modal fullscreen)
+// ✨ FIX: abrir imagen en lightbox (modal fullscreen)
+// Cambios: object-fit:contain + env(safe-area-inset-*) para iPhone notch
+// width/height auto + display:block + margin:auto = imagen SIEMPRE completa
 function openImageLightbox(imgId) {
   const img = document.getElementById(imgId);
   if (!img) return;
-  // Crear el overlay
+
+  // Crear el overlay (fondo oscuro fullscreen)
   const overlay = document.createElement("div");
   overlay.id = "img-lightbox-overlay";
-  overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;cursor:zoom-out";
+  overlay.style.cssText = `
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.94);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: calc(env(safe-area-inset-top, 20px) + 60px) 12px calc(env(safe-area-inset-bottom, 20px) + 80px) 12px;
+    cursor: zoom-out;
+    overflow: hidden;
+  `;
   overlay.onclick = () => overlay.remove();
-  // Botón cerrar
+
+  // Botón cerrar (arriba derecha, respetando notch)
   const closeBtn = document.createElement("button");
   closeBtn.innerHTML = "✕";
-  closeBtn.style.cssText = "position:absolute;top:20px;right:24px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:24px;width:42px;height:42px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center";
+  closeBtn.style.cssText = `
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 20px) + 8px);
+    right: 16px;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.2);
+    color: #fff;
+    font-size: 22px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  `;
   closeBtn.onclick = (e) => { e.stopPropagation(); overlay.remove(); };
-  // Imagen grande
+
+  // ─── IMAGEN GRANDE — FIX PRINCIPAL ───
+  // object-fit:contain + max-width/height:100% + width/height:auto
+  // garantizan que la imagen se vea SIEMPRE entera sin importar el ratio
   const bigImg = document.createElement("img");
   bigImg.src = img.src;
-  bigImg.style.cssText = "max-width:95vw;max-height:90vh;border-radius:8px;box-shadow:0 10px 60px rgba(0,0,0,.6)";
+  bigImg.style.cssText = `
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin: auto;
+    border-radius: 8px;
+    box-shadow: 0 10px 60px rgba(0,0,0,.6);
+  `;
   bigImg.onclick = (e) => e.stopPropagation();
-  // Botón descargar dentro del lightbox
+
+  // Botón descargar (abajo, respetando home indicator del iPhone)
   const dlBtn = document.createElement("button");
   dlBtn.innerHTML = "📥 Descargar";
-  dlBtn.style.cssText = "position:absolute;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(245,158,11,.9);border:none;color:#000;font-weight:700;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px";
+  dlBtn.style.cssText = `
+    position: absolute;
+    bottom: calc(env(safe-area-inset-bottom, 20px) + 16px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(90deg, #facc15, #f97316);
+    border: none;
+    color: #111;
+    font-weight: 700;
+    padding: 11px 22px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    z-index: 2;
+    box-shadow: 0 4px 20px rgba(250,204,21,.4);
+  `;
   dlBtn.onclick = (e) => {
     e.stopPropagation();
     const a = document.createElement("a");
     a.href = img.src;
-    a.download = "imagen-avmentorai.png";
+    a.download = "imagen-avai.png";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   };
+
   overlay.appendChild(bigImg);
   overlay.appendChild(closeBtn);
   overlay.appendChild(dlBtn);
   document.body.appendChild(overlay);
+
   // Cerrar con ESC
   const escHandler = (e) => {
     if (e.key === "Escape") {
