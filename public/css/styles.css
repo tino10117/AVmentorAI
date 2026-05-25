@@ -145,6 +145,124 @@ body {
 .msg-mate { background: var(--surface2); border-left: 3px solid var(--green); }
 .msg-mate .chat-avatar { background: linear-gradient(135deg, var(--green), #16a34a); }
 .msg-mate .chat-name { color: var(--green); }
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* ✨ FIX IMAGEN — Estilos para imágenes en el chat                */
+/* SOLUCIÓN AL BUG: white-space:pre-wrap del .chat-msg cortaba la  */
+/* imagen. Estas reglas RESETEAN ese comportamiento en imágenes.   */
+/* ═══════════════════════════════════════════════════════════════ */
+.chat-img-wrap {
+  display: block;
+  width: 100%;
+  margin: 10px 0 0 0;
+  padding: 6px;
+  background: rgba(0,0,0,.2);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  /* CRÍTICO: resetear el white-space del .chat-msg padre */
+  white-space: normal;
+  word-break: normal;
+  overflow: hidden;
+  text-align: center;
+}
+.chat-img-wrap img {
+  display: block;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  max-height: none;          /* sin límite vertical en chat */
+  object-fit: contain;
+  border-radius: 8px;
+  margin: 0 auto;
+  cursor: zoom-in;
+}
+.chat-img-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  white-space: normal;
+  word-break: normal;
+}
+/* Imagen del usuario adjuntada (preview chico antes del texto) */
+.chat-user-img {
+  display: block;
+  max-width: 280px;
+  max-height: 280px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.15);
+  margin-bottom: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* ✨ LIGHTBOX FULLSCREEN — modal para ver imagen ampliada         */
+/* Garantiza que la imagen se vea ENTERA en cualquier dispositivo  */
+/* ═══════════════════════════════════════════════════════════════ */
+.av-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.94);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 70px 12px 90px 12px;
+  padding-top: calc(env(safe-area-inset-top, 20px) + 60px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 80px);
+  cursor: zoom-out;
+  overflow: hidden;
+  /* CRÍTICO: resetear cualquier white-space heredado */
+  white-space: normal;
+  word-break: normal;
+}
+.av-lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: auto;
+  border-radius: 8px;
+  box-shadow: 0 10px 60px rgba(0,0,0,.6);
+}
+.av-lightbox-close {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 20px) + 8px);
+  right: 16px;
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.2);
+  color: #fff;
+  font-size: 22px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+.av-lightbox-download {
+  position: absolute;
+  bottom: calc(env(safe-area-inset-bottom, 20px) + 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, #facc15, #f97316);
+  border: none;
+  color: #111;
+  font-weight: 700;
+  padding: 11px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  z-index: 2;
+  box-shadow: 0 4px 20px rgba(250,204,21,.4);
+}
+
 .chat-input-wrap { position: sticky; bottom: 0; background: linear-gradient(to top, #020617 60%, transparent); padding: 12px 0 4px; }
 .chat-input-row { display: flex; gap: 8px; align-items: flex-end; background: #1e293b; border: 2px solid var(--gold); border-radius: var(--radius); padding: 6px 10px; }
 .chat-input-row textarea { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-family: var(--font-body); font-size: 14px; resize: none; max-height: 120px; padding: 4px; line-height: 1.5; }
