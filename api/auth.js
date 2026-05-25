@@ -1,6 +1,7 @@
 // api/auth.js — Autenticación AVAI
 // Acciones:
 //   - register: crear cuenta (con fecha_nacimiento + ciudad opcionales)
+//                + envía AUTOMÁTICAMENTE código de verificación al email
 //   - login: iniciar sesión
 //   - solicitar_reset: pedir código para recuperar contraseña
 //   - confirmar_reset: usar código + nueva contraseña
@@ -81,6 +82,33 @@ function emailValido(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).toLowerCase().trim());
 }
 
+// ✨ NUEVO: Helper para enviar código de verificación de email
+async function enviarCodigoVerificacion(user) {
+  const codigo = nuevoCodigo6digitos();
+  user.codigo_verif = codigo;
+  user.codigo_verif_expira = en15min();
+  await saveUser(user);
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:30px 20px;background:#0d0d0d;color:#fff;border-radius:12px;">
+      <div style="text-align:center;margin-bottom:30px;">
+        <div style="font-size:32px;font-weight:900;background:linear-gradient(90deg,#facc15,#f97316,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">⚡ AVAI</div>
+      </div>
+      <h2 style="color:#facc15;margin-bottom:16px;">✉️ ¡Bienvenido a AVAI!</h2>
+      <p style="color:#cbd5e1;line-height:1.6;">Hola <b>${user.nombre || "capo"}</b>,</p>
+      <p style="color:#cbd5e1;line-height:1.6;">Gracias por sumarte a AVAI 🚀 Para verificar tu email, usá este código:</p>
+      <div style="font-size:36px;font-weight:bold;letter-spacing:10px;background:#1a1a1a;padding:24px;text-align:center;border-radius:12px;color:#facc15;margin:24px 0;border:1px solid rgba(250,204,21,0.3);">${codigo}</div>
+      <p style="color:#94a3b8;font-size:13px;">⏱️ El código vence en 15 minutos.</p>
+      <p style="color:#94a3b8;font-size:13px;line-height:1.6;">Si no creaste esta cuenta, ignorá este mensaje.</p>
+      <div style="border-top:1px solid #2a2a2a;margin-top:30px;padding-top:20px;text-align:center;">
+        <p style="color:#64748b;font-size:11px;">— Equipo AVAI · Formosa, Argentina 🇦🇷</p>
+      </div>
+    </div>
+  `;
+  const enviado = await enviarEmail(user.email, "Verificá tu email — AVAI", html);
+  return { enviado, codigo };
+}
+
 // ─── DEFAULT USER ────────────────────────────────────────
 function defaultUser(nombre, email, extras = {}) {
   return {
@@ -101,7 +129,6 @@ function defaultUser(nombre, email, extras = {}) {
     english_diary: [], english_quiz_scores: {},
     mate_nivel: "Básico", mate_lecciones_completadas: [],
     mate_messages: [], feedback: [],
-    // NUEVOS CAMPOS:
     fecha_nacimiento: extras.fecha_nacimiento || null,
     ciudad: extras.ciudad || null,
     email_verificado: false,
@@ -127,7 +154,9 @@ export default async function handler(req, res) {
   if (!action) return res.status(400).json({ error: "Falta acción" });
 
   try {
-    // REGISTER
+    // ═══════════════════════════════════════════════════════
+    // REGISTER — ✨ AHORA ENVÍA CÓDIGO AUTOMÁTICO
+    // ═══════════════════════════════════════════════════════
     if (action === "register") {
       const { nombre, email, password, fecha_nacimiento, ciudad } = req.body || {};
       if (!email || !password) return res.status(400).json({ error: "Faltan datos" });
@@ -141,27 +170,48 @@ export default async function handler(req, res) {
         }
       }
 
-      const existing = await findUser(email);
+      const emailNorm = String(email).toLowerCase().trim();
+      const existing = await findUser(emailNorm);
       if (existing) return res.status(409).json({ error: "El email ya está registrado" });
 
       const hash = await bcrypt.hash(password, 10);
       const user = {
-        ...defaultUser(nombre || "Usuario", email, { fecha_nacimiento, ciudad }),
+        ...defaultUser(nombre || "Usuario", emailNorm, { fecha_nacimiento, ciudad }),
         password_hash: hash
       };
       await saveUser(user);
 
-      const token = jwt.sign({ email, nombre: user.nombre }, JWT_SECRET, { expiresIn: "30d" });
+      // ✨ NUEVO: enviar código de verificación automáticamente
+      let codigoInfo = { enviado: { ok: false } };
+      try {
+        codigoInfo = await enviarCodigoVerificacion(user);
+      } catch (errCodigo) {
+        console.error("Error enviando código de verif al registrarse:", errCodigo);
+        // No fallamos el registro, solo logueamos
+      }
+
+      const token = jwt.sign({ email: emailNorm, nombre: user.nombre }, JWT_SECRET, { expiresIn: "30d" });
       const { password_hash, codigo_verif, reset_token, ...safeUser } = user;
-      return res.status(201).json({ token, user: safeUser });
+      return res.status(201).json({
+        token,
+        user: safeUser,
+        verificacion_email: {
+          enviado: codigoInfo.enviado.ok,
+          modo_dev: !!codigoInfo.enviado.modo_dev,
+          codigo_dev: codigoInfo.enviado.modo_dev ? codigoInfo.codigo : undefined,
+        },
+      });
     }
 
+    // ═══════════════════════════════════════════════════════
     // LOGIN
+    // ═══════════════════════════════════════════════════════
     if (action === "login") {
       const { email, password } = req.body || {};
       if (!email || !password) return res.status(400).json({ error: "Faltan datos" });
 
-      const user = await findUser(email);
+      const emailNorm = String(email).toLowerCase().trim();
+      const user = await findUser(emailNorm);
       if (!user) return res.status(401).json({ error: "Email o contraseña incorrectos" });
       if (user.baneado) return res.status(403).json({ error: "Cuenta suspendida. Contactá soporte." });
 
@@ -171,18 +221,22 @@ export default async function handler(req, res) {
       user.ultima_actividad = ahora();
       await saveUser(user);
 
-      const token = jwt.sign({ email, nombre: user.nombre }, JWT_SECRET, { expiresIn: "30d" });
+      const token = jwt.sign({ email: emailNorm, nombre: user.nombre }, JWT_SECRET, { expiresIn: "30d" });
       const { password_hash, codigo_verif, reset_token, ...safeUser } = user;
       return res.status(200).json({ token, user: safeUser });
     }
 
-    // SOLICITAR RESET
+    // ═══════════════════════════════════════════════════════
+    // SOLICITAR RESET — pedir código por email
+    // ═══════════════════════════════════════════════════════
     if (action === "solicitar_reset") {
       const { email } = req.body || {};
       if (!email) return res.status(400).json({ error: "Falta email" });
 
-      const user = await findUser(email);
+      const emailNorm = String(email).toLowerCase().trim();
+      const user = await findUser(emailNorm);
       if (!user) {
+        // Por seguridad NO le decimos si el email existe o no
         return res.status(200).json({ ok: true, mensaje: "Si el email existe, recibirás un código" });
       }
 
@@ -192,17 +246,22 @@ export default async function handler(req, res) {
       await saveUser(user);
 
       const html = `
-        <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;background:#0d0d0d;color:#fff;">
-          <h2 style="color:#fbbf24;">🔑 Recuperar contraseña — AVAI</h2>
-          <p>Hola ${user.nombre || ""},</p>
-          <p>Tu código de recuperación es:</p>
-          <div style="font-size:32px;font-weight:bold;letter-spacing:8px;background:#1a1a1a;padding:20px;text-align:center;border-radius:8px;color:#fbbf24;">${codigo}</div>
-          <p>Este código vence en 15 minutos.</p>
-          <p>Si no pediste esto, ignorá este mensaje.</p>
-          <p style="color:#888;font-size:12px;margin-top:30px;">— Equipo AVAI</p>
+        <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:30px 20px;background:#0d0d0d;color:#fff;border-radius:12px;">
+          <div style="text-align:center;margin-bottom:30px;">
+            <div style="font-size:32px;font-weight:900;background:linear-gradient(90deg,#facc15,#f97316,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">⚡ AVAI</div>
+          </div>
+          <h2 style="color:#facc15;margin-bottom:16px;">🔑 Recuperar contraseña</h2>
+          <p style="color:#cbd5e1;line-height:1.6;">Hola <b>${user.nombre || "capo"}</b>,</p>
+          <p style="color:#cbd5e1;line-height:1.6;">Tu código de recuperación es:</p>
+          <div style="font-size:36px;font-weight:bold;letter-spacing:10px;background:#1a1a1a;padding:24px;text-align:center;border-radius:12px;color:#facc15;margin:24px 0;border:1px solid rgba(250,204,21,0.3);">${codigo}</div>
+          <p style="color:#94a3b8;font-size:13px;">⏱️ El código vence en 15 minutos.</p>
+          <p style="color:#94a3b8;font-size:13px;line-height:1.6;">Si no pediste esto, ignorá este mensaje. Tu contraseña actual sigue funcionando.</p>
+          <div style="border-top:1px solid #2a2a2a;margin-top:30px;padding-top:20px;text-align:center;">
+            <p style="color:#64748b;font-size:11px;">— Equipo AVAI · Formosa, Argentina 🇦🇷</p>
+          </div>
         </div>
       `;
-      const enviado = await enviarEmail(email, "Tu código de recuperación AVAI", html);
+      const enviado = await enviarEmail(emailNorm, "Tu código de recuperación AVAI", html);
 
       if (enviado.modo_dev) {
         return res.status(200).json({
@@ -215,7 +274,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, mensaje: "Código enviado a tu email" });
     }
 
-    // CONFIRMAR RESET
+    // ═══════════════════════════════════════════════════════
+    // CONFIRMAR RESET — usar código + nueva contraseña
+    // ═══════════════════════════════════════════════════════
     if (action === "confirmar_reset") {
       const { email, codigo, nueva_password } = req.body || {};
       if (!email || !codigo || !nueva_password) {
@@ -225,9 +286,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Contraseña: mínimo 6 caracteres" });
       }
 
-      const user = await findUser(email);
+      const emailNorm = String(email).toLowerCase().trim();
+      const user = await findUser(emailNorm);
       if (!user) return res.status(404).json({ error: "Email no encontrado" });
-      if (!user.reset_token) return res.status(400).json({ error: "No hay solicitud de recuperación" });
+      if (!user.reset_token) return res.status(400).json({ error: "No hay solicitud de recuperación. Pedí un código nuevo." });
       if (expirado(user.reset_expira)) return res.status(400).json({ error: "Código vencido. Pedí uno nuevo" });
       if (String(user.reset_token).trim() !== String(codigo).trim()) {
         return res.status(400).json({ error: "Código incorrecto" });
@@ -239,12 +301,14 @@ export default async function handler(req, res) {
       user.ultima_actividad = ahora();
       await saveUser(user);
 
-      const token = jwt.sign({ email, nombre: user.nombre }, JWT_SECRET, { expiresIn: "30d" });
+      const token = jwt.sign({ email: emailNorm, nombre: user.nombre }, JWT_SECRET, { expiresIn: "30d" });
       const { password_hash, codigo_verif, reset_token, ...safeUser } = user;
       return res.status(200).json({ ok: true, token, user: safeUser, mensaje: "Contraseña actualizada" });
     }
 
-    // ENVIAR CÓDIGO VERIF (requiere JWT)
+    // ═══════════════════════════════════════════════════════
+    // ENVIAR CÓDIGO VERIF (requiere JWT) — reenvío manual
+    // ═══════════════════════════════════════════════════════
     if (action === "enviar_codigo_verif") {
       const auth = req.headers.authorization || "";
       const token = auth.replace("Bearer ", "");
@@ -256,29 +320,21 @@ export default async function handler(req, res) {
       if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
       if (user.email_verificado) return res.status(200).json({ ok: true, mensaje: "Email ya verificado" });
 
-      const codigo = nuevoCodigo6digitos();
-      user.codigo_verif = codigo;
-      user.codigo_verif_expira = en15min();
-      await saveUser(user);
+      const codigoInfo = await enviarCodigoVerificacion(user);
 
-      const html = `
-        <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;background:#0d0d0d;color:#fff;">
-          <h2 style="color:#fbbf24;">✉️ Verificá tu email — AVAI</h2>
-          <p>Hola ${user.nombre || ""},</p>
-          <p>Tu código de verificación es:</p>
-          <div style="font-size:32px;font-weight:bold;letter-spacing:8px;background:#1a1a1a;padding:20px;text-align:center;border-radius:8px;color:#a855f7;">${codigo}</div>
-          <p>Este código vence en 15 minutos.</p>
-          <p style="color:#888;font-size:12px;margin-top:30px;">— Equipo AVAI</p>
-        </div>
-      `;
-      const enviado = await enviarEmail(decoded.email, "Verificá tu email — AVAI", html);
-      if (enviado.modo_dev) {
-        return res.status(200).json({ ok: true, mensaje: "Código generado (modo dev)", codigo_dev: codigo });
+      if (codigoInfo.enviado.modo_dev) {
+        return res.status(200).json({
+          ok: true,
+          mensaje: "Código generado (modo dev)",
+          codigo_dev: codigoInfo.codigo
+        });
       }
-      return res.status(200).json({ ok: true, mensaje: "Código enviado" });
+      return res.status(200).json({ ok: true, mensaje: "Código enviado a tu email" });
     }
 
+    // ═══════════════════════════════════════════════════════
     // VERIFICAR EMAIL (requiere JWT)
+    // ═══════════════════════════════════════════════════════
     if (action === "verificar_email") {
       const auth = req.headers.authorization || "";
       const token = auth.replace("Bearer ", "");
@@ -293,7 +349,7 @@ export default async function handler(req, res) {
       if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
       if (user.email_verificado) return res.status(200).json({ ok: true, mensaje: "Ya estaba verificado" });
       if (!user.codigo_verif) return res.status(400).json({ error: "No hay código pendiente. Solicitá uno" });
-      if (expirado(user.codigo_verif_expira)) return res.status(400).json({ error: "Código vencido" });
+      if (expirado(user.codigo_verif_expira)) return res.status(400).json({ error: "Código vencido. Pedí uno nuevo." });
       if (String(user.codigo_verif).trim() !== String(codigo).trim()) {
         return res.status(400).json({ error: "Código incorrecto" });
       }
@@ -303,10 +359,12 @@ export default async function handler(req, res) {
       user.codigo_verif_expira = null;
       await saveUser(user);
 
-      return res.status(200).json({ ok: true, mensaje: "Email verificado" });
+      return res.status(200).json({ ok: true, mensaje: "Email verificado correctamente ✨" });
     }
 
+    // ═══════════════════════════════════════════════════════
     // ACTUALIZAR PERFIL (requiere JWT)
+    // ═══════════════════════════════════════════════════════
     if (action === "actualizar_perfil") {
       const auth = req.headers.authorization || "";
       const token = auth.replace("Bearer ", "");
