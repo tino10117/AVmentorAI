@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>AVAI — Tu mentor argentino de IA</title>
 <meta name="description" content="11 modos mentor especializados, modo conversación libre, juegos con IA, inglés y matemáticas con tutores. El primer mentor de IA argentino.">
 <meta name="theme-color" content="#020617">
@@ -15,6 +15,18 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 <link rel="stylesheet" href="css/styles.css">
 <style>
+  /* ════════════════════════════════════════════════════════════ */
+  /* FIX MOBILE — Evitar zoom al hacer focus en inputs           */
+  /* ════════════════════════════════════════════════════════════ */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+  @media (max-width: 600px) {
+    input, textarea, select {
+      font-size: 16px !important;
+    }
+  }
+
   /* === Card del Modo Activo === */
   .modo-card {
     position: relative;
@@ -32,7 +44,7 @@
   .modo-card-select {
     width: 100%; background: rgba(2, 6, 23, 0.6); color: #f8fafc;
     border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 9px;
-    padding: 11px 14px; font-size: 15px; font-weight: 600; cursor: pointer;
+    padding: 11px 14px; font-size: 16px; font-weight: 600; cursor: pointer;
     appearance: none; -webkit-appearance: none;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
     background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px;
@@ -76,7 +88,6 @@
     line-height: 1.4;
   }
 
-  /* Stats bar — 4 columnas chicas en una sola card */
   .dash-stats {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -116,7 +127,6 @@
     font-weight: 600;
   }
 
-  /* Nivel bar — más sutil */
   .dash-nivel {
     background: rgba(15, 23, 42, 0.4);
     border: 1px solid rgba(148, 163, 184, 0.12);
@@ -162,7 +172,84 @@
       border-bottom: 1px solid rgba(148, 163, 184, 0.08);
     }
     .dash-stat-val { font-size: 16px; }
-    .modo-card-select { font-size: 14px; padding: 10px 12px; padding-right: 38px; }
+    .modo-card-select { padding: 10px 12px; padding-right: 38px; }
+  }
+
+  /* ════════════════════════════════════════════════════════════ */
+  /* INPUT DEL CHAT — Rediseño estilo Linear                     */
+  /* ════════════════════════════════════════════════════════════ */
+  .chat-input-wrap {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(250, 204, 21, 0.25) !important;
+    border-radius: 14px !important;
+    padding: 8px !important;
+    margin-top: 10px;
+    transition: border-color 0.2s ease;
+  }
+  .chat-input-wrap:focus-within {
+    border-color: rgba(250, 204, 21, 0.5) !important;
+  }
+  .chat-input-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+  .chat-input-row textarea {
+    flex: 1 !important;
+    background: transparent !important;
+    border: none !important;
+    color: #f8fafc !important;
+    font-family: inherit !important;
+    font-size: 16px !important;
+    padding: 8px 10px !important;
+    resize: none !important;
+    outline: none !important;
+    line-height: 1.4 !important;
+    max-height: 120px !important;
+  }
+  .chat-input-row textarea::placeholder {
+    color: #facc15 !important;
+    opacity: 0.65 !important;
+  }
+  .chat-send-btn {
+    background: rgba(2, 6, 23, 0.5) !important;
+    border: 1px solid rgba(148, 163, 184, 0.18) !important;
+    color: #94a3b8 !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    border-radius: 9px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 15px !important;
+    padding: 0 !important;
+    transition: all 0.2s ease !important;
+    box-shadow: none !important;
+  }
+  .chat-send-btn:hover {
+    background: rgba(2, 6, 23, 0.8) !important;
+    border-color: rgba(250, 204, 21, 0.3) !important;
+    color: #facc15 !important;
+  }
+  .chat-send-btn:active {
+    transform: scale(0.95);
+  }
+  .chat-send-btn#neg-send {
+    background: linear-gradient(135deg, #facc15, #f97316) !important;
+    border: none !important;
+    color: #111827 !important;
+    box-shadow: 0 4px 12px rgba(250, 204, 21, 0.25) !important;
+    font-weight: 800 !important;
+    font-size: 16px !important;
+  }
+  .chat-send-btn#neg-send:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(250, 204, 21, 0.4) !important;
+  }
+  .chat-send-btn#neg-send:active {
+    transform: translateY(0);
   }
 
   /* ════════════════════════════════════════════════════════════ */
@@ -202,7 +289,6 @@
   }
   .lnd-btn-primary:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(250, 204, 21, 0.3); }
 
-  /* HERO — AVAI grande, ChatGPT chico */
   .lnd-hero { padding: 70px 0 50px; text-align: center; }
   .lnd-hero-badge {
     display: inline-block; padding: 6px 14px; border-radius: 20px;
@@ -593,7 +679,7 @@
     width: 100%; background: rgba(2, 6, 23, 0.7);
     border: 1.5px solid rgba(148, 163, 184, 0.18);
     border-radius: 11px; padding: 13px 15px;
-    font-size: 15px; color: #f8fafc;
+    font-size: 16px; color: #f8fafc;
     font-family: inherit; transition: all 0.2s ease;
     outline: none; box-sizing: border-box;
   }
@@ -1105,7 +1191,7 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════ -->
-<!-- MAIN APP — HEADER REDISEÑADO                    -->
+<!-- MAIN APP                                         -->
 <!-- ═══════════════════════════════════════════════ -->
 <div id="app" class="hidden">
   <button id="hamburger" onclick="toggleSidebar()">☰</button>
@@ -1141,13 +1227,11 @@
     </div>
   </nav>
   <main id="main-content">
-    <!-- NUEVO HEADER MINIMALISTA -->
     <div class="dash-hero">
       <div class="dash-hero-logo">⚡ AVAI</div>
       <div class="dash-hero-subtitle" id="header-subtitle">Tu mentor personal de IA</div>
     </div>
 
-    <!-- NUEVO STATS BAR — 4 columnas chicas en 1 sola card -->
     <div class="dash-stats" id="header-metrics">
       <div class="dash-stat-col">
         <div class="dash-stat-icon">👤</div>
@@ -1171,7 +1255,6 @@
       </div>
     </div>
 
-    <!-- NUEVA BARRA DE NIVEL — más sutil -->
     <div class="dash-nivel">
       <div class="dash-nivel-row">
         <span class="dash-nivel-name" id="nivel-txt">Nivel 1 — Inicial</span>
@@ -1185,7 +1268,6 @@
       </div>
     </div>
 
-    <!-- También mantenemos los IDs viejos por compatibilidad con el JS existente -->
     <div style="display:none">
       <div class="hero-card"><div class="av-logo">⚡ AVAI</div><div class="av-subtitle"></div></div>
       <div class="grid-4">
@@ -1197,10 +1279,11 @@
     <div id="tab-mentor" class="tab-content active">
       <div class="modo-card">
         <div class="modo-card-header">
-          <span class="modo-card-icon">🧠</span>
+          <span class="modo-card-icon">💬</span>
           <span class="modo-card-label">Modo activo</span>
         </div>
         <select id="modo-selector" class="modo-card-select" onchange="App.modo=this.value">
+          <option>Conversación Libre</option>
           <option>Mentor de Negocios</option>
           <option>Entrenador de Ventas</option>
           <option>Marketing LATAM</option>
@@ -1211,7 +1294,6 @@
           <option>Mentor Millonario</option>
           <option>Especialista E-commerce</option>
           <option>Especialista Reventa</option>
-          <option>Conversación Libre</option>
         </select>
         <div class="modo-card-hint">💡 11 modos disponibles · tocá para cambiar</div>
       </div>
@@ -1233,10 +1315,10 @@
       <div id="neg-image-preview" style="display:none"></div>
       <div class="chat-input-wrap">
         <div class="chat-input-row">
-          <textarea id="neg-input" placeholder="✍️ Escribí tu pregunta acá..." rows="1"></textarea>
+          <textarea id="neg-input" placeholder="Escribí tu pregunta acá..." rows="1"></textarea>
           <input type="file" id="neg-image-input" accept="image/*" style="display:none" onchange="Chat.attachImage(this, 'neg-image-preview')" />
-          <button class="chat-send-btn" id="neg-attach" style="background:linear-gradient(135deg,#a855f7,#6366f1)" onclick="document.getElementById('neg-image-input').click()" title="Adjuntar imagen (Premium)">📎</button>
-          <button class="chat-send-btn" id="neg-send">➤</button>
+          <button class="chat-send-btn" id="neg-attach" onclick="document.getElementById('neg-image-input').click()" title="Adjuntar imagen (Premium)">📎</button>
+          <button class="chat-send-btn" id="neg-send" title="Enviar">➤</button>
         </div>
       </div>
     </div>
@@ -1410,6 +1492,17 @@
       if (subtitle) subtitle.textContent = 'Empezás a usar AVAI en menos de 30 segundos.';
     }
   };
+
+  // FIX 2: Setear "Conversación Libre" como modo default al cargar la app
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      const selector = document.getElementById('modo-selector');
+      if (selector && typeof App !== 'undefined') {
+        selector.value = 'Conversación Libre';
+        App.modo = 'Conversación Libre';
+      }
+    }, 500);
+  });
 </script>
 
 <script src="js/lessons.js"></script>
