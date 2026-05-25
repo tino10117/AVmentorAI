@@ -3,9 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AVAI — Tu mentor premium</title>
-<meta name="description" content="Mentor de negocios, inglés, matemáticas y herramientas con IA para LATAM">
+<title>AVAI — El mentor argentino de IA que ChatGPT no es</title>
+<meta name="description" content="11 modos mentor, juegos con IA, inglés, matemáticas, herramientas reales y gamificación. El primer mentor de IA pensado para argentinos.">
 <meta name="theme-color" content="#020617">
+
+<!-- Open Graph (para que se vea lindo cuando lo compartas en WhatsApp/IG) -->
+<meta property="og:title" content="AVAI — Tu mentor argentino con IA">
+<meta property="og:description" content="ChatGPT te responde. AVAI te transforma. 11 modos mentor, juegos con IA, gamificación, certificados y mucho más.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://avai.ar">
+
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 <link rel="stylesheet" href="css/styles.css">
 <style>
@@ -38,96 +45,823 @@
     box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.5), 0 6px 28px rgba(249, 115, 22, 0.25);
     transform: translateY(-1px);
   }
-  .modo-card-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
-  .modo-card-icon {
-    font-size: 22px;
-    line-height: 1;
-  }
-  .modo-card-label {
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 1.5px;
-    color: #facc15;
-    text-transform: uppercase;
-  }
+  .modo-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .modo-card-icon { font-size: 22px; line-height: 1; }
+  .modo-card-label { font-size: 12px; font-weight: 800; letter-spacing: 1.5px; color: #facc15; text-transform: uppercase; }
   .modo-card-select {
-    width: 100%;
-    background: rgba(2, 6, 23, 0.6);
-    color: #fff;
-    border: 1.5px solid rgba(250, 204, 21, 0.35);
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 17px;
-    font-weight: 700;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
+    width: 100%; background: rgba(2, 6, 23, 0.6); color: #fff;
+    border: 1.5px solid rgba(250, 204, 21, 0.35); border-radius: 10px;
+    padding: 12px 14px; font-size: 17px; font-weight: 700; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23facc15' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
-    background-repeat: no-repeat;
-    background-position: right 14px center;
-    padding-right: 40px;
+    background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px;
     transition: border-color 0.2s ease;
   }
-  .modo-card-select:hover, .modo-card-select:focus {
-    border-color: #facc15;
-    outline: none;
-  }
-  .modo-card-select option {
-    background: #020617;
-    color: #fff;
-    padding: 10px;
-  }
-  .modo-card-hint {
-    margin-top: 10px;
-    font-size: 12px;
-    color: #94a3b8;
-    text-align: center;
-    font-weight: 500;
-  }
-  /* Mobile: un poco más compacto */
+  .modo-card-select:hover, .modo-card-select:focus { border-color: #facc15; outline: none; }
+  .modo-card-select option { background: #020617; color: #fff; padding: 10px; }
+  .modo-card-hint { margin-top: 10px; font-size: 12px; color: #94a3b8; text-align: center; font-weight: 500; }
   @media (max-width: 600px) {
     .modo-card { padding: 14px 14px; }
     .modo-card-select { font-size: 16px; padding: 11px 12px; padding-right: 38px; }
     .modo-card-label { font-size: 11px; }
     .modo-card-icon { font-size: 20px; }
   }
-  /* Footer del sidebar con links legales */
-  .sidebar-footer {
-    margin-top: 12px;
-    padding: 12px;
-    border-top: 1px solid rgba(255,255,255,.08);
-    font-size: 11px;
-  }
-  .sidebar-footer a {
-    color: #94a3b8;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 0;
-    transition: color .2s;
-  }
+  .sidebar-footer { margin-top: 12px; padding: 12px; border-top: 1px solid rgba(255,255,255,.08); font-size: 11px; }
+  .sidebar-footer a { color: #94a3b8; text-decoration: none; display: flex; align-items: center; gap: 6px; padding: 4px 0; transition: color .2s; }
   .sidebar-footer a:hover { color: #cbd5e1; }
-  .sidebar-footer .copy {
-    margin-top: 10px;
-    text-align: center;
-    font-size: 10px;
-    color: #475569;
+  .sidebar-footer .copy { margin-top: 10px; text-align: center; font-size: 10px; color: #475569; }
+
+  /* ════════════════════════════════════════════════════════════ */
+  /* 🆕 LANDING PAGE — Estilos                                   */
+  /* ════════════════════════════════════════════════════════════ */
+  #landing-screen {
+    position: fixed; inset: 0;
+    background: radial-gradient(circle at top left, #1f2937 0%, #0b1120 45%, #020617 100%);
+    z-index: 999; overflow-y: auto; color: #f8fafc;
+    font-family: 'Inter', sans-serif;
+  }
+  .lnd-container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  /* NAVBAR */
+  .lnd-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(250, 204, 21, 0.12);
+    padding: 14px 0;
+  }
+  .lnd-nav-inner { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .lnd-logo {
+    font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 900;
+    background: linear-gradient(90deg, #facc15, #f97316, #38bdf8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; cursor: pointer;
+  }
+  .lnd-nav-cta { display: flex; gap: 10px; align-items: center; }
+  .lnd-btn-link {
+    color: #cbd5e1; text-decoration: none; font-size: 14px; font-weight: 600;
+    padding: 8px 14px; border-radius: 10px; cursor: pointer;
+    background: transparent; border: none; transition: all .2s;
+  }
+  .lnd-btn-link:hover { color: #facc15; background: rgba(250, 204, 21, 0.08); }
+  .lnd-btn-primary {
+    background: linear-gradient(90deg, #facc15, #f97316); color: #111827;
+    padding: 9px 18px; border-radius: 10px; font-size: 14px; font-weight: 700;
+    cursor: pointer; border: none; transition: all .2s;
+  }
+  .lnd-btn-primary:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(250, 204, 21, 0.3); }
+
+  /* HERO */
+  .lnd-hero { padding: 60px 0 50px; text-align: center; }
+  .lnd-hero-badge {
+    display: inline-block; padding: 6px 14px; border-radius: 20px;
+    background: rgba(250, 204, 21, 0.12); border: 1px solid rgba(250, 204, 21, 0.3);
+    color: #facc15; font-size: 12px; font-weight: 700; margin-bottom: 18px;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .lnd-hero h1 {
+    font-family: 'Syne', sans-serif; font-size: 56px; line-height: 1.05;
+    font-weight: 900; margin-bottom: 18px; letter-spacing: -1.5px;
+  }
+  .lnd-hero h1 .grad {
+    background: linear-gradient(90deg, #facc15, #f97316);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .lnd-hero h1 .grad-blue {
+    background: linear-gradient(90deg, #38bdf8, #a855f7);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .lnd-hero-sub {
+    font-size: 19px; color: #cbd5e1; max-width: 720px; margin: 0 auto 30px;
+    line-height: 1.6;
+  }
+  .lnd-hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .lnd-cta-big {
+    background: linear-gradient(90deg, #facc15, #f97316); color: #111827;
+    padding: 16px 32px; border-radius: 14px; font-size: 17px; font-weight: 800;
+    cursor: pointer; border: none; transition: all .2s; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 8px;
+    box-shadow: 0 8px 28px rgba(250, 204, 21, 0.25);
+  }
+  .lnd-cta-big:hover { transform: translateY(-2px); box-shadow: 0 10px 36px rgba(250, 204, 21, 0.4); }
+  .lnd-cta-ghost {
+    background: transparent; border: 1.5px solid rgba(250, 204, 21, 0.4);
+    color: #facc15; padding: 16px 28px; border-radius: 14px; font-size: 17px; font-weight: 700;
+    cursor: pointer; transition: all .2s;
+  }
+  .lnd-cta-ghost:hover { background: rgba(250, 204, 21, 0.1); }
+  .lnd-hero-note {
+    font-size: 13px; color: #64748b; margin-top: 18px;
+  }
+
+  /* STATS BAR */
+  .lnd-stats-bar {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px;
+    padding: 30px 0 50px;
+  }
+  .lnd-stat { text-align: center; }
+  .lnd-stat-num {
+    font-family: 'Syne', sans-serif; font-size: 38px; font-weight: 900;
+    background: linear-gradient(90deg, #facc15, #f97316);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; line-height: 1;
+  }
+  .lnd-stat-label { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 6px; }
+
+  /* MOCKUP DEMO */
+  .lnd-mockup-wrap {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(56, 189, 248, 0.05));
+    border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 20px;
+    padding: 24px; margin: 20px auto 60px; max-width: 920px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+  }
+  .lnd-mockup {
+    background: #0b1120; border-radius: 14px; padding: 0; overflow: hidden;
+    border: 1px solid rgba(250, 204, 21, 0.15);
+  }
+  .lnd-mockup-bar {
+    display: flex; align-items: center; gap: 6px; padding: 12px 16px;
+    background: rgba(2, 6, 23, 0.6); border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .lnd-mockup-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .lnd-mockup-url {
+    flex: 1; text-align: center; font-size: 12px; color: #64748b;
+    font-family: monospace;
+  }
+  .lnd-mockup-body { display: grid; grid-template-columns: 200px 1fr; min-height: 380px; }
+  .lnd-mockup-sidebar { background: #020617; padding: 18px 12px; border-right: 1px solid rgba(255,255,255,0.05); }
+  .lnd-mockup-side-logo {
+    font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 900;
+    background: linear-gradient(90deg, #facc15, #f97316);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: 16px; padding: 0 8px;
+  }
+  .lnd-mockup-section { font-size: 9px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 1px; padding: 8px 8px 4px; }
+  .lnd-mockup-item {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+    border-radius: 8px; font-size: 12px; color: #cbd5e1; margin-bottom: 2px;
+  }
+  .lnd-mockup-item.active { background: rgba(250, 204, 21, 0.15); color: #facc15; border-left: 2px solid #facc15; }
+  .lnd-mockup-main { padding: 22px; background: linear-gradient(180deg, rgba(2,6,23,0.4), rgba(11,17,32,0.4)); }
+  .lnd-mockup-hero-card {
+    background: linear-gradient(135deg, rgba(250,204,21,.14), rgba(56,189,248,.08));
+    border: 1px solid rgba(250, 204, 21, 0.35); border-radius: 14px;
+    padding: 14px 18px; margin-bottom: 16px;
+  }
+  .lnd-mockup-hero-card .av {
+    font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 900;
+    background: linear-gradient(90deg, #facc15, #f97316, #38bdf8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .lnd-mockup-hero-card .sub { font-size: 12px; color: #cbd5e1; margin-top: 3px; }
+  .lnd-mockup-chat-msg {
+    background: rgba(15, 23, 42, 0.95); border-left: 3px solid #38bdf8;
+    padding: 12px 14px; border-radius: 12px; margin-bottom: 8px;
+    font-size: 12px; line-height: 1.6; color: #e2e8f0;
+  }
+  .lnd-mockup-chat-msg .name { color: #38bdf8; font-weight: 800; font-size: 11px; margin-bottom: 4px; }
+  .lnd-mockup-chat-msg.user { border-left-color: #facc15; }
+  .lnd-mockup-chat-msg.user .name { color: #facc15; }
+  .lnd-mockup-floating {
+    position: absolute; right: 30px; top: 30px;
+    background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4);
+    color: #d8b4fe; padding: 6px 14px; border-radius: 20px; font-size: 11px;
+    font-weight: 700; box-shadow: 0 4px 16px rgba(168, 85, 247, 0.3);
+    animation: floatBadge 3s ease-in-out infinite;
+  }
+  @keyframes floatBadge { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+  /* SECTION TITLE */
+  .lnd-section { padding: 70px 0; }
+  .lnd-section-title {
+    font-family: 'Syne', sans-serif; font-size: 42px; font-weight: 900;
+    text-align: center; margin-bottom: 12px; letter-spacing: -1px;
+  }
+  .lnd-section-title .grad {
+    background: linear-gradient(90deg, #facc15, #f97316);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .lnd-section-sub { text-align: center; color: #94a3b8; font-size: 17px; max-width: 680px; margin: 0 auto 50px; line-height: 1.6; }
+
+  /* VS CHATGPT */
+  .lnd-vs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 920px; margin: 0 auto; }
+  .lnd-vs-card {
+    background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: 18px; padding: 28px;
+  }
+  .lnd-vs-card.bad { opacity: 0.6; }
+  .lnd-vs-card.good { border-color: rgba(250, 204, 21, 0.4); background: linear-gradient(135deg, rgba(250, 204, 21, 0.06), rgba(249, 115, 22, 0.04)); }
+  .lnd-vs-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+  .lnd-vs-card.bad .lnd-vs-title { color: #94a3b8; }
+  .lnd-vs-card.good .lnd-vs-title { color: #facc15; }
+  .lnd-vs-list { list-style: none; padding: 0; margin: 0; }
+  .lnd-vs-list li { padding: 8px 0; font-size: 14px; color: #cbd5e1; display: flex; align-items: flex-start; gap: 10px; line-height: 1.55; }
+  .lnd-vs-list li::before { content: "✗"; color: #ef4444; font-weight: 800; flex-shrink: 0; }
+  .lnd-vs-card.good .lnd-vs-list li::before { content: "✓"; color: #22c55e; }
+
+  /* FEATURES GRID */
+  .lnd-features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; max-width: 1000px; margin: 0 auto; }
+  .lnd-feature {
+    background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: 18px; padding: 26px; transition: all .25s;
+  }
+  .lnd-feature:hover { transform: translateY(-3px); border-color: rgba(250, 204, 21, 0.35); }
+  .lnd-feature-icon { font-size: 36px; margin-bottom: 12px; line-height: 1; }
+  .lnd-feature h3 { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; margin-bottom: 10px; color: #f8fafc; }
+  .lnd-feature p { color: #94a3b8; font-size: 14px; line-height: 1.65; margin: 0; }
+  .lnd-feature.gold { border-color: rgba(250, 204, 21, 0.3); }
+  .lnd-feature.gold h3 { color: #facc15; }
+  .lnd-feature.purple { border-color: rgba(168, 85, 247, 0.3); }
+  .lnd-feature.purple h3 { color: #c4b5fd; }
+  .lnd-feature.green { border-color: rgba(34, 197, 94, 0.3); }
+  .lnd-feature.green h3 { color: #86efac; }
+  .lnd-feature.blue { border-color: rgba(56, 189, 248, 0.3); }
+  .lnd-feature.blue h3 { color: #7dd3fc; }
+  .lnd-feature.orange { border-color: rgba(249, 115, 22, 0.3); }
+  .lnd-feature.orange h3 { color: #fb923c; }
+
+  /* TODO EN UN LUGAR */
+  .lnd-allinone {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(56, 189, 248, 0.05));
+    border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 24px;
+    padding: 50px 40px; max-width: 920px; margin: 0 auto; text-align: center;
+  }
+  .lnd-allinone-icons {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 14px;
+    margin: 30px 0;
+  }
+  .lnd-allinone-icon {
+    background: rgba(2, 6, 23, 0.5); border: 1px solid rgba(250, 204, 21, 0.25);
+    padding: 10px 16px; border-radius: 12px; font-size: 14px; color: #cbd5e1;
+    display: flex; align-items: center; gap: 8px; font-weight: 600;
+  }
+
+  /* HOW IT WORKS */
+  .lnd-how { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 980px; margin: 0 auto; }
+  .lnd-how-step {
+    background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: 18px; padding: 28px; text-align: center;
+  }
+  .lnd-how-num {
+    font-family: 'Syne', sans-serif; font-size: 60px; font-weight: 900;
+    background: linear-gradient(90deg, #facc15, #f97316);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; line-height: 1; margin-bottom: 12px;
+  }
+  .lnd-how-step h3 { font-family: 'Syne', sans-serif; font-size: 19px; margin-bottom: 8px; }
+  .lnd-how-step p { color: #94a3b8; font-size: 14px; line-height: 1.6; margin: 0; }
+
+  /* PLANS */
+  .lnd-plans-toggle {
+    display: inline-flex; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px; padding: 4px; margin: 0 auto 40px;
+  }
+  .lnd-plans-toggle-wrap { text-align: center; }
+  .lnd-toggle-btn {
+    background: transparent; border: none; color: #94a3b8;
+    padding: 10px 22px; border-radius: 9px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all .2s; font-family: inherit;
+  }
+  .lnd-toggle-btn.active { background: linear-gradient(90deg, #facc15, #f97316); color: #111827; }
+  .lnd-toggle-badge {
+    background: rgba(34, 197, 94, 0.2); color: #86efac; padding: 2px 8px;
+    border-radius: 6px; font-size: 11px; margin-left: 6px; font-weight: 800;
+  }
+  .lnd-plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; max-width: 1000px; margin: 0 auto; }
+  .lnd-plan {
+    background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 20px; padding: 32px 26px; position: relative;
+  }
+  .lnd-plan.featured {
+    border-color: #facc15; background: linear-gradient(135deg, rgba(250, 204, 21, 0.08), rgba(249, 115, 22, 0.04));
+    transform: scale(1.03); box-shadow: 0 20px 50px rgba(250, 204, 21, 0.15);
+  }
+  .lnd-plan-pop {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(90deg, #facc15, #f97316); color: #111827;
+    padding: 4px 14px; border-radius: 10px; font-size: 11px; font-weight: 800;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .lnd-plan h3 { font-family: 'Syne', sans-serif; font-size: 22px; margin-bottom: 6px; }
+  .lnd-plan-desc { color: #94a3b8; font-size: 13px; margin-bottom: 18px; }
+  .lnd-plan-price {
+    font-family: 'Syne', sans-serif; font-size: 42px; font-weight: 900;
+    color: #facc15; line-height: 1; margin-bottom: 4px;
+  }
+  .lnd-plan-price .currency { font-size: 18px; color: #94a3b8; font-weight: 600; }
+  .lnd-plan-cycle { color: #94a3b8; font-size: 13px; margin-bottom: 22px; }
+  .lnd-plan-feat { list-style: none; padding: 0; margin: 0 0 24px; }
+  .lnd-plan-feat li {
+    padding: 7px 0; font-size: 13px; color: #cbd5e1;
+    display: flex; align-items: flex-start; gap: 10px; line-height: 1.5;
+  }
+  .lnd-plan-feat li::before { content: "✓"; color: #22c55e; font-weight: 800; flex-shrink: 0; }
+  .lnd-plan-feat li.disabled { opacity: 0.4; }
+  .lnd-plan-feat li.disabled::before { content: "—"; color: #64748b; }
+  .lnd-plan-btn {
+    width: 100%; padding: 12px; border-radius: 11px; font-size: 14px;
+    font-weight: 700; cursor: pointer; border: none; transition: all .2s;
+  }
+  .lnd-plan-btn.primary { background: linear-gradient(90deg, #facc15, #f97316); color: #111827; }
+  .lnd-plan-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(250, 204, 21, 0.3); }
+  .lnd-plan-btn.ghost { background: transparent; border: 1.5px solid rgba(250, 204, 21, 0.3); color: #cbd5e1; }
+  .lnd-plan-btn.ghost:hover { background: rgba(250, 204, 21, 0.08); color: #facc15; }
+  .lnd-plan-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* FAQ */
+  .lnd-faq { max-width: 760px; margin: 0 auto; }
+  .lnd-faq-item {
+    background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: 14px; margin-bottom: 12px; overflow: hidden;
+  }
+  .lnd-faq-q {
+    padding: 18px 24px; font-size: 15px; font-weight: 700; color: #f8fafc;
+    cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    list-style: none;
+  }
+  .lnd-faq-q::-webkit-details-marker { display: none; }
+  .lnd-faq-q::after { content: "+"; color: #facc15; font-size: 24px; font-weight: 700; transition: transform .2s; }
+  .lnd-faq-item[open] .lnd-faq-q::after { transform: rotate(45deg); }
+  .lnd-faq-a {
+    padding: 0 24px 20px; color: #94a3b8; font-size: 14px; line-height: 1.7;
+  }
+
+  /* FINAL CTA */
+  .lnd-final {
+    background: linear-gradient(135deg, rgba(250, 204, 21, 0.1), rgba(56, 189, 248, 0.06));
+    border: 1px solid rgba(250, 204, 21, 0.3); border-radius: 24px;
+    padding: 60px 40px; text-align: center; max-width: 920px; margin: 0 auto;
+  }
+  .lnd-final h2 {
+    font-family: 'Syne', sans-serif; font-size: 38px; font-weight: 900;
+    margin-bottom: 14px; letter-spacing: -1px;
+  }
+  .lnd-final h2 .grad {
+    background: linear-gradient(90deg, #facc15, #f97316);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .lnd-final p { color: #cbd5e1; font-size: 17px; margin-bottom: 30px; }
+
+  /* FOOTER */
+  .lnd-footer { padding: 50px 0 30px; border-top: 1px solid rgba(148, 163, 184, 0.1); margin-top: 50px; }
+  .lnd-footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; margin-bottom: 30px; }
+  .lnd-footer h4 { font-family: 'Syne', sans-serif; font-size: 14px; color: #facc15; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 1px; }
+  .lnd-footer a { color: #94a3b8; text-decoration: none; font-size: 14px; display: block; padding: 5px 0; transition: color .2s; }
+  .lnd-footer a:hover { color: #facc15; }
+  .lnd-footer-about p { color: #94a3b8; font-size: 13px; line-height: 1.7; margin-top: 8px; }
+  .lnd-footer-bottom {
+    border-top: 1px solid rgba(148, 163, 184, 0.1); padding-top: 24px;
+    text-align: center; color: #64748b; font-size: 12px;
+  }
+  .lnd-footer-bottom .f960 {
+    margin-top: 14px; display: inline-block; padding: 6px 12px;
+    background: rgba(15, 23, 42, 0.6); border: 1px dashed rgba(148, 163, 184, 0.2);
+    border-radius: 8px; font-size: 11px; color: #475569;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 880px) {
+    .lnd-hero h1 { font-size: 38px; }
+    .lnd-hero-sub { font-size: 16px; }
+    .lnd-section-title { font-size: 30px; }
+    .lnd-stats-bar { grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .lnd-stat-num { font-size: 30px; }
+    .lnd-vs-grid { grid-template-columns: 1fr; }
+    .lnd-features { grid-template-columns: 1fr; }
+    .lnd-how { grid-template-columns: 1fr; }
+    .lnd-plans { grid-template-columns: 1fr; }
+    .lnd-plan.featured { transform: none; }
+    .lnd-footer-grid { grid-template-columns: 1fr; gap: 26px; }
+    .lnd-mockup-body { grid-template-columns: 1fr; }
+    .lnd-mockup-sidebar { display: none; }
+    .lnd-allinone { padding: 36px 22px; }
+    .lnd-section { padding: 50px 0; }
+  }
+  @media (max-width: 500px) {
+    .lnd-hero h1 { font-size: 32px; }
+    .lnd-cta-big, .lnd-cta-ghost { padding: 14px 22px; font-size: 15px; width: 100%; justify-content: center; }
+    .lnd-hero-cta { flex-direction: column; align-items: stretch; }
+    .lnd-nav-cta .lnd-btn-link { display: none; }
   }
 </style>
 </head>
 <body>
 <!-- ── TOAST ── -->
 <div id="toast-container"></div>
+
 <!-- ═══════════════════════════════════════════════ -->
-<!-- LOGIN SCREEN                                    -->
+<!-- 🆕 LANDING SCREEN — Pública                    -->
 <!-- ═══════════════════════════════════════════════ -->
-<div id="login-screen">
+<div id="landing-screen">
+  <!-- NAVBAR -->
+  <nav class="lnd-nav">
+    <div class="lnd-container lnd-nav-inner">
+      <div class="lnd-logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">⚡ AVAI</div>
+      <div class="lnd-nav-cta">
+        <button class="lnd-btn-link" onclick="document.getElementById('lnd-plans-section').scrollIntoView({behavior:'smooth'})">Planes</button>
+        <button class="lnd-btn-link" onclick="landingShowLogin()">Iniciar sesión</button>
+        <button class="lnd-btn-primary" onclick="landingShowRegister()">Probar gratis</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="lnd-hero">
+    <div class="lnd-container">
+      <div class="lnd-hero-badge">🇦🇷 En beta · Acceso temprano</div>
+      <h1>
+        <span class="grad">ChatGPT te responde.</span><br>
+        <span class="grad-blue">AVAI te transforma.</span>
+      </h1>
+      <p class="lnd-hero-sub">
+        El primer mentor de IA argentino con <b>11 modos especializados</b>, juegos con IA donde cada decisión cambia tu historia, <b>inglés y matemáticas con tutores virtuales</b>, herramientas para tu negocio y gamificación completa. Todo en un solo lugar.
+      </p>
+      <div class="lnd-hero-cta">
+        <button class="lnd-cta-big" onclick="landingShowRegister()">💎 Probar GRATIS ahora</button>
+        <button class="lnd-cta-ghost" onclick="document.getElementById('lnd-features-section').scrollIntoView({behavior:'smooth'})">Ver cómo funciona ↓</button>
+      </div>
+      <p class="lnd-hero-note">Sin tarjeta de crédito · Plan gratis para siempre · Cancelás cuando quieras</p>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="lnd-container">
+    <div class="lnd-stats-bar">
+      <div class="lnd-stat">
+        <div class="lnd-stat-num">11</div>
+        <div class="lnd-stat-label">Modos mentor</div>
+      </div>
+      <div class="lnd-stat">
+        <div class="lnd-stat-num">22</div>
+        <div class="lnd-stat-label">Lecciones</div>
+      </div>
+      <div class="lnd-stat">
+        <div class="lnd-stat-num">6</div>
+        <div class="lnd-stat-label">Herramientas IA</div>
+      </div>
+      <div class="lnd-stat">
+        <div class="lnd-stat-num">8</div>
+        <div class="lnd-stat-label">Juegos con IA</div>
+      </div>
+      <div class="lnd-stat">
+        <div class="lnd-stat-num">2</div>
+        <div class="lnd-stat-label">Idiomas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOCKUP DEMO -->
+  <div class="lnd-container">
+    <div class="lnd-mockup-wrap" style="position:relative">
+      <div class="lnd-mockup-floating">⚡ Demo en vivo</div>
+      <div class="lnd-mockup">
+        <div class="lnd-mockup-bar">
+          <div class="lnd-mockup-dot" style="background:#ef4444"></div>
+          <div class="lnd-mockup-dot" style="background:#f59e0b"></div>
+          <div class="lnd-mockup-dot" style="background:#22c55e"></div>
+          <div class="lnd-mockup-url">🔒 avai.ar</div>
+        </div>
+        <div class="lnd-mockup-body">
+          <div class="lnd-mockup-sidebar">
+            <div class="lnd-mockup-side-logo">⚡ AVAI</div>
+            <div class="lnd-mockup-section">Aprendizaje</div>
+            <div class="lnd-mockup-item active">🧠 Mentor</div>
+            <div class="lnd-mockup-item">📚 Inglés</div>
+            <div class="lnd-mockup-item">🔢 Mate</div>
+            <div class="lnd-mockup-section">Herramientas</div>
+            <div class="lnd-mockup-item">🛠️ Herramientas</div>
+            <div class="lnd-mockup-item">✈️ Viajes</div>
+            <div class="lnd-mockup-item">💪 Vida Sana</div>
+            <div class="lnd-mockup-item">🎮 Jugá con IA</div>
+            <div class="lnd-mockup-section">Mi Progreso</div>
+            <div class="lnd-mockup-item">🔥 Desafíos</div>
+            <div class="lnd-mockup-item">🏆 Ranking</div>
+          </div>
+          <div class="lnd-mockup-main">
+            <div class="lnd-mockup-hero-card">
+              <div class="av">⚡ AVAI</div>
+              <div class="sub">Tu mentor personal premium · Nivel 4 — Empresario Pro · 1.050 XP</div>
+            </div>
+            <div class="lnd-mockup-chat-msg user">
+              <div class="name">😊 VOS</div>
+              <div>Quiero vender más mi tienda de ropa. ¿Por dónde arranco?</div>
+            </div>
+            <div class="lnd-mockup-chat-msg">
+              <div class="name">⚡ AVAI · MENTOR</div>
+              <div>Capo, vamos directo al grano. Hoy mismo hacés 3 cosas: 1) Buscás 5 competidores en Instagram y anotás qué venden y a qué precio. 2) Identificás tu producto estrella (el que más sale) y hacés un post con oferta hoy. 3) Mandás un mensaje a 10 clientes viejos diciéndoles "vuelvo con esto"...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VS CHATGPT -->
+  <section class="lnd-section" id="lnd-vs-section">
+    <div class="lnd-container">
+      <h2 class="lnd-section-title">Por qué AVAI rompe con <span class="grad">ChatGPT</span></h2>
+      <p class="lnd-section-sub">No es un chat más. Es un sistema completo pensado para que dejes de estar perdido entre prompts.</p>
+      <div class="lnd-vs-grid">
+        <div class="lnd-vs-card bad">
+          <div class="lnd-vs-title">🤖 ChatGPT</div>
+          <ul class="lnd-vs-list">
+            <li>Te responde lo que le preguntás (si sabés preguntar bien)</li>
+            <li>Tenés que armar prompts largos cada vez</li>
+            <li>Habla como si fuera estadounidense traducido</li>
+            <li>No te conoce, no recuerda tu negocio</li>
+            <li>No te empuja, no te desafía</li>
+            <li>No tiene gamificación ni progreso</li>
+            <li>No juega con vos, no simula tu vida</li>
+          </ul>
+        </div>
+        <div class="lnd-vs-card good">
+          <div class="lnd-vs-title">⚡ AVAI</div>
+          <ul class="lnd-vs-list">
+            <li><b>11 modos especializados</b> — tocás y listo, sin prompts</li>
+            <li>Te conoce: recuerda tu negocio, objetivo y dificultades</li>
+            <li>Habla en argentino real, con jerga y ejemplos locales</li>
+            <li>Te tira <b>desafíos diarios</b> con XP y rachas</li>
+            <li>Juegos con IA: <b>simulás vidas, lanzás empresas</b></li>
+            <li>Inglés y matemáticas con <b>tutores virtuales</b> (Alex y Bruno)</li>
+            <li>Certificados PDF, ranking, niveles y logros</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="lnd-section" id="lnd-features-section">
+    <div class="lnd-container">
+      <h2 class="lnd-section-title">Todo lo que <span class="grad">AVAI</span> hace por vos</h2>
+      <p class="lnd-section-sub">Una sola app. Sin pagar 5 herramientas distintas. Sin pelearte con prompts.</p>
+
+      <div class="lnd-features">
+        <div class="lnd-feature gold">
+          <div class="lnd-feature-icon">🧠</div>
+          <h3>11 Modos Mentor</h3>
+          <p>Ventas, marketing, e-commerce, mindset, ideas de negocio, simulación con clientes difíciles, planificador de objetivos, especialista en reventa, mentor millonario, y <b>Conversación Libre con búsqueda en internet</b> para charlar de lo que sea con datos reales del día. Tocás un botón y listo.</p>
+        </div>
+
+        <div class="lnd-feature blue">
+          <div class="lnd-feature-icon">🎮</div>
+          <h3>Jugá con IA (único en el mercado)</h3>
+          <p><b>Modo Historia:</b> simulás vidas — lanzás una startup, heredás un negocio familiar, llegás a Nueva York con $500, sobrevivís en una isla. Cada decisión cambia la historia. <b>Business Empire:</b> arrancás con un kiosco y lo escalás a empresa con sucursales. La IA reacciona a cada movimiento.</p>
+        </div>
+
+        <div class="lnd-feature purple">
+          <div class="lnd-feature-icon">📚</div>
+          <h3>Inglés con Alex</h3>
+          <p>Tu profesor de inglés con IA. <b>12 lecciones</b> por nivel (Principiante, Intermedio, Avanzado), <b>roleplay</b> de situaciones reales (entrevista de trabajo, restaurante, aeropuerto), traductor inteligente, diario en inglés con corrección automática y <b>certificado PDF descargable</b> al terminar el nivel.</p>
+        </div>
+
+        <div class="lnd-feature green">
+          <div class="lnd-feature-icon">🔢</div>
+          <h3>Mate con Bruno</h3>
+          <p>Aprendé matemáticas aplicadas a negocios. <b>10 lecciones</b> por nivel + <b>calculadora interactiva</b>: margen de ganancia, punto de equilibrio, ROI, precio ideal, proyección de ventas. Todo explicado con ejemplos reales argentinos. Certificado al terminar.</p>
+        </div>
+
+        <div class="lnd-feature orange">
+          <div class="lnd-feature-icon">🛠️</div>
+          <h3>Herramientas Pro</h3>
+          <p><b>Análisis de competencia</b> (plan en 5 pasos para superarla), <b>generador de contenido</b> (posts Instagram, WhatsApp, Mercado Libre), <b>plantillas listas</b> personalizables, <b>creador de marca personal</b> con generación de logo IA, y <b>finanzas personales</b> con IA.</p>
+        </div>
+
+        <div class="lnd-feature blue">
+          <div class="lnd-feature-icon">✈️</div>
+          <h3>Viajes + Vida Sana</h3>
+          <p><b>Planificador de viajes</b>: la IA arma tu itinerario día por día con precios reales actualizados y datos de Argentina. <b>Vida Sana</b>: plan de alimentación de 7 días + rutina de ejercicio personalizada según tus datos, objetivos y presupuesto.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TODO EN UN LUGAR -->
+  <section class="lnd-section">
+    <div class="lnd-container">
+      <div class="lnd-allinone">
+        <h2 class="lnd-section-title" style="margin-bottom:18px">Una sola app. <span class="grad">Cero fricción.</span></h2>
+        <p class="lnd-section-sub" style="margin-bottom:8px">Antes: abrías ChatGPT, pensabas un prompt, pegabas contexto, esperabas... y volvías a empezar para cada cosa distinta.</p>
+        <p class="lnd-section-sub" style="margin-bottom:24px"><b style="color:#facc15">Ahora con AVAI:</b> tocás un botón del sidebar y arrancás. Listo.</p>
+        <div class="lnd-allinone-icons">
+          <div class="lnd-allinone-icon">🧠 Mentor</div>
+          <div class="lnd-allinone-icon">📚 Inglés</div>
+          <div class="lnd-allinone-icon">🔢 Mate</div>
+          <div class="lnd-allinone-icon">🛠️ Herramientas</div>
+          <div class="lnd-allinone-icon">✈️ Viajes</div>
+          <div class="lnd-allinone-icon">💪 Vida Sana</div>
+          <div class="lnd-allinone-icon">🎮 Juegos IA</div>
+          <div class="lnd-allinone-icon">🏆 Ranking</div>
+          <div class="lnd-allinone-icon">🔥 Desafíos</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="lnd-section">
+    <div class="lnd-container">
+      <h2 class="lnd-section-title">Empezás en <span class="grad">1 minuto</span></h2>
+      <p class="lnd-section-sub">Sin instalar nada. Sin tarjeta de crédito. Tres pasos y estás adentro.</p>
+      <div class="lnd-how">
+        <div class="lnd-how-step">
+          <div class="lnd-how-num">1</div>
+          <h3>Creá tu cuenta</h3>
+          <p>Solo email y contraseña. Sin pedir tarjeta. Sin trampas. Funciona en cualquier dispositivo.</p>
+        </div>
+        <div class="lnd-how-step">
+          <div class="lnd-how-num">2</div>
+          <h3>Contale a AVAI tus metas</h3>
+          <p>Onboarding rápido para que AVAI te conozca: tu objetivo, tu negocio, tu nivel y tu tiempo disponible.</p>
+        </div>
+        <div class="lnd-how-step">
+          <div class="lnd-how-num">3</div>
+          <h3>Empezá a crecer</h3>
+          <p>Tocás un modo del sidebar y arrancás. Desafíos diarios, XP, rachas y mucho más para mantenerte.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLANS -->
+  <section class="lnd-section" id="lnd-plans-section">
+    <div class="lnd-container">
+      <h2 class="lnd-section-title">Planes <span class="grad">simples</span></h2>
+      <p class="lnd-section-sub">Empezá gratis. Subí cuando quieras. Cancelás cuando quieras.</p>
+
+      <div class="lnd-plans-toggle-wrap">
+        <div class="lnd-plans-toggle">
+          <button class="lnd-toggle-btn active" id="lnd-toggle-mensual" onclick="lndTogglePlan('mensual')">Mensual</button>
+          <button class="lnd-toggle-btn" id="lnd-toggle-anual" onclick="lndTogglePlan('anual')">Anual <span class="lnd-toggle-badge">-20%</span></button>
+        </div>
+      </div>
+
+      <div class="lnd-plans">
+        <!-- GRATIS -->
+        <div class="lnd-plan">
+          <h3>Gratis</h3>
+          <div class="lnd-plan-desc">Para probar todo sin pagar nada.</div>
+          <div class="lnd-plan-price">$0</div>
+          <div class="lnd-plan-cycle">Para siempre</div>
+          <ul class="lnd-plan-feat">
+            <li>Mentor básico (10 mensajes/día con IA)</li>
+            <li>Inglés con Alex — lecciones + quiz</li>
+            <li>Mate con Bruno — lecciones + calculadora</li>
+            <li>Herramientas básicas</li>
+            <li>Jugá con IA (5 turnos/día)</li>
+            <li>Gamificación: XP, rachas, ranking</li>
+            <li>Certificados PDF</li>
+            <li class="disabled">Búsqueda en internet</li>
+            <li class="disabled">Viajes y Vida Sana</li>
+            <li class="disabled">Generación de logos con IA</li>
+          </ul>
+          <button class="lnd-plan-btn ghost" onclick="landingShowRegister()">Empezar gratis</button>
+        </div>
+
+        <!-- PREMIUM -->
+        <div class="lnd-plan featured">
+          <div class="lnd-plan-pop">⭐ Más elegido</div>
+          <h3>Premium ⚡</h3>
+          <div class="lnd-plan-desc">Para los que van en serio.</div>
+          <div class="lnd-plan-price" id="lnd-price-mensual">
+            <span class="currency">$</span>8.000
+          </div>
+          <div class="lnd-plan-price" id="lnd-price-anual" style="display:none">
+            <span class="currency">$</span>76.800
+          </div>
+          <div class="lnd-plan-cycle" id="lnd-cycle-mensual">ARS / mes · Cancelás cuando quieras</div>
+          <div class="lnd-plan-cycle" id="lnd-cycle-anual" style="display:none">ARS / año · Ahorrás $19.200 (2 meses gratis)</div>
+          <ul class="lnd-plan-feat">
+            <li><b>Todo lo del Gratis SIN LÍMITES</b></li>
+            <li>11 modos mentor completos</li>
+            <li>🌐 Búsqueda en internet en tiempo real</li>
+            <li>📎 Adjuntar imágenes en los chats</li>
+            <li>🎨 Generador de logos con IA</li>
+            <li>✈️ Planificador de Viajes con IA</li>
+            <li>💪 Vida Sana (alimentación + ejercicio)</li>
+            <li>🎮 Juegos con IA: 30 turnos/día</li>
+            <li>🎭 Roleplay de inglés ilimitado</li>
+            <li>🏆 Soporte prioritario + factura</li>
+          </ul>
+          <button class="lnd-plan-btn primary" onclick="landingShowRegister()">💎 Empezar gratis</button>
+          <p style="text-align:center;font-size:11px;color:#64748b;margin-top:10px">Probás gratis · Pagás cuando estés listo</p>
+        </div>
+
+        <!-- EMPRESARIAL -->
+        <div class="lnd-plan">
+          <h3>Empresarial 🔒</h3>
+          <div class="lnd-plan-desc">Para equipos y empresas.</div>
+          <div class="lnd-plan-price" style="font-size:24px;color:#94a3b8">Consultar</div>
+          <div class="lnd-plan-cycle">Próximamente</div>
+          <ul class="lnd-plan-feat">
+            <li>Para equipos de trabajo</li>
+            <li>Métricas avanzadas del equipo</li>
+            <li>IA personalizada con datos propios</li>
+            <li>Onboarding dedicado</li>
+            <li>Soporte 24/7</li>
+            <li class="disabled">En desarrollo</li>
+          </ul>
+          <button class="lnd-plan-btn ghost" onclick="window.location.href='mailto:valen810a@gmail.com?subject=Plan%20Empresarial%20AVAI'">📧 Anotarme</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="lnd-section">
+    <div class="lnd-container">
+      <h2 class="lnd-section-title">Preguntas <span class="grad">frecuentes</span></h2>
+      <p class="lnd-section-sub">Lo que la gente nos pregunta antes de probarlo.</p>
+      <div class="lnd-faq">
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿Es gratis de verdad o me van a cobrar después?</summary>
+          <div class="lnd-faq-a">Sí, totalmente gratis. El plan Gratis es para siempre y tiene casi todas las funciones (con límite de 10 mensajes/día con la IA). Premium es 100% opcional, lo activás solo si querés más. <b>Nunca te pedimos tarjeta para registrarte.</b></div>
+        </details>
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿Cómo pago Premium? ¿Es seguro?</summary>
+          <div class="lnd-faq-a">Pagás con Mercado Pago — es completamente seguro y aceptan tarjetas de crédito, débito, cuenta MP y transferencias. La suscripción se renueva sola cada mes pero la cancelás cuando quieras desde el panel.</div>
+        </details>
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿Recibo factura?</summary>
+          <div class="lnd-faq-a">Sí, factura electrónica oficial de AFIP/ARCA por cada pago. Te llega automáticamente al email apenas se acredita el pago.</div>
+        </details>
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿En qué se diferencia de ChatGPT o Claude?</summary>
+          <div class="lnd-faq-a">ChatGPT y Claude son chats genéricos que te responden lo que les preguntes (si sabés preguntar). AVAI es un sistema completo con 11 modos especializados, juegos donde la IA es el alma del juego, tutores de inglés y matemáticas con plan de estudios, gamificación con XP/rachas/desafíos, certificados PDF, planificador de viajes, vida sana, y mucho más. Todo en argentino, sin tener que armar prompts.</div>
+        </details>
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿Puedo cancelar cuando quiera?</summary>
+          <div class="lnd-faq-a">Sí, sin permanencia, sin penalidades. Cancelás desde tu cuenta con un click. Si cancelás antes del cierre del mes, mantenés Premium hasta el final del período que ya pagaste.</div>
+        </details>
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿Funciona en celular?</summary>
+          <div class="lnd-faq-a">Sí, AVAI funciona en cualquier dispositivo con navegador: celular, tablet, notebook, PC. No hace falta instalar nada. Solo entrás a avai.ar y listo.</div>
+        </details>
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿Mis datos están seguros?</summary>
+          <div class="lnd-faq-a">Sí. Tu contraseña va encriptada (bcrypt), las conexiones son HTTPS con SSL, y no compartimos tus datos con terceros. Podés borrar tu cuenta cuando quieras y se eliminan todos tus datos.</div>
+        </details>
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿Y si tengo un problema o dudas?</summary>
+          <div class="lnd-faq-a">Escribinos a <b>valen810a@gmail.com</b> y te respondemos lo antes posible. Los usuarios Premium tienen soporte prioritario.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="lnd-section">
+    <div class="lnd-container">
+      <div class="lnd-final">
+        <h2>Empezá a <span class="grad">crecer</span> hoy</h2>
+        <p>Sumate a AVAI y descubrí lo que se siente tener un mentor real en el bolsillo.</p>
+        <button class="lnd-cta-big" onclick="landingShowRegister()">💎 Empezar GRATIS ahora</button>
+        <p class="lnd-hero-note">Sin tarjeta · Sin compromiso · 1 minuto para empezar</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="lnd-footer">
+    <div class="lnd-container">
+      <div class="lnd-footer-grid">
+        <div class="lnd-footer-about">
+          <div class="lnd-logo" style="font-size:22px">⚡ AVAI</div>
+          <p>El mentor argentino de IA que ChatGPT no es. 11 modos, juegos con IA, gamificación completa, y todo en argentino.</p>
+        </div>
+        <div>
+          <h4>Producto</h4>
+          <a href="#lnd-features-section" onclick="document.getElementById('lnd-features-section').scrollIntoView({behavior:'smooth'});return false">Features</a>
+          <a href="#lnd-plans-section" onclick="document.getElementById('lnd-plans-section').scrollIntoView({behavior:'smooth'});return false">Planes</a>
+          <a href="javascript:void(0)" onclick="landingShowRegister()">Empezar gratis</a>
+          <a href="javascript:void(0)" onclick="landingShowLogin()">Iniciar sesión</a>
+        </div>
+        <div>
+          <h4>Legal</h4>
+          <a href="/terminos.html" target="_blank">Términos y Condiciones</a>
+          <a href="/privacidad.html" target="_blank">Política de Privacidad</a>
+          <a href="mailto:valen810a@gmail.com">Contacto / Soporte</a>
+        </div>
+      </div>
+      <div class="lnd-footer-bottom">
+        © 2026 AVAI · Formosa, Argentina · Todos los derechos reservados.<br>
+        <div class="f960">📋 F960 Data Fiscal AFIP — Próximamente</div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- LOGIN SCREEN (inicia oculto, se muestra al clickear) -->
+<!-- ═══════════════════════════════════════════════ -->
+<div id="login-screen" style="display:none">
+  <div style="width:100%;max-width:420px;margin:0 auto">
+    <button onclick="landingShowFromLogin()" style="background:transparent;border:none;color:#94a3b8;font-size:14px;cursor:pointer;margin-bottom:14px;padding:8px 12px;display:flex;align-items:center;gap:6px">← Volver</button>
+  </div>
   <div style="text-align:center;padding:20px 0 28px">
     <div style="font-family:'Syne',sans-serif;font-size:48px;font-weight:900;background:linear-gradient(90deg,#facc15,#f97316,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px">⚡ AVAI</div>
     <div style="font-size:16px;color:#cbd5e1;margin-bottom:6px">Tu mentor personal premium para negocios, ventas y crecimiento.</div>
@@ -173,6 +907,7 @@
     </p>
   </div>
 </div>
+
 <!-- ═══════════════════════════════════════════════ -->
 <!-- ONBOARDING                                      -->
 <!-- ═══════════════════════════════════════════════ -->
@@ -206,6 +941,7 @@
     </div>
   </div>
 </div>
+
 <!-- ═══════════════════════════════════════════════ -->
 <!-- MAIN APP                                        -->
 <!-- ═══════════════════════════════════════════════ -->
@@ -237,7 +973,6 @@
       <button class="nav-btn" data-tab="admin" onclick="navigateTo('admin')" style="color:#fbbf24"><span class="nav-icon">🛠️</span> Panel Admin</button>
     </div>
     <button class="nav-btn" onclick="doLogout()" style="margin-top:auto;color:#ef4444"><span class="nav-icon">🚪</span> Cerrar sesión</button>
-    <!-- Footer del sidebar con links legales -->
     <div class="sidebar-footer">
       <a href="/terminos.html" target="_blank">📋 Términos y Condiciones</a>
       <a href="/privacidad.html" target="_blank">🔒 Política de Privacidad</a>
@@ -247,12 +982,10 @@
   </nav>
   <!-- Main Content -->
   <main id="main-content">
-    <!-- HEADER -->
     <div class="hero-card mb-3">
       <div class="av-logo">⚡ AVAI</div>
       <div class="av-subtitle" id="header-subtitle">Tu mentor personal premium para negocios, ventas y crecimiento.</div>
     </div>
-    <!-- Metrics -->
     <div class="grid-4 mb-3" id="header-metrics">
       <div class="metric-chip" style="background:linear-gradient(135deg,rgba(250,204,21,.15),rgba(250,204,21,.05));border-color:rgba(250,204,21,.35)">
         <div style="font-size:24px">👤</div><div class="metric-val text-gold" id="m-nombre">—</div><div class="metric-lbl">Usuario</div>
@@ -267,7 +1000,6 @@
         <div style="font-size:24px">💎</div><div class="metric-val text-sky" id="m-plan">Gratis</div><div class="metric-lbl">Plan</div>
       </div>
     </div>
-    <!-- Progress bar -->
     <div class="card mb-3" style="padding:14px">
       <div style="display:flex;justify-content:space-between;margin-bottom:6px">
         <span style="font-weight:700;font-size:13px" id="nivel-txt">Nivel 1 — Inicial</span>
@@ -280,7 +1012,6 @@
         <span id="stat-objetivos">🎯 0 objetivos</span>
       </div>
     </div>
-    <!-- ─── TABS ─── -->
     <!-- TAB: MENTOR -->
     <div id="tab-mentor" class="tab-content active">
       <div class="modo-card">
@@ -303,7 +1034,6 @@
         </select>
         <div class="modo-card-hint">💡 11 modos disponibles · tocá para cambiar</div>
       </div>
-      <!-- Quick buttons -->
       <div class="quick-btns mb-2">
         <div class="qbtn qbtn-gold" onclick="sendQuickNeg('Dame una idea de negocio rentable para empezar con pocos recursos.')">💡 Idea</div>
         <div class="qbtn qbtn-green" onclick="sendQuickNeg('Quiero vender más. Dame un plan práctico para empezar hoy.')">📈 Vender</div>
@@ -439,7 +1169,72 @@
     </div>
   </main>
 </div>
-<!-- Scripts -->
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- 🆕 LANDING SCRIPT — control de show/hide        -->
+<!-- ═══════════════════════════════════════════════ -->
+<script>
+  // Si ya hay token guardado, NO mostramos la landing → vamos directo a la app
+  // Si NO hay token, mostramos la landing pública
+  (function() {
+    const hasToken = !!localStorage.getItem('av_token') || !!localStorage.getItem('avai_token');
+    const landing = document.getElementById('landing-screen');
+    const login = document.getElementById('login-screen');
+    if (hasToken) {
+      // Usuario ya logueado: oculta landing y login, la app va a aparecer por ui.js
+      if (landing) landing.style.display = 'none';
+      if (login) login.style.display = 'none';
+    } else {
+      // Visitante nuevo: muestra landing, oculta login
+      if (landing) landing.style.display = 'block';
+      if (login) login.style.display = 'none';
+    }
+  })();
+
+  // Botón "Iniciar sesión" desde la landing
+  function landingShowLogin() {
+    document.getElementById('landing-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    if (typeof setLoginTab === 'function') setLoginTab('login');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  // Botón "Probar gratis" / "Empezar gratis" desde la landing
+  function landingShowRegister() {
+    document.getElementById('landing-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    if (typeof setLoginTab === 'function') setLoginTab('register');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  // Botón "← Volver" desde el login → muestra landing de nuevo
+  function landingShowFromLogin() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('landing-screen').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  // Toggle mensual / anual en los planes
+  function lndTogglePlan(tipo) {
+    const btnM = document.getElementById('lnd-toggle-mensual');
+    const btnA = document.getElementById('lnd-toggle-anual');
+    const priceM = document.getElementById('lnd-price-mensual');
+    const priceA = document.getElementById('lnd-price-anual');
+    const cycleM = document.getElementById('lnd-cycle-mensual');
+    const cycleA = document.getElementById('lnd-cycle-anual');
+    if (tipo === 'anual') {
+      btnA.classList.add('active'); btnM.classList.remove('active');
+      priceA.style.display = 'block'; priceM.style.display = 'none';
+      cycleA.style.display = 'block'; cycleM.style.display = 'none';
+    } else {
+      btnM.classList.add('active'); btnA.classList.remove('active');
+      priceM.style.display = 'block'; priceA.style.display = 'none';
+      cycleM.style.display = 'block'; cycleA.style.display = 'none';
+    }
+  }
+</script>
+
+<!-- Scripts originales (sin tocar) -->
 <script src="js/lessons.js"></script>
 <script src="js/app.js"></script>
 <script src="js/ui.js"></script>
@@ -449,56 +1244,58 @@
 <script src="js/admin-extra.js"></script>
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
-<!-- ════════════════════════════════════════ -->
-  <!-- 🐛 SENTRY - Error Tracking               -->
-  <!-- ════════════════════════════════════════ -->
-  <script
-    src="https://js.sentry-cdn.com/aa0d7094952c3388c2f00fb4b7487953.min.js"
-    crossorigin="anonymous"
-  ></script>
-  <script>
-    if (typeof Sentry !== 'undefined') {
-      Sentry.onLoad(function() {
-        Sentry.init({
-          dsn: "https://aa0d7094952c3388c2f00fb4b7487953@o4511425734967296.ingest.us.sentry.io/4511425766555648",
-          environment: (location.hostname === 'avai.ar' || location.hostname === 'www.avai.ar')
-            ? 'production'
-            : 'development',
-          release: 'avai@1.0.0',
-          tracesSampleRate: 0.1,
-          replaysSessionSampleRate: 0,
-          replaysOnErrorSampleRate: 0,
-          beforeSend: function(event) {
-            if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-              return null;
-            }
-            return event;
-          },
-          ignoreErrors: [
-            'ResizeObserver loop limit exceeded',
-            'Non-Error promise rejection captured',
-            'Network request failed',
-            'NetworkError',
-            'AbortError'
-          ]
-        });
 
-        if (typeof window !== 'undefined' && window.localStorage) {
-          try {
-            var token = localStorage.getItem('av_token') || localStorage.getItem('avai_token');
-            if (token) {
-              var payload = JSON.parse(atob(token.split('.')[1]));
-              if (payload && payload.email) {
-                Sentry.setUser({
-                  email: payload.email,
-                  id: payload.id || payload.userId
-                });
-              }
-            }
-          } catch (e) {}
-        }
+<!-- ════════════════════════════════════════ -->
+<!-- 🐛 SENTRY - Error Tracking               -->
+<!-- ════════════════════════════════════════ -->
+<script
+  src="https://js.sentry-cdn.com/aa0d7094952c3388c2f00fb4b7487953.min.js"
+  crossorigin="anonymous"
+></script>
+<script>
+  if (typeof Sentry !== 'undefined') {
+    Sentry.onLoad(function() {
+      Sentry.init({
+        dsn: "https://aa0d7094952c3388c2f00fb4b7487953@o4511425734967296.ingest.us.sentry.io/4511425766555648",
+        environment: (location.hostname === 'avai.ar' || location.hostname === 'www.avai.ar')
+          ? 'production'
+          : 'development',
+        release: 'avai@1.0.0',
+        tracesSampleRate: 0.1,
+        replaysSessionSampleRate: 0,
+        replaysOnErrorSampleRate: 0,
+        beforeSend: function(event) {
+          if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+            return null;
+          }
+          return event;
+        },
+        ignoreErrors: [
+          'ResizeObserver loop limit exceeded',
+          'Non-Error promise rejection captured',
+          'Network request failed',
+          'NetworkError',
+          'AbortError'
+        ]
       });
-    }
-  </script>
+
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          var token = localStorage.getItem('av_token') || localStorage.getItem('avai_token');
+          if (token) {
+            var payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload && payload.email) {
+              Sentry.setUser({
+                email: payload.email,
+                id: payload.id || payload.userId
+              });
+            }
+          }
+        } catch (e) {}
+      }
+    });
+  }
+</script>
 
 </body>
+</html>
