@@ -3,16 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<!-- ═══════════════ PWA META TAGS ═══════════════ -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1a0f2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AVAI">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png">
+<link rel="shortcut icon" href="/icons/favicon.ico">
+
 <title>AVAI — Tu mentor argentino de IA</title>
 <meta name="description" content="11 modos mentor especializados, modo conversación libre, juegos con IA, inglés y matemáticas con tutores. El primer mentor de IA argentino.">
-<meta name="theme-color" content="#020617">
 
 <meta property="og:title" content="AVAI — Tu mentor argentino con IA">
 <meta property="og:description" content="11 modos mentor especializados, modo conversación libre, juegos con IA y mucho más. El mentor argentino que ChatGPT no es.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://avai.ar">
 
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 <link rel="stylesheet" href="css/styles.css">
 <style>
   input, textarea, select { font-size: 16px !important; }
@@ -1400,6 +1410,10 @@
 <script src="js/mercadopago-ui.js"></script>
 <script src="js/auth-extra.js"></script>
 <script src="js/admin-extra.js"></script>
+
+<!-- ═══════════════ PWA INSTALLER ═══════════════ -->
+<script src="/js/pwa-install.js" defer></script>
+
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 
