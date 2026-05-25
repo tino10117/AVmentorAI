@@ -81,7 +81,9 @@ export default async function handler(req, res) {
   const kv = await getKV();
 
   try {
+    // ═══════════════════════════════════════════════════════
     // LISTAR USUARIOS
+    // ═══════════════════════════════════════════════════════
     if (action === "usuarios") {
       const usuarios = await escanearUsuarios(kv);
       const lista = usuarios.map(u => ({
@@ -97,6 +99,8 @@ export default async function handler(req, res) {
         fecha_creacion: u.fecha_creacion || u.created_at || null,
         ultima_actividad: u.ultima_actividad || u.last_seen || null,
         tiene_suscripcion_mp: !!u.mp_subscription_id,
+        plan_otorgado_por_admin: !!u.plan_otorgado_por_admin,
+        premium_vence: u.premium_vence || null,
       }));
       lista.sort((a, b) => {
         const da = a.fecha_creacion ? new Date(a.fecha_creacion).getTime() : 0;
@@ -106,7 +110,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, total: lista.length, usuarios: lista });
     }
 
+    // ═══════════════════════════════════════════════════════
     // STATS
+    // ═══════════════════════════════════════════════════════
     if (action === "stats") {
       const usuarios = await escanearUsuarios(kv);
       let premium = 0, gratis = 0, empresarial = 0;
@@ -148,7 +154,9 @@ export default async function handler(req, res) {
       });
     }
 
-    // CAMBIAR PLAN
+    // ═══════════════════════════════════════════════════════
+    // 🔥 CAMBIAR PLAN — FIX: ahora setea TODOS los campos necesarios
+    // ═══════════════════════════════════════════════════════
     if (action === "cambiar_plan") {
       const { email_objetivo, nuevo_plan } = req.body || {};
       if (!email_objetivo || !nuevo_plan) {
@@ -161,19 +169,74 @@ export default async function handler(req, res) {
       const userKey = `user:${emailNorm}`;
       const usuario = await kv.get(userKey);
       if (!usuario) return res.status(404).json({ error: `Usuario "${emailNorm}" no encontrado` });
+
       const planAnterior = usuario.plan || "Gratis";
+
+      // ✅ CAMBIO PRINCIPAL: setear el plan
       usuario.plan = nuevo_plan;
+
+      // ✨ FIX: campos adicionales para que Premium funcione REAL
+      if (nuevo_plan === "Premium" || nuevo_plan === "Empresarial") {
+        // Si admin lo está dando Premium gratis (no por Mercado Pago)
+        usuario.plan_otorgado_por_admin = true;
+        usuario.plan_otorgado_por_admin_en = new Date().toISOString();
+        usuario.plan_otorgado_por_admin_email = decoded.email;
+
+        // Setear fecha de vencimiento (1 año por defecto si admin lo da)
+        const unAno = new Date();
+        unAno.setFullYear(unAno.getFullYear() + 1);
+        usuario.premium_vence = unAno.toISOString();
+
+        // Si no tiene suscripción MP real, marcar como manual
+        if (!usuario.mp_subscription_id) {
+          usuario.mp_subscription_status = "manual_admin";
+        }
+
+        // Limpiar campos que podrían bloquear funciones premium
+        usuario.suscripcion_cancelada = false;
+        usuario.suscripcion_cancelada_en = null;
+      } else if (nuevo_plan === "Gratis") {
+        // Al volver a Gratis, limpiamos los flags de premium
+        usuario.plan_otorgado_por_admin = false;
+        usuario.premium_vence = null;
+        // Si era admin manual, marcamos como cancelado por admin
+        if (usuario.mp_subscription_status === "manual_admin") {
+          usuario.mp_subscription_status = "cancelled_by_admin";
+        }
+      }
+
+      // Auditoría
       usuario.plan_modificado_por = decoded.email;
       usuario.plan_modificado_en = new Date().toISOString();
+      usuario.plan_anterior = planAnterior;
+
       await kv.set(userKey, usuario);
+
+      // ✨ INVALIDAR cache/sesión del usuario afectado
+      // Marcar que necesita refrescar al próximo login/request
+      try {
+        await kv.set(`user_needs_refresh:${emailNorm}`, "1", { ex: 86400 });
+      } catch (e) {}
+
       return res.status(200).json({
         ok: true,
         mensaje: `Plan de ${emailNorm} cambiado de "${planAnterior}" a "${nuevo_plan}"`,
-        usuario: { email: emailNorm, plan: nuevo_plan, nombre: usuario.nombre },
+        aviso: nuevo_plan !== planAnterior
+          ? `⚠️ El usuario debe cerrar sesión y volver a entrar (o recargar la página con F5) para que se aplique el nuevo plan.`
+          : "Sin cambios",
+        usuario: {
+          email: emailNorm,
+          plan: nuevo_plan,
+          nombre: usuario.nombre,
+          premium_vence: usuario.premium_vence || null,
+          plan_otorgado_por_admin: !!usuario.plan_otorgado_por_admin,
+        },
       });
     }
 
+    // ═══════════════════════════════════════════════════════
     // BUSCAR USUARIO
+    // ═══════════════════════════════════════════════════════
     if (action === "buscar_usuario") {
       const { email_objetivo } = req.body || {};
       if (!email_objetivo) return res.status(400).json({ error: "Falta email_objetivo" });
@@ -184,7 +247,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, usuario: resto });
     }
 
+    // ═══════════════════════════════════════════════════════
     // BANEAR
+    // ═══════════════════════════════════════════════════════
     if (action === "banear") {
       const { email_objetivo, estado } = req.body || {};
       if (!email_objetivo) return res.status(400).json({ error: "Falta email_objetivo" });
@@ -206,7 +271,9 @@ export default async function handler(req, res) {
       });
     }
 
+    // ═══════════════════════════════════════════════════════
     // ELIMINAR USUARIO
+    // ═══════════════════════════════════════════════════════
     if (action === "eliminar_usuario") {
       const { email_objetivo, confirmar } = req.body || {};
       if (!email_objetivo) return res.status(400).json({ error: "Falta email_objetivo" });
@@ -226,7 +293,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, mensaje: `Usuario ${emailNorm} eliminado` });
     }
 
+    // ═══════════════════════════════════════════════════════
     // RESETEAR PASS
+    // ═══════════════════════════════════════════════════════
     if (action === "resetear_pass") {
       const { email_objetivo } = req.body || {};
       if (!email_objetivo) return res.status(400).json({ error: "Falta email_objetivo" });
@@ -245,7 +314,9 @@ export default async function handler(req, res) {
       });
     }
 
+    // ═══════════════════════════════════════════════════════
     // PAGOS
+    // ═══════════════════════════════════════════════════════
     if (action === "pagos") {
       const usuarios = await escanearUsuarios(kv);
       const pagos = [];
@@ -270,7 +341,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, total: pagos.length, pagos });
     }
 
+    // ═══════════════════════════════════════════════════════
     // EXPORTAR CSV
+    // ═══════════════════════════════════════════════════════
     if (action === "exportar_csv") {
       const usuarios = await escanearUsuarios(kv);
       const headers = ["email","nombre","plan","xp","racha","ciudad","fecha_nacimiento","email_verificado","baneado","fecha_creacion","ultima_actividad"];
@@ -295,7 +368,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, csv, total: usuarios.length });
     }
 
+    // ═══════════════════════════════════════════════════════
     // GASTO Y CAP
+    // ═══════════════════════════════════════════════════════
     if (action === "gasto") {
       const today = new Date().toISOString().split("T")[0];
       const capActual = parseFloat(await kv.get("system_cap_usd") || "10");
@@ -340,11 +415,10 @@ export default async function handler(req, res) {
       });
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // 🆕 NUEVAS ACCIONES — AFIP / FACTURACIÓN
-    // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════
+    // 🆕 AFIP / FACTURACIÓN
+    // ═══════════════════════════════════════════════════════
 
-    // 🧾 TEST AFIP — Genera factura de prueba en homologación
     if (action === "test_afip_factura") {
       const emailDestino = req.body?.email_destino || decoded.email;
       const importe = parseFloat(req.body?.importe || 8000);
@@ -362,7 +436,6 @@ export default async function handler(req, res) {
 
         await guardarFactura(factura);
 
-        // Enviar email (no esperamos a que termine)
         const emailResult = await enviarFacturaPorEmail(factura);
 
         return res.status(200).json({
@@ -392,7 +465,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // 📋 LISTAR FACTURAS DE UN USUARIO
     if (action === "facturas_usuario") {
       const emailObjetivo = req.body?.email_objetivo;
       if (!emailObjetivo) return res.status(400).json({ error: "Falta email_objetivo" });
@@ -410,7 +482,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // 🔄 REINTENTAR FACTURAS PENDIENTES
     if (action === "reintentar_pendientes") {
       try {
         const resultado = await reintentarPendientes();
@@ -424,7 +495,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // 📊 ESTADO CONFIG AFIP (verificar variables sin exponerlas)
     if (action === "afip_status") {
       return res.status(200).json({
         ok: true,
