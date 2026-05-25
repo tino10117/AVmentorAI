@@ -3,6 +3,8 @@
 //    - Enriquecedor automático de prompt con gpt-4o-mini + vision
 //    - Quality AUTO: high con imagen adjunta, medium sin imagen
 //    - Memoria de imagen 30 min en Redis (permite "retocá" sin re-adjuntar)
+//    - ✨ FIX TIPOGRAFÍA: instrucciones explícitas para que las palabras en español
+//      se escriban correctamente en las imágenes (no más "FAAMILIAR" ni "BAAJOS")
 
 import OpenAI from "openai";
 import jwt from "jsonwebtoken";
@@ -102,7 +104,7 @@ async function addSystemCost(kv, costUSD) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ✨ NUEVO: MEMORIA DE IMAGEN ENTRE MENSAJES
+// MEMORIA DE IMAGEN ENTRE MENSAJES
 // Guarda la última imagen del usuario por 30 min en Redis.
 // Si en mensajes siguientes pide modificar SIN re-adjuntar imagen,
 // usamos esta como referencia automáticamente.
@@ -141,27 +143,31 @@ async function clearLastImage(kv, email) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ✨ NUEVO: ENRIQUECEDOR DE PROMPT PARA IMÁGENES
+// ENRIQUECEDOR DE PROMPT PARA IMÁGENES
 // Usa gpt-4o-mini con vision para convertir el pedido CRUDO del usuario
 // en un mega-prompt profesional para gpt-image-1.
 // Esto es EXACTAMENTE lo que hace ChatGPT por debajo.
+//
+// ✨ FIX TIPOGRAFÍA: ahora pide explícitamente que las palabras en español
+// se listen entre comillas para que gpt-image-1 no las deforme.
 //
 // Input: "Haceme una publicidad" + [imagen del logo Santa Rita]
 // Output: "Create a professional Argentine retail flyer using THIS
 //          exact logo as the main brand element. Include shopping cart
 //          with real products (oil, papel higiénico, yerba mate, ...),
-//          headline in Spanish, benefit icons, store hours, blue/red
-//          palette matching the logo. Photorealistic, print-ready."
+//          headline in Spanish, benefit icons (with EXACT spelling:
+//          'PRECIOS BAJOS', 'VARIEDAD DE PRODUCTOS'...), store hours.
+//          Photorealistic, print-ready, NO misspelled words."
 // ═══════════════════════════════════════════════════════════════
 async function enriquecerPromptImagen(textoUsuario, imageBase64, contextoHistorial = "") {
   try {
     const tieneImagen = !!imageBase64;
 
-    // System prompt del enriquecedor — IS EL CORAZÓN del fix
+    // System prompt del enriquecedor — ES EL CORAZÓN del fix
     const systemEnriquecedor = `Sos un experto en escribir prompts profesionales para generación de imágenes con gpt-image-1 (similar a DALL-E 3). Tu trabajo es convertir un pedido casual del usuario en un prompt detallado y profesional EN INGLÉS que produzca resultados de calidad de agencia publicitaria.
 
 REGLAS CRÍTICAS:
-1. Respondé SOLO con el prompt en inglés. NO agregues explicaciones, comentarios, ni texto extra. NO uses markdown ni comillas.
+1. Respondé SOLO con el prompt en inglés. NO agregues explicaciones, comentarios, ni texto extra. NO uses markdown ni comillas externas envolviendo todo el prompt.
 2. Si hay imagen adjunta: analizala bien y referenciala explícitamente con "THIS exact logo/image/element" para que la IA la respete.
 3. Detectá el TIPO de pedido y aplicá el template correspondiente:
 
@@ -190,24 +196,34 @@ REGLAS CRÍTICAS:
    - Diseño moderno, espacios para texto, llamada a la acción visual
 
 4. Si el pedido es ambiguo, asumí que es para uso PROFESIONAL/COMERCIAL en Argentina.
-5. SIEMPRE terminá con: "High quality, professional, sharp details, vivid colors, no watermarks, no extra text overlays beyond what's specified."
+
+5. 🔴 CRÍTICO PARA TEXTO EN IMÁGENES (REGLA MÁS IMPORTANTE):
+   Si la imagen va a contener TEXTO EN ESPAÑOL (publicidad, flyer, afiche, etc.), TENÉS que listar las palabras exactas entre comillas dobles, así:
+   
+   "The image MUST display the following Spanish words with PERFECT spelling, exactly as written here, with no duplicated letters, typos, or distortions: 'PRECIOS BAJOS', 'VARIEDAD DE PRODUCTOS', 'ATENCIÓN FAMILIAR', 'AHORRO', 'OFERTAS'. Each letter must be rendered correctly - 'FAMILIAR' has ONE A in the middle (not 'FAAMILIAR'), 'BAJOS' has ONE A (not 'BAAJOS'). All text must be perfectly legible and grammatically correct in Spanish."
+   
+   SIEMPRE listá CADA palabra/frase entre comillas simples ('') dentro del prompt para que la IA las renderice correctamente. Usá MAYÚSCULAS sostenidas para todo texto destacado en publicidad.
+
 6. NUNCA copies texto del usuario tal cual: SIEMPRE traducí y expandí a inglés profesional.
-7. Máximo 250 palabras. Conciso pero rico en detalles visuales.
+
+7. SIEMPRE terminá el prompt con esta línea EXACTA: "High quality, professional graphic design, sharp details, vivid colors, no watermarks, all Spanish text perfectly spelled and grammatically correct, no misspelled words, no duplicated letters in any word."
+
+8. Máximo 300 palabras. Conciso pero rico en detalles visuales y muy específico con los textos.
 
 CONTEXTO ADICIONAL (si hay):
 ${contextoHistorial ? `Historial de la conversación: ${contextoHistorial.slice(0, 500)}` : "Sin contexto previo."}
 
-Ejemplo de transformación:
+Ejemplo de transformación PERFECTA:
 Usuario: "Haceme una publicidad" + [logo Santa Rita mayorista]
-Output: "Create a professional Argentine wholesale store advertisement flyer using THIS exact Santa Rita logo prominently displayed at the top, preserving the original blue background, red 'Santa Rita' typography, and the nun illustration. Below the logo, design a vibrant retail layout featuring: a Spanish headline 'Mayorista que rinde, precios que sorprenden' in bold red and blue colors, a photorealistic shopping cart full of products (cooking oil, papel higiénico, yerba mate packages, canned goods, pasta), benefit icons row showing: low prices tag, shopping cart variety, family attention, savings badge. Include a store info bar at bottom with horario corrido hours placeholder and 'Encontranos en tu barrio' text. Color palette: bright blue (#1e40af), vivid red (#dc2626), warm yellow accents, clean white background. Professional graphic design, print-ready quality, sharp details, vivid colors, no watermarks."`;
+Output: Create a professional Argentine wholesale store advertisement flyer using THIS exact Santa Rita logo prominently displayed at the top, preserving the original blue background, red 'Santa Rita' typography, and the nun illustration. Below the logo, design a vibrant retail layout featuring: a Spanish headline with PERFECT spelling 'MAYORISTA QUE RINDE, PRECIOS QUE SORPRENDEN' in bold red and blue colors, a photorealistic shopping cart full of products (cooking oil, papel higiénico, yerba mate packages, canned goods, pasta), and a row of benefit icons. The image MUST display these Spanish words with PERFECT spelling, exactly as written: 'PRECIOS BAJOS', 'VARIEDAD DE PRODUCTOS', 'ATENCIÓN FAMILIAR', 'AHORRO'. Each letter must be rendered correctly - 'FAMILIAR' has ONE A in the middle, 'BAJOS' has ONE A. Include a store info bar at bottom with 'HORARIO CORRIDO' hours placeholder and 'Encontranos en tu barrio' text. Color palette: bright blue (#1e40af), vivid red (#dc2626), warm yellow accents, clean white background. High quality, professional graphic design, sharp details, vivid colors, no watermarks, all Spanish text perfectly spelled and grammatically correct, no misspelled words, no duplicated letters in any word.`;
 
     // Construir el mensaje para gpt-4o-mini
     const userMessage = tieneImagen
       ? [
-          { type: "text", text: `PEDIDO DEL USUARIO (en español argentino): "${textoUsuario}"\n\nAnalizá la imagen adjunta y construí el prompt profesional en inglés según las reglas.` },
+          { type: "text", text: `PEDIDO DEL USUARIO (en español argentino): "${textoUsuario}"\n\nAnalizá la imagen adjunta y construí el prompt profesional en inglés según las reglas. RECORDÁ: listá CADA palabra en español entre comillas simples y aclará la ortografía correcta.` },
           { type: "image_url", image_url: { url: imageBase64, detail: "low" } }
         ]
-      : `PEDIDO DEL USUARIO (en español argentino): "${textoUsuario}"\n\nConstruí el prompt profesional en inglés según las reglas.`;
+      : `PEDIDO DEL USUARIO (en español argentino): "${textoUsuario}"\n\nConstruí el prompt profesional en inglés según las reglas. RECORDÁ: si hay texto en español, listá CADA palabra entre comillas simples y aclará la ortografía correcta.`;
 
     const resp = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -215,7 +231,7 @@ Output: "Create a professional Argentine wholesale store advertisement flyer usi
         { role: "system", content: systemEnriquecedor },
         { role: "user", content: userMessage },
       ],
-      max_tokens: 500,
+      max_tokens: 600,
       temperature: 0.3, // bajo para que sea consistente
     });
 
@@ -231,8 +247,8 @@ Output: "Create a professional Argentine wholesale store advertisement flyer usi
     if (clean.length < 30) {
       console.warn("Enriquecedor devolvió prompt muy corto, usando fallback");
       return tieneImagen
-        ? `Edit or transform THIS image based on this request: "${textoUsuario}". Maintain the key visual elements. Professional, high quality, photorealistic.`
-        : `${textoUsuario}. High quality, professional, sharp details, vivid colors.`;
+        ? `Edit or transform THIS image based on this request: "${textoUsuario}". Maintain the key visual elements. Professional, high quality, photorealistic, all text perfectly spelled.`
+        : `${textoUsuario}. High quality, professional, sharp details, vivid colors, all text perfectly spelled.`;
     }
 
     return clean;
@@ -240,8 +256,8 @@ Output: "Create a professional Argentine wholesale store advertisement flyer usi
     console.error("Error en enriquecerPromptImagen:", err);
     // Fallback al prompt crudo si falla
     return imageBase64
-      ? `Edit or transform THIS image based on this request: "${textoUsuario}". Maintain key visual elements. Professional, high quality.`
-      : `${textoUsuario}. High quality, professional, sharp details.`;
+      ? `Edit or transform THIS image based on this request: "${textoUsuario}". Maintain key visual elements. Professional, high quality, all text perfectly spelled.`
+      : `${textoUsuario}. High quality, professional, sharp details, all text perfectly spelled.`;
   }
 }
 
