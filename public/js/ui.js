@@ -1,16 +1,17 @@
 // ui.js — All UI rendering and interactions
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Mostrar login si no hay sesión
+  // Si no hay sesión, mostramos la LANDING (no el login directo)
   if (!localStorage.getItem('av_token')) {
-    document.getElementById('login-screen').style.display='flex';
+    document.getElementById('landing-screen').style.display='block';
+    document.getElementById('login-screen').style.display='none';
     document.getElementById('onboarding').style.display='none';
     document.getElementById('app').style.display='none';
     renderPremiumPlanes();
     return;
   }
   Store.load();
-  if (App.user && App.token) {
+  ...  if (App.user && App.token) {
     if (!App.user.onboarding_completo) showOnboarding();
     else showApp();
   } else {
