@@ -1078,31 +1078,43 @@
     }
   })();
 
+  function landingShowPanelManual(panelId) {
+    ['panel-register', 'panel-login', 'panel-reset-step1', 'panel-reset-step2', 'panel-verif-email'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
+    const target = document.getElementById(panelId);
+    if (target) target.classList.remove('hidden');
+    const btnReg = document.getElementById('tab-btn-register');
+    const btnLog = document.getElementById('tab-btn-login');
+    const tabsWrap = document.getElementById('login-v2-tabs-wrap');
+    if (tabsWrap) tabsWrap.style.display = 'flex';
+    if (panelId === 'panel-login' && btnLog && btnReg) {
+      btnLog.classList.add('active');
+      btnReg.classList.remove('active');
+    } else if (panelId === 'panel-register' && btnLog && btnReg) {
+      btnReg.classList.add('active');
+      btnLog.classList.remove('active');
+    }
+  }
   function landingShowLogin() {
     document.getElementById('landing-screen').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
-    if (typeof setLoginTab === 'function') {
-      setLoginTab('login');
-    } else {
-      setTimeout(() => { if (typeof setLoginTab === 'function') setLoginTab('login'); }, 100);
-    }
+    landingShowPanelManual('panel-login');
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
   function landingShowRegister() {
     document.getElementById('landing-screen').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
-    if (typeof setLoginTab === 'function') {
-      setLoginTab('register');
-    } else {
-      setTimeout(() => { if (typeof setLoginTab === 'function') setLoginTab('register'); }, 100);
-    }
+    landingShowPanelManual('panel-register');
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
   function landingShowFromLogin() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('landing-screen').style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'instant' });
-  }  function lndTogglePlan(tipo) {
+  }
+  function lndTogglePlan(tipo) {
     const btnM = document.getElementById('lnd-toggle-mensual');
     const btnA = document.getElementById('lnd-toggle-anual');
     const priceM = document.getElementById('lnd-price-mensual');
