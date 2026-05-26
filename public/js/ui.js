@@ -1,26 +1,87 @@
 // ui.js — All UI rendering and interactions
 
-document.addEventListener("DOMContentLoaded", () => {
-  // Si no hay sesión, mostramos la LANDING (no el login directo)
+// ═══════════════════════════════════════════════
+// INICIALIZACIÓN ROBUSTA — Garantiza que SIEMPRE se muestre algo
+// ═══════════════════════════════════════════════
+function avaiInit() {
+  const landing = document.getElementById('landing-screen');
+  const login = document.getElementById('login-screen');
+  const onboarding = document.getElementById('onboarding');
+  const app = document.getElementById('app');
+
+  // Si no hay token → mostrar landing
   if (!localStorage.getItem('av_token')) {
-    document.getElementById('landing-screen').style.display='block';
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('onboarding').style.display='none';
-    document.getElementById('app').style.display='none';
-    renderPremiumPlanes();
+    if (landing) landing.style.display = 'block';
+    if (login) login.style.display = 'none';
+    if (onboarding) { onboarding.style.display = 'none'; onboarding.classList.add('hidden'); }
+    if (app) { app.style.display = 'none'; app.classList.add('hidden'); }
+    try { renderPremiumPlanes(); } catch(e) { console.warn('renderPremiumPlanes falló:', e); }
     return;
   }
-  Store.load();
+
+  // Hay token → cargar sesión
+  try {
+    Store.load();
     if (App.user && App.token) {
-    if (!App.user.onboarding_completo) showOnboarding();
-    else showApp();
-  } else {
-    document.getElementById('login-screen').style.display='flex';
-    document.getElementById('onboarding').style.display='none';
-    document.getElementById('app').style.display='none';
+      if (!App.user.onboarding_completo) {
+        showOnboarding();
+      } else {
+        showApp();
+      }
+    } else {
+      // Token raro: mostrar landing como fallback seguro
+      if (landing) landing.style.display = 'block';
+      if (login) login.style.display = 'none';
+      if (onboarding) onboarding.style.display = 'none';
+      if (app) app.style.display = 'none';
+    }
+    try { renderPremiumPlanes(); } catch(e) {}
+  } catch(e) {
+    console.error('[AVAI INIT] Error:', e);
+    // Si algo falló, mostrar landing como rescate
+    if (landing) landing.style.display = 'block';
+    if (login) login.style.display = 'none';
+    if (onboarding) onboarding.style.display = 'none';
+    if (app) app.style.display = 'none';
   }
-  renderPremiumPlanes();
-});
+}
+
+// Ejecutar cuando DOM esté listo (compatible con todos los timings de carga)
+if (document.readyState === 'loading') {
+  document.addEventListener("DOMContentLoaded", avaiInit);
+} else {
+  // DOM ya cargado → ejecutar inmediato
+  avaiInit();
+}
+
+// 🛡️ FALLBACK DE RESCATE: si después de 1 segundo TODAS las pantallas están ocultas,
+// forzar mostrar landing. Esto cubre cualquier race condition o script externo
+// que oculte todo por error.
+setTimeout(function() {
+  try {
+    const landing = document.getElementById('landing-screen');
+    const login = document.getElementById('login-screen');
+    const onboarding = document.getElementById('onboarding');
+    const app = document.getElementById('app');
+
+    const landingVisible = landing && getComputedStyle(landing).display !== 'none';
+    const loginVisible = login && getComputedStyle(login).display !== 'none';
+    const onboardingVisible = onboarding && getComputedStyle(onboarding).display !== 'none';
+    const appVisible = app && getComputedStyle(app).display !== 'none' && !app.classList.contains('hidden');
+
+    if (!landingVisible && !loginVisible && !onboardingVisible && !appVisible) {
+      console.warn('[AVAI RESCATE] Todas las pantallas ocultas. Forzando landing.');
+      // Decidir según token
+      if (localStorage.getItem('av_token') && typeof showApp === 'function') {
+        try { showApp(); return; } catch(e) {}
+      }
+      // Default: mostrar landing
+      if (landing) landing.style.display = 'block';
+    }
+  } catch(e) {
+    console.error('[AVAI RESCATE] Error:', e);
+  }
+}, 1200);
 
 // ── AUTH ────────────────────────────────────────
 // NOTA: setLoginTab(tab) está definido en index.html y maneja
@@ -84,12 +145,14 @@ function doLogout(){
 function showOnboarding(){
   document.getElementById("login-screen").classList.add("hidden");
   document.getElementById("login-screen").style.display = 'none';
+  document.getElementById("landing-screen").style.display = 'none';
   document.getElementById("app").classList.add("hidden");
+  document.getElementById("app").style.display = 'none';
   document.getElementById("onboarding").classList.remove("hidden");
   document.getElementById("onboarding").style.display = 'block';
   const u=App.user;
-  if(u.objetivo)document.getElementById("ob-objetivo").value=u.objetivo;
-  if(u.negocio)document.getElementById("ob-negocio").value=u.negocio;
+  if(u && u.objetivo)document.getElementById("ob-objetivo").value=u.objetivo;
+  if(u && u.negocio)document.getElementById("ob-negocio").value=u.negocio;
 }
 async function saveOnboarding(){
   const u=App.user;
@@ -105,15 +168,19 @@ async function saveOnboarding(){
   localStorage.setItem('avai_user', JSON.stringify(u));
   API.saveUser({objetivo:u.objetivo,negocio:u.negocio,tipo_negocio:u.tipo_negocio,nivel_usuario:u.nivel_usuario,onboarding_completo:true}).catch(()=>{});
   document.getElementById("onboarding").classList.add("hidden");
+  document.getElementById("onboarding").style.display = 'none';
   showApp();
 }
 
 // ── SHOW APP ────────────────────────────────────
 function showApp(){
+  document.getElementById("landing-screen").style.display = 'none';
   document.getElementById("login-screen").classList.add("hidden");
   document.getElementById("login-screen").style.display = 'none';
   document.getElementById("onboarding").classList.add("hidden");
+  document.getElementById("onboarding").style.display = 'none';
   document.getElementById("app").classList.remove("hidden");
+  document.getElementById("app").style.display = '';
   refreshHeader();
   UserHelper.genDesafio();
   initMentorTab();
