@@ -1081,21 +1081,28 @@
   function landingShowLogin() {
     document.getElementById('landing-screen').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
-    setLoginTab('login');
+    if (typeof setLoginTab === 'function') {
+      setLoginTab('login');
+    } else {
+      setTimeout(() => { if (typeof setLoginTab === 'function') setLoginTab('login'); }, 100);
+    }
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
   function landingShowRegister() {
     document.getElementById('landing-screen').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
-    setLoginTab('register');
+    if (typeof setLoginTab === 'function') {
+      setLoginTab('register');
+    } else {
+      setTimeout(() => { if (typeof setLoginTab === 'function') setLoginTab('register'); }, 100);
+    }
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
   function landingShowFromLogin() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('landing-screen').style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'instant' });
-  }
-  function lndTogglePlan(tipo) {
+  }  function lndTogglePlan(tipo) {
     const btnM = document.getElementById('lnd-toggle-mensual');
     const btnA = document.getElementById('lnd-toggle-anual');
     const priceM = document.getElementById('lnd-price-mensual');
