@@ -1,19 +1,16 @@
 // ═══════════════════════════════════════════════════════════════
-// chat-style.js v4 — Estilo ChatGPT puro definitivo
+// chat-style.js v5 — Estilo ChatGPT puro DEFINITIVO
 //
-// CAMBIOS v4:
-// • Chat con min-height grande + justify-content flex-end →
-//   mensajes pegados al BOTTOM cerca del input (como ChatGPT)
-// • Doble borde del input ELIMINADO: botones internos transparentes
-// • ⚡ de mensajes AVAI: SIN círculo, solo el rayo suelto
-// • Botón ⚡ chat-focus (despliega dashboard): SIN círculo también
-// + v3: input al teclado, botones uniformes
-// + v2: AVAI sin bubble, vos a la derecha, typing pulse
+// CAMBIOS v5:
+// • Mensajes ARRIBA del chat (justify-content: flex-start)
+// • Input pegado al BOTTOM del viewport (flex layout tab-mentor)
+// • Doble borde eliminado: wrap transparente, row con el único borde
+// • Quick buttons TODOS amarillos (Idea, Vender, Marketing, etc.)
+// + Todo lo bueno de v4: ⚡ sin círculo, botones uniformes, etc.
 // ═══════════════════════════════════════════════════════════════
 (function () {
   "use strict";
 
-  // ── 1) CSS ─────────────────────────────────────────────────
   function injectStyles() {
     const existing = document.getElementById("av-chat-style-css");
     if (existing) existing.remove();
@@ -21,41 +18,42 @@
     const style = document.createElement("style");
     style.id = "av-chat-style-css";
     style.textContent = [
-      "/* ═══ AVAI Chat estilo ChatGPT puro v4 ═══ */",
+      "/* ═══ AVAI Chat estilo ChatGPT puro v5 ═══ */",
       "",
-      "/* ═══ LAYOUT: chat alto + mensajes al bottom (input pegado abajo) ═══ */",
-      "#chat-negocio {",
-      "  min-height: 55vh !important;",
-      "  min-height: 55dvh !important;",
-      "  max-height: 65vh !important;",
-      "  max-height: 65dvh !important;",
+      "/* ═══ LAYOUT: input al BOTTOM del viewport ═══ */",
+      "#tab-mentor.active,",
+      "#tab-mentor {",
       "  display: flex !important;",
       "  flex-direction: column !important;",
-      "  justify-content: flex-end !important;",
+      "  min-height: 80vh !important;",
+      "  min-height: 80dvh !important;",
+      "}",
+      "",
+      "/* Chat ocupa el espacio sobrante, mensajes EMPIEZAN ARRIBA */",
+      "#chat-negocio {",
+      "  flex: 1 !important;",
+      "  min-height: 50vh !important;",
+      "  min-height: 50dvh !important;",
+      "  max-height: none !important;",
+      "  display: flex !important;",
+      "  flex-direction: column !important;",
+      "  justify-content: flex-start !important;",
       "  gap: 14px !important;",
       "  overflow-y: auto !important;",
+      "  padding-bottom: 8px !important;",
       "}",
       "",
-      "@media (max-width: 480px) {",
-      "  #chat-negocio {",
-      "    min-height: 60vh !important;",
-      "    min-height: 60dvh !important;",
-      "    max-height: 60dvh !important;",
-      "  }",
-      "}",
-      "",
-      "/* Contenedor flex ya está arriba — la clase .chat-wrap aplica al mismo elemento */",
       ".chat-wrap {",
       "  display: flex !important;",
       "  flex-direction: column !important;",
-      "  justify-content: flex-end !important;",
+      "  justify-content: flex-start !important;",
       "  gap: 14px !important;",
       "}",
       "",
-      "/* Ocultar headers (avatar + 'VOS'/'AVAI') */",
+      "/* Ocultar headers de cada mensaje */",
       ".chat-msg .chat-msg-header { display: none !important; }",
       "",
-      "/* ═══ MENSAJES DE AVAI — solo texto + ⚡ SUELTO al lado ═══ */",
+      "/* ═══ MENSAJES DE AVAI — solo texto + ⚡ SUELTO ═══ */",
       ".chat-msg.msg-ai,",
       ".chat-msg.msg-english,",
       ".chat-msg.msg-mate {",
@@ -74,7 +72,7 @@
       "  color: #f8fafc !important;",
       "}",
       "",
-      "/* ⚡ SUELTO (sin círculo, sin borde, sin nada) */",
+      "/* ⚡ SUELTO sin círculo */",
       ".chat-msg.msg-ai::before,",
       ".chat-msg.msg-english::before,",
       ".chat-msg.msg-mate::before {",
@@ -146,21 +144,43 @@
       "  display: none !important;",
       "}",
       "",
-      "/* ═══ INPUT WRAP — UN SOLO BORDE LIMPIO ═══ */",
+      "/* ═══ INPUT — WRAP TRANSPARENTE, ROW CON EL ÚNICO BORDE ═══ */",
+      "/* Esto ELIMINA cualquier doble borde */",
       ".chat-input-wrap {",
-      "  background: rgba(2, 6, 23, 0.35) !important;",
+      "  background: transparent !important;",
+      "  background-color: transparent !important;",
       "  background-image: none !important;",
+      "  border: none !important;",
       "  box-shadow: none !important;",
-      "  border: 1.5px solid rgba(250, 204, 21, 0.35) !important;",
-      "  border-radius: 18px !important;",
-      "  padding: 6px 8px !important;",
       "  outline: none !important;",
+      "  padding: 0 !important;",
+      "  margin-top: 12px !important;",
       "}",
       "",
       ".chat-input-wrap:focus-within {",
-      "  border-color: rgba(250, 204, 21, 0.6) !important;",
+      "  background: transparent !important;",
+      "  border: none !important;",
       "  box-shadow: none !important;",
       "  outline: none !important;",
+      "}",
+      "",
+      "/* EL ROW tiene el ÚNICO borde amarillo */",
+      ".chat-input-row {",
+      "  background: rgba(15, 23, 42, 0.45) !important;",
+      "  background-image: none !important;",
+      "  border: 2px solid rgba(250, 204, 21, 0.45) !important;",
+      "  border-radius: 18px !important;",
+      "  padding: 6px 8px !important;",
+      "  display: flex !important;",
+      "  align-items: center !important;",
+      "  gap: 6px !important;",
+      "  box-shadow: none !important;",
+      "  outline: none !important;",
+      "  transition: border-color 0.2s ease !important;",
+      "}",
+      "",
+      ".chat-input-row:focus-within {",
+      "  border-color: rgba(250, 204, 21, 0.7) !important;",
       "}",
       "",
       "/* ═══ TEXTAREA — sin apariencia nativa iOS ═══ */",
@@ -177,7 +197,7 @@
       "  -webkit-tap-highlight-color: transparent !important;",
       "}",
       "",
-      "/* ═══ BOTONES DEL INPUT — TRANSPARENTES, SOLO HOVER VISIBLE ═══ */",
+      "/* ═══ BOTONES DEL INPUT — TRANSPARENTES, HOVER SUTIL ═══ */",
       ".chat-input-row > button,",
       ".chat-input-row button,",
       ".chat-input-wrap button,",
@@ -205,14 +225,11 @@
       "}",
       "",
       ".chat-input-row > button:hover,",
-      ".chat-input-row button:hover,",
-      ".voice-btn:hover,",
-      "#neg-voice-btn:hover {",
+      ".chat-input-row button:hover {",
       "  background: rgba(148, 163, 184, 0.15) !important;",
       "  color: #facc15 !important;",
       "}",
       "",
-      "/* Sobrescribir SPECIFICAMENTE el send button con gradiente naranja */",
       ".chat-send-btn#neg-send,",
       "button#neg-send,",
       "#neg-send {",
@@ -235,7 +252,35 @@
       "  box-shadow: none !important;",
       "}",
       "",
-      "/* ═══ BOTÓN CHAT-FOCUS (⚡ que despliega dashboard) — SIN CÍRCULO ═══ */",
+      "/* ═══ QUICK BUTTONS — TODOS AMARILLOS COMO EL ⚡ ═══ */",
+      ".qbtn,",
+      ".qbtn-gold,",
+      ".qbtn-green,",
+      ".qbtn-indigo,",
+      ".qbtn-red,",
+      ".qbtn-purple,",
+      ".qbtn-sky,",
+      ".qbtn-blue,",
+      "[class*=\"qbtn-\"] {",
+      "  border: 1.5px solid rgba(250, 204, 21, 0.4) !important;",
+      "  background: rgba(15, 23, 42, 0.5) !important;",
+      "  background-image: none !important;",
+      "  background-color: rgba(15, 23, 42, 0.5) !important;",
+      "  color: #facc15 !important;",
+      "  box-shadow: none !important;",
+      "  transition: all 0.2s ease !important;",
+      "}",
+      "",
+      ".qbtn:hover,",
+      "[class*=\"qbtn-\"]:hover {",
+      "  border-color: rgba(250, 204, 21, 0.75) !important;",
+      "  background: rgba(250, 204, 21, 0.10) !important;",
+      "  background-color: rgba(250, 204, 21, 0.10) !important;",
+      "  color: #facc15 !important;",
+      "  transform: translateY(-1px) !important;",
+      "}",
+      "",
+      "/* ═══ BOTÓN CHAT-FOCUS (⚡ standalone) — SIN CÍRCULO ═══ */",
       ".av-focus-toggle,",
       ".av-chat-focus,",
       ".chat-focus-btn,",
@@ -279,7 +324,7 @@
     document.head.appendChild(style);
   }
 
-  // ── 2) Reemplazar 🎤 y 🔊 en botones del input ──
+  // ── Reemplazar 🎤 y 🔊 en botones ──
   function processButtons() {
     if (!window.lucide || typeof window.lucide.createIcons !== "function") {
       return;
@@ -314,7 +359,7 @@
     }
   }
 
-  // ── 3) Sacar el círculo del botón ⚡ chat-focus (fallback JS) ──
+  // ── Sacar círculo del botón ⚡ chat-focus (fallback JS) ──
   function fixFocusButton() {
     document.querySelectorAll("button, [role=\"button\"]").forEach(function (el) {
       if (el.hasAttribute("data-av-focus-fixed")) return;
@@ -322,7 +367,6 @@
       if (el.closest("#chat-negocio")) return;
       if (el.closest(".sidebar-logo")) return;
       if (el.closest(".dash-hero")) return;
-      if (el.closest(".sidebar")) return;
       if (el.closest("#sidebar")) return;
 
       const txt = (el.textContent || "").trim().replace(/\uFE0F/g, "");
@@ -344,7 +388,7 @@
     });
   }
 
-  // ── 4) Init + observer ──
+  // ── Init + observer ──
   let scheduled = false;
   function scheduleProcess() {
     if (scheduled) return;
@@ -367,7 +411,7 @@
         obs.observe(document.body, { childList: true, subtree: true });
       }
     } catch (e) {
-      console.warn("[chat-style v4] init falló:", e);
+      console.warn("[chat-style v5] init falló:", e);
     }
   }
 
