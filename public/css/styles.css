@@ -431,3 +431,43 @@ body {
   .stats-row .stat-pill { min-width: 60px; }
   .grid-2 { grid-template-columns: 1fr; }
 }
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* ── ÍCONOS DE LÍNEA (reemplazo profesional de emojis) ──         */
+/* Generados por icons.js usando Lucide. Color gris neutro.        */
+/* ═══════════════════════════════════════════════════════════════ */
+svg.lucide {
+  display: inline-block;
+  width: 1.05em;
+  height: 1.05em;
+  vertical-align: -0.15em;
+  stroke-width: 2;
+  color: #94a3b8;            /* gris neutro por defecto */
+  flex-shrink: 0;
+}
+.av-icon { display: inline-flex; align-items: center; }
+
+/* Sidebar: íconos un toque más grandes y alineados */
+.nav-icon svg.lucide { width: 18px; height: 18px; }
+.nav-btn.active svg.lucide,
+.nav-btn.active .nav-icon svg.lucide { color: var(--gold); }
+
+/* Botones y badges: el ícono hereda el color del texto para que se lea
+   bien sobre fondos de color (dorado, violeta, etc.) */
+.btn svg.lucide,
+.badge svg.lucide,
+.qbtn svg.lucide,
+.qbtn:hover svg.lucide { color: currentColor; }
+.btn svg.lucide { width: 15px; height: 15px; }
+.btn-lg svg.lucide { width: 17px; height: 17px; }
+.btn-sm svg.lucide { width: 13px; height: 13px; }
+
+/* Subnav / tabs */
+.subnav-btn svg.lucide, .tab-btn svg.lucide { width: 14px; height: 14px; }
+.subnav-btn.active svg.lucide, .tab-btn.active svg.lucide { color: var(--gold); }
+
+/* Avatares del chat: ícono blanco sobre el círculo de color */
+.chat-avatar svg.lucide { color: #fff; width: 16px; height: 16px; }
+
+/* Chips de métricas / títulos de sección: que respiren un poco */
+h2 svg.lucide, h3 svg.lucide, h4 svg.lucide { vertical-align: -0.12em; margin-right: 2px; }
