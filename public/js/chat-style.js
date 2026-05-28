@@ -1,12 +1,11 @@
 // ═══════════════════════════════════════════════════════════════
-// chat-style.js v5 — Estilo ChatGPT puro DEFINITIVO
+// chat-style.js v6 — Fix crítico: tab switching
 //
-// CAMBIOS v5:
-// • Mensajes ARRIBA del chat (justify-content: flex-start)
-// • Input pegado al BOTTOM del viewport (flex layout tab-mentor)
-// • Doble borde eliminado: wrap transparente, row con el único borde
-// • Quick buttons TODOS amarillos (Idea, Vender, Marketing, etc.)
-// + Todo lo bueno de v4: ⚡ sin círculo, botones uniformes, etc.
+// FIX v6:
+// • #tab-mentor flex layout SOLO cuando .active (no siempre)
+// • .tab-content.hidden se respeta → otras tabs funcionan bien
+// + Todo lo bueno de v5: mensajes arriba, input bottom,
+//   sin doble borde, quick buttons amarillos, ⚡ sin círculo
 // ═══════════════════════════════════════════════════════════════
 (function () {
   "use strict";
@@ -18,22 +17,28 @@
     const style = document.createElement("style");
     style.id = "av-chat-style-css";
     style.textContent = [
-      "/* ═══ AVAI Chat estilo ChatGPT puro v5 ═══ */",
+      "/* ═══ AVAI Chat estilo ChatGPT puro v6 ═══ */",
       "",
-      "/* ═══ LAYOUT: input al BOTTOM del viewport ═══ */",
-      "#tab-mentor.active,",
-      "#tab-mentor {",
+      "/* ═══ LAYOUT: SOLO afecta tab-mentor cuando está ACTIVO ═══ */",
+      "/* Esto es crítico: si aplicamos flex sin .active, el tab queda visible siempre */",
+      "#tab-mentor.active {",
       "  display: flex !important;",
       "  flex-direction: column !important;",
-      "  min-height: 80vh !important;",
-      "  min-height: 80dvh !important;",
+      "  min-height: 75vh !important;",
+      "  min-height: 75dvh !important;",
+      "}",
+      "",
+      "/* Asegurar que las tabs ocultas QUEDEN ocultas */",
+      ".tab-content.hidden {",
+      "  display: none !important;",
       "}",
       "",
       "/* Chat ocupa el espacio sobrante, mensajes EMPIEZAN ARRIBA */",
-      "#chat-negocio {",
+      "#tab-mentor.active > #chat-negocio,",
+      "#tab-mentor.active #chat-negocio {",
       "  flex: 1 !important;",
-      "  min-height: 50vh !important;",
-      "  min-height: 50dvh !important;",
+      "  min-height: 45vh !important;",
+      "  min-height: 45dvh !important;",
       "  max-height: none !important;",
       "  display: flex !important;",
       "  flex-direction: column !important;",
@@ -43,7 +48,7 @@
       "  padding-bottom: 8px !important;",
       "}",
       "",
-      ".chat-wrap {",
+      "#tab-mentor.active .chat-wrap {",
       "  display: flex !important;",
       "  flex-direction: column !important;",
       "  justify-content: flex-start !important;",
@@ -145,7 +150,6 @@
       "}",
       "",
       "/* ═══ INPUT — WRAP TRANSPARENTE, ROW CON EL ÚNICO BORDE ═══ */",
-      "/* Esto ELIMINA cualquier doble borde */",
       ".chat-input-wrap {",
       "  background: transparent !important;",
       "  background-color: transparent !important;",
@@ -164,7 +168,6 @@
       "  outline: none !important;",
       "}",
       "",
-      "/* EL ROW tiene el ÚNICO borde amarillo */",
       ".chat-input-row {",
       "  background: rgba(15, 23, 42, 0.45) !important;",
       "  background-image: none !important;",
@@ -183,7 +186,7 @@
       "  border-color: rgba(250, 204, 21, 0.7) !important;",
       "}",
       "",
-      "/* ═══ TEXTAREA — sin apariencia nativa iOS ═══ */",
+      "/* TEXTAREA */",
       ".chat-input-row textarea,",
       "#neg-input {",
       "  -webkit-appearance: none !important;",
@@ -197,7 +200,7 @@
       "  -webkit-tap-highlight-color: transparent !important;",
       "}",
       "",
-      "/* ═══ BOTONES DEL INPUT — TRANSPARENTES, HOVER SUTIL ═══ */",
+      "/* BOTONES DEL INPUT — transparentes, hover sutil */",
       ".chat-input-row > button,",
       ".chat-input-row button,",
       ".chat-input-wrap button,",
@@ -248,11 +251,9 @@
       "#neg-send:active {",
       "  color: #facc15 !important;",
       "  background: rgba(148, 163, 184, 0.15) !important;",
-      "  transform: none !important;",
-      "  box-shadow: none !important;",
       "}",
       "",
-      "/* ═══ QUICK BUTTONS — TODOS AMARILLOS COMO EL ⚡ ═══ */",
+      "/* ═══ QUICK BUTTONS — TODOS AMARILLOS ═══ */",
       ".qbtn,",
       ".qbtn-gold,",
       ".qbtn-green,",
@@ -411,7 +412,7 @@
         obs.observe(document.body, { childList: true, subtree: true });
       }
     } catch (e) {
-      console.warn("[chat-style v5] init falló:", e);
+      console.warn("[chat-style v6] init falló:", e);
     }
   }
 
