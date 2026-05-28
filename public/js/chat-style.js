@@ -1,12 +1,14 @@
 // ═══════════════════════════════════════════════════════════════
-// chat-style.js v3 — Estilo ChatGPT puro + arreglos UX
+// chat-style.js v4 — Estilo ChatGPT puro definitivo
 //
-// CAMBIOS v3:
-// • Chat sin min-height → input pegado al teclado en iOS
-// • Wrap del input transparente → un solo borde (no más doble encerrado)
-// • Botones del input TODOS color gris uniforme (mic, paperclip, send)
-// • Textarea sin apariencia nativa iOS (sin border-radius interno)
-// + Lo de v2: AVAI sin bubble, vos a la derecha, typing solo ⚡
+// CAMBIOS v4:
+// • Chat con min-height grande + justify-content flex-end →
+//   mensajes pegados al BOTTOM cerca del input (como ChatGPT)
+// • Doble borde del input ELIMINADO: botones internos transparentes
+// • ⚡ de mensajes AVAI: SIN círculo, solo el rayo suelto
+// • Botón ⚡ chat-focus (despliega dashboard): SIN círculo también
+// + v3: input al teclado, botones uniformes
+// + v2: AVAI sin bubble, vos a la derecha, typing pulse
 // ═══════════════════════════════════════════════════════════════
 (function () {
   "use strict";
@@ -19,33 +21,41 @@
     const style = document.createElement("style");
     style.id = "av-chat-style-css";
     style.textContent = [
-      "/* ═══ AVAI Chat estilo ChatGPT puro v3 ═══ */",
+      "/* ═══ AVAI Chat estilo ChatGPT puro v4 ═══ */",
       "",
-      "/* Chat: sin min-height para que se ajuste al contenido (fix iOS) */",
+      "/* ═══ LAYOUT: chat alto + mensajes al bottom (input pegado abajo) ═══ */",
       "#chat-negocio {",
-      "  min-height: auto !important;",
-      "  max-height: 55vh !important;",
-      "  max-height: 55dvh !important;",
+      "  min-height: 55vh !important;",
+      "  min-height: 55dvh !important;",
+      "  max-height: 65vh !important;",
+      "  max-height: 65dvh !important;",
+      "  display: flex !important;",
+      "  flex-direction: column !important;",
+      "  justify-content: flex-end !important;",
+      "  gap: 14px !important;",
+      "  overflow-y: auto !important;",
       "}",
       "",
       "@media (max-width: 480px) {",
       "  #chat-negocio {",
-      "    max-height: 50vh !important;",
-      "    max-height: 50dvh !important;",
+      "    min-height: 60vh !important;",
+      "    min-height: 60dvh !important;",
+      "    max-height: 60dvh !important;",
       "  }",
       "}",
       "",
-      "/* Contenedor del chat como columna flex */",
+      "/* Contenedor flex ya está arriba — la clase .chat-wrap aplica al mismo elemento */",
       ".chat-wrap {",
       "  display: flex !important;",
       "  flex-direction: column !important;",
+      "  justify-content: flex-end !important;",
       "  gap: 14px !important;",
       "}",
       "",
       "/* Ocultar headers (avatar + 'VOS'/'AVAI') */",
       ".chat-msg .chat-msg-header { display: none !important; }",
       "",
-      "/* ═══ MENSAJES DE AVAI ═══ */",
+      "/* ═══ MENSAJES DE AVAI — solo texto + ⚡ SUELTO al lado ═══ */",
       ".chat-msg.msg-ai,",
       ".chat-msg.msg-english,",
       ".chat-msg.msg-mate {",
@@ -54,7 +64,7 @@
       "  border-left: none !important;",
       "  border-radius: 0 !important;",
       "  box-shadow: none !important;",
-      "  padding: 6px 0 6px 44px !important;",
+      "  padding: 6px 0 6px 38px !important;",
       "  margin: 0 !important;",
       "  max-width: 100% !important;",
       "  width: auto !important;",
@@ -64,6 +74,7 @@
       "  color: #f8fafc !important;",
       "}",
       "",
+      "/* ⚡ SUELTO (sin círculo, sin borde, sin nada) */",
       ".chat-msg.msg-ai::before,",
       ".chat-msg.msg-english::before,",
       ".chat-msg.msg-mate::before {",
@@ -71,18 +82,20 @@
       "  position: absolute;",
       "  left: 0;",
       "  top: 2px;",
-      "  width: 30px;",
-      "  height: 30px;",
+      "  width: 26px;",
+      "  height: 26px;",
       "  display: flex;",
       "  align-items: center;",
       "  justify-content: center;",
-      "  font-size: 15px;",
+      "  font-size: 20px;",
       "  color: #facc15;",
-      "  background: rgba(15,23,42,0.9);",
-      "  border: 1px solid rgba(250,204,21,0.4);",
-      "  border-radius: 50%;",
+      "  background: transparent !important;",
+      "  background-color: transparent !important;",
+      "  border: none !important;",
+      "  border-radius: 0 !important;",
+      "  box-shadow: none !important;",
       "  line-height: 1;",
-      "  box-shadow: 0 2px 8px rgba(0,0,0,0.25);",
+      "  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));",
       "}",
       "",
       "/* ═══ MENSAJES DEL USUARIO ═══ */",
@@ -123,16 +136,8 @@
       "}",
       "",
       "@keyframes avChatPulse {",
-      "  0%, 100% {",
-      "    opacity: 0.5;",
-      "    transform: scale(0.92);",
-      "    box-shadow: 0 0 0 0 rgba(250,204,21,0.5);",
-      "  }",
-      "  50% {",
-      "    opacity: 1;",
-      "    transform: scale(1.08);",
-      "    box-shadow: 0 0 16px 4px rgba(250,204,21,0.45);",
-      "  }",
+      "  0%, 100% { opacity: 0.5; transform: scale(0.92); }",
+      "  50% { opacity: 1; transform: scale(1.12); }",
       "}",
       "",
       ".chat-msg.msg-ai:has(.typing-indicator) button,",
@@ -141,12 +146,15 @@
       "  display: none !important;",
       "}",
       "",
-      "/* ═══ INPUT WRAP — UN SOLO BORDE, SIN DOBLE ENCERRADO ═══ */",
+      "/* ═══ INPUT WRAP — UN SOLO BORDE LIMPIO ═══ */",
       ".chat-input-wrap {",
-      "  background: transparent !important;",
+      "  background: rgba(2, 6, 23, 0.35) !important;",
+      "  background-image: none !important;",
       "  box-shadow: none !important;",
       "  border: 1.5px solid rgba(250, 204, 21, 0.35) !important;",
-      "  border-radius: 16px !important;",
+      "  border-radius: 18px !important;",
+      "  padding: 6px 8px !important;",
+      "  outline: none !important;",
       "}",
       "",
       ".chat-input-wrap:focus-within {",
@@ -169,8 +177,7 @@
       "  -webkit-tap-highlight-color: transparent !important;",
       "}",
       "",
-      "/* ═══ BOTONES DEL INPUT — TODOS GRIS UNIFORME ═══ */",
-      "/* Captura amplia: paperclip, send, mic (voice), cualquier botón del input row */",
+      "/* ═══ BOTONES DEL INPUT — TRANSPARENTES, SOLO HOVER VISIBLE ═══ */",
       ".chat-input-row > button,",
       ".chat-input-row button,",
       ".chat-input-wrap button,",
@@ -179,10 +186,10 @@
       "#neg-voice-btn,",
       "button.voice-btn,",
       "[class*=\"voice-btn\"] {",
-      "  background: rgba(2, 6, 23, 0.5) !important;",
+      "  background: transparent !important;",
       "  background-image: none !important;",
-      "  background-color: rgba(2, 6, 23, 0.5) !important;",
-      "  border: 1px solid rgba(148, 163, 184, 0.18) !important;",
+      "  background-color: transparent !important;",
+      "  border: none !important;",
       "  color: #94a3b8 !important;",
       "  width: 36px !important;",
       "  height: 36px !important;",
@@ -197,14 +204,11 @@
       "  padding: 0 !important;",
       "}",
       "",
-      "/* Hover/focus para todos los botones del input */",
       ".chat-input-row > button:hover,",
       ".chat-input-row button:hover,",
       ".voice-btn:hover,",
-      "#neg-voice-btn:hover,",
-      ".chat-input-row > button:active {",
-      "  background: rgba(2, 6, 23, 0.8) !important;",
-      "  border-color: rgba(250, 204, 21, 0.3) !important;",
+      "#neg-voice-btn:hover {",
+      "  background: rgba(148, 163, 184, 0.15) !important;",
       "  color: #facc15 !important;",
       "}",
       "",
@@ -212,10 +216,10 @@
       ".chat-send-btn#neg-send,",
       "button#neg-send,",
       "#neg-send {",
-      "  background: rgba(2, 6, 23, 0.5) !important;",
+      "  background: transparent !important;",
       "  background-image: none !important;",
-      "  background-color: rgba(2, 6, 23, 0.5) !important;",
-      "  border: 1px solid rgba(148, 163, 184, 0.18) !important;",
+      "  background-color: transparent !important;",
+      "  border: none !important;",
       "  color: #94a3b8 !important;",
       "  font-weight: 600 !important;",
       "  font-size: 15px !important;",
@@ -226,10 +230,34 @@
       "#neg-send:hover,",
       "#neg-send:active {",
       "  color: #facc15 !important;",
-      "  border-color: rgba(250, 204, 21, 0.3) !important;",
-      "  background: rgba(2, 6, 23, 0.8) !important;",
+      "  background: rgba(148, 163, 184, 0.15) !important;",
       "  transform: none !important;",
       "  box-shadow: none !important;",
+      "}",
+      "",
+      "/* ═══ BOTÓN CHAT-FOCUS (⚡ que despliega dashboard) — SIN CÍRCULO ═══ */",
+      ".av-focus-toggle,",
+      ".av-chat-focus,",
+      ".chat-focus-btn,",
+      ".av-chat-focus-toggle,",
+      "[data-focus-btn],",
+      "#av-focus-toggle,",
+      "#chat-focus-btn,",
+      "button.av-focus,",
+      "button[class*=\"focus-toggle\"],",
+      "button[class*=\"chat-focus\"] {",
+      "  background: transparent !important;",
+      "  background-color: transparent !important;",
+      "  background-image: none !important;",
+      "  border: none !important;",
+      "  border-radius: 0 !important;",
+      "  box-shadow: none !important;",
+      "  width: auto !important;",
+      "  height: auto !important;",
+      "  padding: 8px !important;",
+      "  font-size: 32px !important;",
+      "  color: #facc15 !important;",
+      "  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));",
       "}",
       "",
       "/* Responsive */",
@@ -237,21 +265,21 @@
       "  .chat-msg.msg-ai,",
       "  .chat-msg.msg-english,",
       "  .chat-msg.msg-mate {",
-      "    padding-left: 38px !important;",
+      "    padding-left: 34px !important;",
       "  }",
       "  .chat-msg.msg-ai::before,",
       "  .chat-msg.msg-english::before,",
       "  .chat-msg.msg-mate::before {",
-      "    width: 26px;",
-      "    height: 26px;",
-      "    font-size: 13px;",
+      "    width: 22px;",
+      "    height: 22px;",
+      "    font-size: 17px;",
       "  }",
       "}"
     ].join("\n");
     document.head.appendChild(style);
   }
 
-  // ── 2) Reemplazar 🎤 y 🔊 en cualquier botón ──
+  // ── 2) Reemplazar 🎤 y 🔊 en botones del input ──
   function processButtons() {
     if (!window.lucide || typeof window.lucide.createIcons !== "function") {
       return;
@@ -286,7 +314,37 @@
     }
   }
 
-  // ── 3) Init + observer ────────────────────────────────────
+  // ── 3) Sacar el círculo del botón ⚡ chat-focus (fallback JS) ──
+  function fixFocusButton() {
+    document.querySelectorAll("button, [role=\"button\"]").forEach(function (el) {
+      if (el.hasAttribute("data-av-focus-fixed")) return;
+      if (el.closest(".chat-msg")) return;
+      if (el.closest("#chat-negocio")) return;
+      if (el.closest(".sidebar-logo")) return;
+      if (el.closest(".dash-hero")) return;
+      if (el.closest(".sidebar")) return;
+      if (el.closest("#sidebar")) return;
+
+      const txt = (el.textContent || "").trim().replace(/\uFE0F/g, "");
+      if (txt === "\u26A1") {
+        el.style.cssText +=
+          "background: transparent !important;" +
+          "background-color: transparent !important;" +
+          "background-image: none !important;" +
+          "border: none !important;" +
+          "border-radius: 0 !important;" +
+          "box-shadow: none !important;" +
+          "width: auto !important;" +
+          "height: auto !important;" +
+          "padding: 8px !important;" +
+          "font-size: 32px !important;" +
+          "color: #facc15 !important;";
+        el.setAttribute("data-av-focus-fixed", "1");
+      }
+    });
+  }
+
+  // ── 4) Init + observer ──
   let scheduled = false;
   function scheduleProcess() {
     if (scheduled) return;
@@ -294,6 +352,7 @@
     setTimeout(function () {
       scheduled = false;
       processButtons();
+      fixFocusButton();
     }, 200);
   }
 
@@ -301,13 +360,14 @@
     try {
       injectStyles();
       processButtons();
+      fixFocusButton();
 
       if ("MutationObserver" in window && document.body) {
         const obs = new MutationObserver(scheduleProcess);
         obs.observe(document.body, { childList: true, subtree: true });
       }
     } catch (e) {
-      console.warn("[chat-style v3] init falló:", e);
+      console.warn("[chat-style v4] init falló:", e);
     }
   }
 
