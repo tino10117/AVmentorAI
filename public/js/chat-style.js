@@ -1,18 +1,17 @@
 // ═══════════════════════════════════════════════════════════════
-// chat-style.js v2 — Estilo ChatGPT PURO para el chat de AVAI
+// chat-style.js v3 — Estilo ChatGPT puro + arreglos UX
 //
-// CAMBIOS v2 (versión definitiva):
-// • AVAI sin bubble (estilo ChatGPT puro): solo texto + ⚡ al lado
-// • Tus mensajes a la DERECHA con bubble dorado
-// • Detección robusta: cualquier mensaje no-AVAI se trata como user
-// • Typing: solo ⚡ pulsando, sin los 3 puntitos
-// • Botones 🎤 y 🔊 → íconos Lucide (selector amplio)
-// 100% additivo. No toca HTML ni lógica de la app.
+// CAMBIOS v3:
+// • Chat sin min-height → input pegado al teclado en iOS
+// • Wrap del input transparente → un solo borde (no más doble encerrado)
+// • Botones del input TODOS color gris uniforme (mic, paperclip, send)
+// • Textarea sin apariencia nativa iOS (sin border-radius interno)
+// + Lo de v2: AVAI sin bubble, vos a la derecha, typing solo ⚡
 // ═══════════════════════════════════════════════════════════════
 (function () {
   "use strict";
 
-  // ── 1) CSS estilo ChatGPT puro ─────────────────────────────
+  // ── 1) CSS ─────────────────────────────────────────────────
   function injectStyles() {
     const existing = document.getElementById("av-chat-style-css");
     if (existing) existing.remove();
@@ -20,7 +19,21 @@
     const style = document.createElement("style");
     style.id = "av-chat-style-css";
     style.textContent = [
-      "/* ═══ AVAI Chat estilo ChatGPT puro ═══ */",
+      "/* ═══ AVAI Chat estilo ChatGPT puro v3 ═══ */",
+      "",
+      "/* Chat: sin min-height para que se ajuste al contenido (fix iOS) */",
+      "#chat-negocio {",
+      "  min-height: auto !important;",
+      "  max-height: 55vh !important;",
+      "  max-height: 55dvh !important;",
+      "}",
+      "",
+      "@media (max-width: 480px) {",
+      "  #chat-negocio {",
+      "    max-height: 50vh !important;",
+      "    max-height: 50dvh !important;",
+      "  }",
+      "}",
       "",
       "/* Contenedor del chat como columna flex */",
       ".chat-wrap {",
@@ -33,7 +46,6 @@
       ".chat-msg .chat-msg-header { display: none !important; }",
       "",
       "/* ═══ MENSAJES DE AVAI ═══ */",
-      "/* Sin bubble, solo texto con ⚡ circular al lado */",
       ".chat-msg.msg-ai,",
       ".chat-msg.msg-english,",
       ".chat-msg.msg-mate {",
@@ -52,7 +64,6 @@
       "  color: #f8fafc !important;",
       "}",
       "",
-      "/* ⚡ circular dorado a la izquierda del mensaje AVAI */",
       ".chat-msg.msg-ai::before,",
       ".chat-msg.msg-english::before,",
       ".chat-msg.msg-mate::before {",
@@ -75,7 +86,6 @@
       "}",
       "",
       "/* ═══ MENSAJES DEL USUARIO ═══ */",
-      "/* Detección amplia: captura cualquier .chat-msg que NO sea AVAI */",
       ".chat-msg.msg-user,",
       ".chat-msg:not(.msg-ai):not(.msg-english):not(.msg-mate):not(.typing-indicator) {",
       "  align-self: flex-end !important;",
@@ -93,31 +103,11 @@
       "  word-wrap: break-word !important;",
       "}",
       "",
-      "/* Y también captura cualquier hijo del chat que NO sea .chat-msg ni typing */",
-      "#chat-negocio > div:not(.chat-msg):not(.typing-indicator),",
-      "#chat-negocio > p:not(.chat-msg) {",
-      "  align-self: flex-end !important;",
-      "  margin-left: auto !important;",
-      "  margin-right: 0 !important;",
-      "  background: linear-gradient(135deg, rgba(250,204,21,0.18), rgba(249,115,22,0.10)) !important;",
-      "  border: 1px solid rgba(250,204,21,0.30) !important;",
-      "  border-radius: 18px !important;",
-      "  border-bottom-right-radius: 4px !important;",
-      "  padding: 12px 16px !important;",
-      "  max-width: 85% !important;",
-      "  width: fit-content !important;",
-      "  color: #f8fafc !important;",
-      "  line-height: 1.55 !important;",
-      "}",
-      "",
-      "/* No mostrar ⚡ en mensajes user */",
       ".chat-msg.msg-user::before { display: none !important; }",
       "",
       "/* ═══ TYPING INDICATOR ═══ */",
-      "/* Ocultar los 3 puntitos */",
       ".typing-indicator .typing-dot { display: none !important; }",
       "",
-      "/* Typing sin bubble, transparente */",
       ".typing-indicator {",
       "  background: transparent !important;",
       "  border: none !important;",
@@ -126,7 +116,6 @@
       "  min-height: 20px;",
       "}",
       "",
-      "/* Cuando AVAI carga, el ⚡ del mensaje pulsa */",
       ".chat-msg.msg-ai:has(.typing-indicator)::before,",
       ".chat-msg.msg-english:has(.typing-indicator)::before,",
       ".chat-msg.msg-mate:has(.typing-indicator)::before {",
@@ -146,17 +135,101 @@
       "  }",
       "}",
       "",
-      "/* Ocultar botón TTS mientras AVAI carga */",
       ".chat-msg.msg-ai:has(.typing-indicator) button,",
       ".chat-msg.msg-english:has(.typing-indicator) button,",
       ".chat-msg.msg-mate:has(.typing-indicator) button {",
       "  display: none !important;",
       "}",
       "",
-      "/* Chat más alto */",
-      "#chat-negocio {",
-      "  min-height: 55vh !important;",
-      "  max-height: 70vh !important;",
+      "/* ═══ INPUT WRAP — UN SOLO BORDE, SIN DOBLE ENCERRADO ═══ */",
+      ".chat-input-wrap {",
+      "  background: transparent !important;",
+      "  box-shadow: none !important;",
+      "  border: 1.5px solid rgba(250, 204, 21, 0.35) !important;",
+      "  border-radius: 16px !important;",
+      "}",
+      "",
+      ".chat-input-wrap:focus-within {",
+      "  border-color: rgba(250, 204, 21, 0.6) !important;",
+      "  box-shadow: none !important;",
+      "  outline: none !important;",
+      "}",
+      "",
+      "/* ═══ TEXTAREA — sin apariencia nativa iOS ═══ */",
+      ".chat-input-row textarea,",
+      "#neg-input {",
+      "  -webkit-appearance: none !important;",
+      "  appearance: none !important;",
+      "  border-radius: 0 !important;",
+      "  border: 0 !important;",
+      "  outline: none !important;",
+      "  background: transparent !important;",
+      "  background-color: transparent !important;",
+      "  box-shadow: none !important;",
+      "  -webkit-tap-highlight-color: transparent !important;",
+      "}",
+      "",
+      "/* ═══ BOTONES DEL INPUT — TODOS GRIS UNIFORME ═══ */",
+      "/* Captura amplia: paperclip, send, mic (voice), cualquier botón del input row */",
+      ".chat-input-row > button,",
+      ".chat-input-row button,",
+      ".chat-input-wrap button,",
+      ".voice-btn,",
+      "#voice-btn,",
+      "#neg-voice-btn,",
+      "button.voice-btn,",
+      "[class*=\"voice-btn\"] {",
+      "  background: rgba(2, 6, 23, 0.5) !important;",
+      "  background-image: none !important;",
+      "  background-color: rgba(2, 6, 23, 0.5) !important;",
+      "  border: 1px solid rgba(148, 163, 184, 0.18) !important;",
+      "  color: #94a3b8 !important;",
+      "  width: 36px !important;",
+      "  height: 36px !important;",
+      "  min-width: 36px !important;",
+      "  border-radius: 9px !important;",
+      "  box-shadow: none !important;",
+      "  font-weight: 600 !important;",
+      "  transform: none !important;",
+      "  display: flex !important;",
+      "  align-items: center !important;",
+      "  justify-content: center !important;",
+      "  padding: 0 !important;",
+      "}",
+      "",
+      "/* Hover/focus para todos los botones del input */",
+      ".chat-input-row > button:hover,",
+      ".chat-input-row button:hover,",
+      ".voice-btn:hover,",
+      "#neg-voice-btn:hover,",
+      ".chat-input-row > button:active {",
+      "  background: rgba(2, 6, 23, 0.8) !important;",
+      "  border-color: rgba(250, 204, 21, 0.3) !important;",
+      "  color: #facc15 !important;",
+      "}",
+      "",
+      "/* Sobrescribir SPECIFICAMENTE el send button con gradiente naranja */",
+      ".chat-send-btn#neg-send,",
+      "button#neg-send,",
+      "#neg-send {",
+      "  background: rgba(2, 6, 23, 0.5) !important;",
+      "  background-image: none !important;",
+      "  background-color: rgba(2, 6, 23, 0.5) !important;",
+      "  border: 1px solid rgba(148, 163, 184, 0.18) !important;",
+      "  color: #94a3b8 !important;",
+      "  font-weight: 600 !important;",
+      "  font-size: 15px !important;",
+      "  box-shadow: none !important;",
+      "  transform: none !important;",
+      "}",
+      "",
+      "#neg-send:hover,",
+      "#neg-send:active {",
+      "  color: #facc15 !important;",
+      "  border-color: rgba(250, 204, 21, 0.3) !important;",
+      "  background: rgba(2, 6, 23, 0.8) !important;",
+      "  transform: none !important;",
+      "  box-shadow: none !important;",
       "}",
       "",
       "/* Responsive */",
@@ -234,7 +307,7 @@
         obs.observe(document.body, { childList: true, subtree: true });
       }
     } catch (e) {
-      console.warn("[chat-style v2] init falló:", e);
+      console.warn("[chat-style v3] init falló:", e);
     }
   }
 
