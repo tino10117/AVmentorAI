@@ -1018,6 +1018,18 @@ export default async function handler(req, res) {
           let usedQuality = "medium";
           let usedCost = COST_PER_OP.image_generate;
 
+          // ✨ Tamaños a intentar: primero vertical (flyer), y si la API lo rechaza,
+          // caemos al cuadrado que siempre funciona. Así nunca tira "Error desconocido"
+          // solo por el tamaño.
+          const SIZES_A_INTENTAR = ["1024x1536", "1024x1024"];
+
+          // Helper: detecta si el error es por tamaño no soportado (para reintentar)
+          const esErrorDeTamano = (err) => {
+            const m = (err?.message || "").toLowerCase();
+            return m.includes("size") || m.includes("dimension") || m.includes("1024x1536")
+              || m.includes("invalid value") || m.includes("not supported") || m.includes("unsupported");
+          };
+
           try {
             if (imagenParaUsar) {
               // ─── MODO EDIT con imagen de referencia ───
@@ -1027,33 +1039,67 @@ export default async function handler(req, res) {
               if (buffer.length > 4 * 1024 * 1024) throw new Error("La imagen es muy grande (máx 4MB)");
               const mime = dataMatch[1];
               const ext = mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : "jpg";
-              const fileLike = (typeof File !== "undefined")
-                ? new File([buffer], `input.${ext}`, { type: mime })
-                : (() => { const b = new Blob([buffer], { type: mime }); b.name = `input.${ext}`; return b; })();
 
               // ✨ QUALITY AUTO: con imagen adjunta = HIGH (calidad ChatGPT)
               usedQuality = "high";
               usedCost = COST_PER_OP.image_edit;
 
-              result = await openai.images.edit({
-                model: "gpt-image-1",
-                image: fileLike,
-                prompt: promptEnriquecido,
-                size: "1024x1536",
-                quality: "high",
-              });
+              // Reintentar con cada tamaño hasta que uno funcione
+              let lastErr = null;
+              for (const sz of SIZES_A_INTENTAR) {
+                try {
+                  // El fileLike hay que recrearlo en cada intento (el stream se consume)
+                  const fileLike = (typeof File !== "undefined")
+                    ? new File([buffer], `input.${ext}`, { type: mime })
+                    : (() => { const b = new Blob([buffer], { type: mime }); b.name = `input.${ext}`; return b; })();
+                  result = await openai.images.edit({
+                    model: "gpt-image-1",
+                    image: fileLike,
+                    prompt: promptEnriquecido,
+                    size: sz,
+                    quality: "high",
+                  });
+                  console.log(`[IMG] edit OK con tamaño ${sz}`);
+                  lastErr = null;
+                  break;
+                } catch (e) {
+                  lastErr = e;
+                  if (esErrorDeTamano(e)) {
+                    console.warn(`[IMG] tamaño ${sz} rechazado en edit, reintento con el siguiente. Detalle:`, e?.message);
+                    continue; // probar el próximo tamaño
+                  }
+                  throw e; // error que no es de tamaño → cortar
+                }
+              }
+              if (lastErr) throw lastErr;
             } else {
               // ─── MODO GENERATE sin imagen base ───
               // ✨ QUALITY AUTO: sin imagen = MEDIUM (más económico, calidad buena)
               usedQuality = "medium";
               usedCost = COST_PER_OP.image_generate;
 
-              result = await openai.images.generate({
-                model: "gpt-image-1",
-                prompt: promptEnriquecido,
-                size: "1024x1536",
-                quality: "medium",
-              });
+              let lastErr = null;
+              for (const sz of SIZES_A_INTENTAR) {
+                try {
+                  result = await openai.images.generate({
+                    model: "gpt-image-1",
+                    prompt: promptEnriquecido,
+                    size: sz,
+                    quality: "medium",
+                  });
+                  console.log(`[IMG] generate OK con tamaño ${sz}`);
+                  lastErr = null;
+                  break;
+                } catch (e) {
+                  lastErr = e;
+                  if (esErrorDeTamano(e)) {
+                    console.warn(`[IMG] tamaño ${sz} rechazado en generate, reintento con el siguiente. Detalle:`, e?.message);
+                    continue;
+                  }
+                  throw e;
+                }
+              }
+              if (lastErr) throw lastErr;
             }
           } catch (errGen) {
             console.error("Error generando imagen:", errGen);
@@ -1061,7 +1107,10 @@ export default async function handler(req, res) {
             if (m.includes("safety") || m.includes("content_policy")) {
               return res.status(400).json({ error: "El pedido fue rechazado por las políticas de contenido. Probá con otro pedido." });
             }
-            throw errGen;
+            // ✨ Mostrar el error REAL (no "desconocido") para poder diagnosticar
+            return res.status(500).json({
+              error: "No se pudo generar la imagen: " + (errGen?.message || "error desconocido de la API de imágenes"),
+            });
           }
 
           const imgB64 = result?.data?.[0]?.b64_json;
