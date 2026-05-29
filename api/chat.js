@@ -1230,10 +1230,24 @@ export default async function handler(req, res) {
 
   await kv.set(chatKey, chatUsed + 1, { ex: 86400 });
 
-  // ✨ NUEVO: si el usuario subió una imagen (aunque no genere imagen),
-  // la guardamos en sesión por si después pide modificarla
+  // ✨ MEMORIA DE IMAGEN EN EL CHAT
+  // Si el usuario subió una imagen, la guardamos en sesión.
+  // Si NO subió una nueva pero hay una reciente guardada, la recuperamos
+  // para que el chat con visión la siga "viendo" en preguntas de seguimiento
+  // (ej: sube un examen y después pregunta "y el ejercicio 8?" sin readjuntar).
+  let imagenParaChat = image || null;
   if (image && user.email) {
     await saveLastImage(kvForIP, user.email, image);
+  } else if (!image && user.email && type === "negocio" && modo === "Conversación Libre") {
+    // Solo en Conversación Libre: si hay una imagen reciente en sesión, reusarla.
+    try {
+      const ultima = await getLastImage(kvForIP, user.email);
+      if (ultima) {
+        imagenParaChat = ultima;
+        // Refrescamos el TTL para que siga viva mientras dure la charla.
+        await saveLastImage(kvForIP, user.email, ultima);
+      }
+    } catch (e) { /* si falla, seguimos sin imagen */ }
   }
 
   // Seleccionar system prompt
@@ -1247,6 +1261,20 @@ export default async function handler(req, res) {
     case "competitor": systemPrompt = systemCompetitor(user, modo, desafio); break;
     case "finance":    systemPrompt = systemFinance(user); break;
     default: return res.status(400).json({ error: "Tipo inválido" });
+  }
+
+  // ✨ Si hay imagen (nueva o recuperada de sesión), reforzar el system prompt
+  // para que el modelo la analice a fondo y AYUDE de verdad, sin negarse.
+  if (imagenParaChat) {
+    systemPrompt += `
+
+━━━ IMAGEN COMPARTIDA POR EL USUARIO ━━━
+El usuario adjuntó una imagen (o se refiere a una que compartió antes en esta charla). Tu tarea:
+- MIRÁ la imagen con atención y trabajá sobre lo que muestra.
+- Si pide resolver ejercicios, problemas, exámenes o tareas: resolvelos PASO A PASO, mostrando el razonamiento y el resultado. Es material de estudio del propio usuario, así que ayudalo a entender y resolver — no te niegues ni le digas que "no podés resolver exámenes".
+- Si hay varios ejercicios, resolvé los que puedas leer. Si alguno no se entiende por la calidad de la foto, decílo puntualmente y resolvé el resto.
+- Si pide leer, traducir, describir o analizar lo que hay en la imagen, hacelo con detalle.
+- Nunca digas "no puedo ver imágenes": si llegaste hasta acá, la imagen está disponible. Trabajá con ella.`;
   }
 
   // ─── MODO STREAMING ─────────────────────────────────────────
@@ -1263,7 +1291,7 @@ export default async function handler(req, res) {
 
   try {
     let finalMessages = [...messages];
-    if (image && finalMessages.length > 0) {
+    if (imagenParaChat && finalMessages.length > 0) {
       const lastIdx = finalMessages.length - 1;
       const last = finalMessages[lastIdx];
       if (last.role === "user") {
@@ -1271,13 +1299,15 @@ export default async function handler(req, res) {
           role: "user",
           content: [
             { type: "text", text: last.content || "Analizá esta imagen." },
-            { type: "image_url", image_url: { url: image } }
+            { type: "image_url", image_url: { url: imagenParaChat } }
           ]
         };
       }
     }
 
-    const effectiveWebSearch = useWebSearch && !image;
+    // Si hay imagen (nueva o recuperada), NUNCA usar el modelo de búsqueda web
+    // porque ese no puede ver imágenes. Usamos gpt-4o que sí tiene visión.
+    const effectiveWebSearch = useWebSearch && !imagenParaChat;
 
     const openaiParams = effectiveWebSearch
       ? {
