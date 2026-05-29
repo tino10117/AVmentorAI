@@ -736,6 +736,15 @@ Cerrá siempre con: "¿Querés que profundicemos en alguno de estos puntos?"`;
 
 // ─────────────────────────────────────────────────────────────
 
+// ✨ CONFIG DE VERCEL — CRÍTICO PARA IMÁGENES
+// Sin esto, la función corre con el timeout corto por defecto y la
+// generación de imágenes (que tarda 20-40s en "high") se corta con
+// error 504 (Gateway Timeout). maxDuration: 60 le da hasta 60 segundos.
+export const config = {
+  api: { bodyParser: { sizeLimit: "10mb" } },
+  maxDuration: 60,
+};
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
