@@ -338,7 +338,7 @@ Definiciones:
 
 REGLA IMPORTANTE: ${tieneImagenAdjunta
   ? 'El usuario ADJUNTÓ una imagen. Si pregunta algo sobre ella o quiere que la leas/resuelvas/analices, es "analizar". Solo es "generar" si pide claramente crear o editar una imagen. Ante la duda con imagen adjunta, elegí "analizar".'
-  : 'El usuario NO adjuntó imagen. Si pide crear una imagen de cero es "generar". Si quiere modificar/rehacer una imagen anterior también es "generar". Si no, es "chatear". Casi nunca es "analizar" sin imagen.'}
+  : 'El usuario NO adjuntó imagen en este mensaje. Si pide crear una imagen de cero, es "generar". Si quiere modificar/rehacer una imagen anterior, es "generar". Si su mensaje SE REFIERE a una imagen que compartió antes (ej: "no lo ves en la foto?", "y el ejercicio 8?", "qué dice ahí", "leé el segundo punto", "y el otro?"), es "analizar". Si es charla normal, un comentario, un saludo o un agradecimiento ("gracias", "dale", "buenísimo", "y qué más?"), es "chatear".'}
 
 Respondé SOLO con: generar, analizar o chatear.`,
         },
@@ -988,11 +988,14 @@ export default async function handler(req, res) {
   // ✨ ACTUALIZADO con enriquecedor de prompt + quality auto + memoria de imagen
   // ═══════════════════════════════════════════════════════════════
   const esModoLibre = type === "negocio" && modo === "Conversación Libre";
+  // Guardamos la intención detectada para decidir más abajo si reusar la imagen de sesión.
+  let intencionDetectada = null;
   if (esModoLibre) {
     const ultimoUser = [...messages].reverse().find(m => m.role === "user");
     const textoUsuario = (ultimoUser?.content || "").toString().trim();
     if (textoUsuario && textoUsuario.length > 0) {
       const intencion = await detectarIntencion(textoUsuario, !!image);
+      intencionDetectada = intencion;
       // Solo entramos al generador de imágenes si la intención es CLARAMENTE "generar".
       // Si es "analizar" (foto + pregunta) o "chatear", se cae al flujo normal del
       // chat de más abajo, que ya sabe leer imágenes con visión y responder.
@@ -1230,22 +1233,25 @@ export default async function handler(req, res) {
 
   await kv.set(chatKey, chatUsed + 1, { ex: 86400 });
 
-  // ✨ MEMORIA DE IMAGEN EN EL CHAT
-  // Si el usuario subió una imagen, la guardamos en sesión.
-  // Si NO subió una nueva pero hay una reciente guardada, la recuperamos
-  // para que el chat con visión la siga "viendo" en preguntas de seguimiento
-  // (ej: sube un examen y después pregunta "y el ejercicio 8?" sin readjuntar).
+  // ✨ MEMORIA DE IMAGEN EN EL CHAT (inteligente)
+  // Si el usuario subió una imagen nueva, la usamos y la guardamos.
+  // Si NO subió una nueva, solo reusamos la guardada cuando su mensaje
+  // REALMENTE se refiere a la imagen (intención "analizar"). Si está
+  // charlando de otra cosa ("gracias", "dale", "y qué más"), NO se la
+  // reenviamos, así el modelo responde al hilo de la conversación en vez
+  // de quedarse clavado describiendo la foto.
   let imagenParaChat = image || null;
+  let imagenEsNueva = !!image;
   if (image && user.email) {
     await saveLastImage(kvForIP, user.email, image);
-  } else if (!image && user.email && type === "negocio" && modo === "Conversación Libre") {
-    // Solo en Conversación Libre: si hay una imagen reciente en sesión, reusarla.
+  } else if (!image && user.email && type === "negocio" && modo === "Conversación Libre"
+             && intencionDetectada === "analizar") {
+    // El clasificador dijo que este mensaje habla de una imagen → recuperamos la última.
     try {
       const ultima = await getLastImage(kvForIP, user.email);
       if (ultima) {
         imagenParaChat = ultima;
-        // Refrescamos el TTL para que siga viva mientras dure la charla.
-        await saveLastImage(kvForIP, user.email, ultima);
+        await saveLastImage(kvForIP, user.email, ultima); // refrescar TTL
       }
     } catch (e) { /* si falla, seguimos sin imagen */ }
   }
@@ -1263,18 +1269,19 @@ export default async function handler(req, res) {
     default: return res.status(400).json({ error: "Tipo inválido" });
   }
 
-  // ✨ Si hay imagen (nueva o recuperada de sesión), reforzar el system prompt
-  // para que el modelo la analice a fondo y AYUDE de verdad, sin negarse.
+  // ✨ Si hay imagen para analizar, reforzar el prompt para que la mire y ayude.
+  // El refuerzo es más fuerte si la imagen es NUEVA (recién adjuntada); si es una
+  // imagen recuperada de sesión, el refuerzo es más suave para no opacar la charla.
   if (imagenParaChat) {
     systemPrompt += `
 
 ━━━ IMAGEN COMPARTIDA POR EL USUARIO ━━━
-El usuario adjuntó una imagen (o se refiere a una que compartió antes en esta charla). Tu tarea:
-- MIRÁ la imagen con atención y trabajá sobre lo que muestra.
-- Si pide resolver ejercicios, problemas, exámenes o tareas: resolvelos PASO A PASO, mostrando el razonamiento y el resultado. Es material de estudio del propio usuario, así que ayudalo a entender y resolver — no te niegues ni le digas que "no podés resolver exámenes".
-- Si hay varios ejercicios, resolvé los que puedas leer. Si alguno no se entiende por la calidad de la foto, decílo puntualmente y resolvé el resto.
-- Si pide leer, traducir, describir o analizar lo que hay en la imagen, hacelo con detalle.
-- Nunca digas "no puedo ver imágenes": si llegaste hasta acá, la imagen está disponible. Trabajá con ella.`;
+El usuario ${imagenEsNueva ? "adjuntó una imagen" : "se está refiriendo a una imagen que compartió antes"}. Importante:
+- Mirá la imagen y respondé EN RELACIÓN a lo que el usuario te dice o pregunta AHORA. Leé bien su mensaje actual: respondé a eso, no a lo que imaginás.
+- Si pide resolver ejercicios, problemas o exámenes: resolvelos PASO A PASO con el resultado. Es material de estudio del propio usuario; ayudalo a entender y resolver, no te niegues.
+- Si pide leer, traducir, describir o que opines sobre la imagen, hacelo con detalle y de forma concreta (no genérica).
+- Si la foto no se llega a leer bien en alguna parte, decílo puntual y resolvé/respondé lo que sí podés.
+- Mantené siempre tu personalidad de AVAI y SEGUÍ el hilo de la conversación. Si el mensaje del usuario es un comentario, un agradecimiento o un cambio de tema, respondé a ESO con naturalidad — no vuelvas a describir la imagen si no te lo están pidiendo.`;
   }
 
   // ─── MODO STREAMING ─────────────────────────────────────────
