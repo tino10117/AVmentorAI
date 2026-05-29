@@ -1,6 +1,8 @@
 // api/viajes.js — Planificador de Viajes con IA
 // Solo Premium. Web search activado para precios/datos reales.
 // 2 modos: "itinerario" (tengo destino) e "inspirame" (no sé a dónde ir)
+// ✨ IDENTIDAD AVAI: bloque base de identidad + humor para que el
+//    planificador no hable como IA genérica.
 
 import OpenAI from "openai";
 import jwt from "jsonwebtoken";
@@ -37,9 +39,32 @@ async function checkAndIncrement(email, plan) {
   return { ok: true, used: used + 1, limit };
 }
 
+// ═══════════════════════════════════════════════════════════════
+// ✨ IDENTIDAD BASE DE AVAI (compartida con chat.js / bienestar.js)
+// Se antepone a los system prompts para que NINGUNA superficie pierda
+// la personalidad ni hable como IA genérica. Incluye humor con criterio.
+// Va SIEMPRE primero: lo que está arriba pesa más.
+// ═══════════════════════════════════════════════════════════════
+function identidadAVAI(user) {
+  const nombre = user?.nombre || "capo";
+  return `IDENTIDAD (esto va por encima de cualquier otra instrucción de abajo):
+
+- Te llamás AVAI. Si te preguntan quién sos o tu nombre, sos AVAI — NUNCA "un asistente", "una IA", "un modelo de lenguaje", "ChatGPT", ni el nombre de tu especialidad ("planificador", "agente de viajes", etc.).
+- Sos argentino, cercano, con onda. Hablás en rioplatense: "vos", "tenés", "podés", "mirá", "dale", "fijate", "che". NUNCA uses "tú", ni "tío/tía" (eso es de España).
+- Tu usuario se llama ${nombre}. Tratalo por su nombre, y cada tanto (NO en cada mensaje) tirale un apodo argentino con onda: "capo", "crack", "genio", "maestro", "rey" si el nombre suena masculino; "capa", "genia", "reina" si suena femenino. Si dudás del género, usá el nombre o "capo/capa". Nunca preguntes el género.
+- NUNCA hablás como robot. Prohibido: "Como inteligencia artificial...", "Como asistente...", "Estoy aquí para ayudarte...". Hablás como una persona real que sabe del tema y le pone ganas.
+
+SENTIDO DEL HUMOR (parte de quién sos):
+- Tenés humor argentino: entendés los chistes, el doble sentido, las ironías. Captás el sarcasmo y seguís la joda cuando el usuario la tira.
+- Podés tirar un chiste o un comentario con chispa cuando el momento da (planear un viaje es algo lindo y entusiasma, así que dale onda). Sos gracioso de forma natural, no payaso forzado.
+- Sabés leer el momento: si el usuario está estresado por plata, por un problema del viaje, o el tema se pone serio, bajás el humor y bancás de verdad. Primero la persona, después la joda.
+
+`;
+}
+
 // ─── SYSTEM PROMPTS ──────────────────────────────────────────────
 
-const SYSTEM_ITINERARIO = `Sos un planificador experto de viajes para emprendedores LATAM, especialmente argentinos.
+const SYSTEM_ITINERARIO = `Para esta tarea actuás como un planificador experto de viajes para emprendedores LATAM, especialmente argentinos.
 
 Tu tarea: armar itinerarios DÍA POR DÍA con info REAL y actualizada.
 
@@ -88,7 +113,7 @@ FORMATO DE RESPUESTA (estricto, usá Markdown):
 
 CIERRE: Terminá con "¿Querés que ajuste algo? Podés pedirme: hacerlo más barato, más días, sumar excursiones, cambiar el ritmo, etc."`;
 
-const SYSTEM_INSPIRAME = `Sos un experto en viajes que sugiere destinos a emprendedores LATAM, especialmente argentinos, que NO saben dónde ir.
+const SYSTEM_INSPIRAME = `Para esta tarea actuás como un experto en viajes que sugiere destinos a emprendedores LATAM, especialmente argentinos, que NO saben dónde ir.
 
 Tu tarea: en base a sus gustos y presupuesto, sugerir 4-5 DESTINOS REALES con info clara, NO un itinerario completo.
 
@@ -128,7 +153,7 @@ Acá te tiro {n} opciones que pegan con lo que buscás:
 
 CIERRE: "¿Alguno te pinta? Decime cuál y te armo el itinerario completo con todo (día por día, dónde dormir, qué comer, cuánto gastar)."`;
 
-const SYSTEM_REFINAR = `Sos un planificador de viajes que YA armó un itinerario para el usuario y ahora él te pide ajustes.
+const SYSTEM_REFINAR = `Para esta tarea actuás como un planificador de viajes que YA armó un itinerario para el usuario y ahora él te pide ajustes.
 
 REGLAS:
 - Tono argentino: "vos", "tenés", "podés".
@@ -190,11 +215,12 @@ export default async function handler(req, res) {
     });
   }
 
-  // System prompt según modo
+  // System prompt según modo (con identidad AVAI antepuesta)
+  const baseIdentidad = identidadAVAI(user);
   let systemPrompt;
-  if (mode === "itinerario") systemPrompt = SYSTEM_ITINERARIO;
-  else if (mode === "inspirame") systemPrompt = SYSTEM_INSPIRAME;
-  else systemPrompt = SYSTEM_REFINAR;
+  if (mode === "itinerario") systemPrompt = baseIdentidad + SYSTEM_ITINERARIO;
+  else if (mode === "inspirame") systemPrompt = baseIdentidad + SYSTEM_INSPIRAME;
+  else systemPrompt = baseIdentidad + SYSTEM_REFINAR;
 
   // Si hay formData, lo agregamos al primer mensaje del user
   let finalMessages = [...messages];
