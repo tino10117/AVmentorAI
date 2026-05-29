@@ -737,12 +737,12 @@ Cerrá siempre con: "¿Querés que profundicemos en alguno de estos puntos?"`;
 // ─────────────────────────────────────────────────────────────
 
 // ✨ CONFIG DE VERCEL — CRÍTICO PARA IMÁGENES
-// Sin esto, la función corre con el timeout corto por defecto y la
-// generación de imágenes (que tarda 20-40s en "high") se corta con
-// error 504 (Gateway Timeout). maxDuration: 60 le da hasta 60 segundos.
+// La generación de imágenes en "high" puede tardar bastante. Con Vercel Pro
+// podemos darle hasta 300s. Este valor se alinea con el de vercel.json para
+// evitar el error 504 (Gateway Timeout) que cortaba la generación.
 export const config = {
   api: { bodyParser: { sizeLimit: "10mb" } },
-  maxDuration: 60,
+  maxDuration: 300,
 };
 
 export default async function handler(req, res) {
