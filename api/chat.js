@@ -272,63 +272,75 @@ Output: Create a professional Argentine wholesale store advertisement flyer usin
 }
 
 // ─── Detector de pedidos de imagen ──────────────────────────────
-async function detectarPedidoImagen(textoUsuario, tieneImagenAdjunta) {
+// ═══════════════════════════════════════════════════════════════
+// CLASIFICADOR INTELIGENTE DE INTENCIÓN
+// Devuelve una de tres intenciones, decidida por gpt-4o-mini entendiendo
+// el sentido del mensaje (no por palabras sueltas):
+//   "generar"  → quiere una imagen NUEVA o EDITAR una (publi, flyer, logo, "agregale X")
+//   "analizar" → mandó una foto y pregunta SOBRE ella (qué dice, resolveme, qué te parece)
+//   "chatear"  → conversación normal, sin imagen de por medio
+//
+// REGLA DE ORO: si hay una foto adjunta, el default es ANALIZAR.
+// Solo se genera imagen si el usuario lo pide de forma clara.
+// Esto evita que "resolveme este examen" + foto se vaya al generador.
+// ═══════════════════════════════════════════════════════════════
+async function detectarIntencion(textoUsuario, tieneImagenAdjunta) {
+  const lower = (textoUsuario || "").toLowerCase().trim();
+
+  // Atajos de alta confianza SOLO para generar/editar imagen.
+  // Son frases que inequívocamente piden crear o modificar una imagen.
+  // Si alguna matchea, vamos directo a "generar" sin gastar la llamada al clasificador.
+  const generarSeguro = [
+    "generá una imagen", "genera una imagen", "generame una imagen",
+    "creá una imagen", "crea una imagen", "creame una imagen",
+    "hacé una imagen", "hace una imagen", "haceme una imagen", "hazme una imagen",
+    "haceme una publi", "hace una publi", "haceme una publicidad", "haceme una publicidad",
+    "haceme un flyer", "hace un flyer", "haceme un afiche", "haceme un anuncio",
+    "haceme un poster", "haceme una promo", "haceme una placa", "haceme un banner",
+    "dibujame", "dibujá", "dibuja un", "dibuja una",
+    "diseñame", "diseñá un", "diseñá una", "diseña un", "diseña una",
+    "hazme un dibujo", "create an image", "generate image", "draw me",
+  ];
+  for (const p of generarSeguro) {
+    if (lower.includes(p)) return "generar";
+  }
+
+  // Atajos de edición: SOLO cuentan como "generar" si hay una imagen
+  // (adjunta o guardada en sesión). Sin imagen, "agregale" o "cambiá" puede
+  // ser cualquier cosa, así que se lo dejamos al clasificador.
+  const editarConImagen = [
+    "editá esta", "edita esta", "editá la imagen", "edita la imagen",
+    "retocá", "retoca", "convertí esta", "convierte esta",
+    "agregale", "agregá", "ponele", "poné", "saca", "sacale", "quitale",
+    "cambiá el fondo", "cambia el fondo", "cambiá el color", "cambia el color",
+    "hacela de nuevo", "hacelo de nuevo", "rehacela", "rehacelo",
+    "otra versión", "otra vuelta", "mejorá esa imagen", "mejora esa imagen",
+  ];
+  if (tieneImagenAdjunta) {
+    for (const p of editarConImagen) {
+      if (lower.includes(p)) return "generar";
+    }
+  }
+
+  // Para todo lo demás, decide el clasificador con IA (entiende la intención).
   try {
-    const lower = textoUsuario.toLowerCase();
-    const palabrasGenerar = [
-      "generá una imagen", "genera una imagen", "creá una imagen", "crea una imagen",
-      "hacé una imagen", "hace una imagen", "haceme una imagen", "hazme una imagen",
-      "dibujame", "dibujá", "dibuja", "imagen de", "una foto de", "hazme un dibujo",
-      "create an image", "generate image", "draw me", "imagine",
-      // ✨ NUEVO: detectar pedidos de publicidad/flyer/logo
-      "haceme una publi", "hace una publi", "haceme un flyer", "hace un flyer",
-      "haceme un afiche", "haceme un anuncio", "haceme un poster",
-      "haceme una promo", "haceme un post", "haceme una placa",
-      "diseñame", "diseñá", "diseña",
-    ];
-    const palabrasEditar = [
-      "transformá", "transforma", "mostrámelo", "mostramelo", "mostrame",
-      "editá esta", "edita esta", "convertí esta", "convierte esta",
-      "cambiá el", "cambia el", "modificá", "modifica",
-      "ponele un", "poné un", "agrega un", "agregale", "agregá",
-      "fondo", "estilo", "color", "versión",
-      // ✨ NUEVO: pedidos de "retocá la anterior", "mejorá esa", etc.
-      "retocá", "retoca", "ajustá", "ajusta", "mejorá esa", "mejora esa",
-      "hacela de nuevo", "hacelo de nuevo", "rehace", "rehacela", "rehacelo",
-      "otra versión", "otra vuelta", "otro intento", "probá de nuevo",
-      "no me gustó", "no me gusto", "no era esa", "no es esa",
-      "fijate el logo", "fijate la imagen", "mirá el logo", "mira el logo",
-    ];
-
-    if (tieneImagenAdjunta) {
-      for (const p of palabrasEditar) {
-        if (lower.includes(p)) return true;
-      }
-    }
-    for (const p of palabrasGenerar) {
-      if (lower.includes(p)) return true;
-    }
-
-    // ✨ NUEVO: si NO tiene imagen adjunta pero la frase implica edición,
-    // igual podría ser que quiera modificar la "última imagen" guardada
-    if (!tieneImagenAdjunta) {
-      for (const p of palabrasEditar) {
-        if (lower.includes(p)) return true;
-      }
-    }
-
-    if (textoUsuario.length > 200 && !tieneImagenAdjunta) return false;
-
     const resp = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `Sos un clasificador. Recibís un mensaje del usuario y respondés SOLO "image" o "chat".
-- "image" = el usuario pide GENERAR, CREAR, DIBUJAR, EDITAR, MODIFICAR, TRANSFORMAR una imagen, hacer publicidad/flyer/afiche/post, o pide retocar/rehacer una imagen anterior.
-- "chat" = el usuario quiere conversar, preguntar, pedir consejo, o cualquier otra cosa.
-${tieneImagenAdjunta ? 'CONTEXTO: el usuario adjuntó una imagen.' : ''}
-Respondé con UNA SOLA PALABRA: image o chat.`,
+          content: `Sos un clasificador de intención. Respondés UNA SOLA PALABRA: "generar", "analizar" o "chatear".
+
+Definiciones:
+- "generar": el usuario quiere que CREES una imagen nueva o EDITES/MODIFIQUES una existente. Ejemplos: "haceme una publicidad", "generá una imagen de un gato", "editá esta foto", "agregale un fondo", "ponele mi logo", "hacela más colorida", "diseñame un flyer".
+- "analizar": el usuario adjuntó o se refiere a una imagen y quiere que la MIRES para responder algo sobre ella. NO quiere una imagen nueva, quiere información. Ejemplos: "qué dice acá", "resolveme este examen", "qué te parece este producto", "traducime este cartel", "cuánto suma esta factura", "explicame este gráfico", "está bien escrito esto".
+- "chatear": conversación normal, preguntas, consejos, sin relación con crear o mirar imágenes. Ejemplos: "cómo consigo más clientes", "explicame qué es el ROI", "dame ideas de negocio".
+
+REGLA IMPORTANTE: ${tieneImagenAdjunta
+  ? 'El usuario ADJUNTÓ una imagen. Si pregunta algo sobre ella o quiere que la leas/resuelvas/analices, es "analizar". Solo es "generar" si pide claramente crear o editar una imagen. Ante la duda con imagen adjunta, elegí "analizar".'
+  : 'El usuario NO adjuntó imagen. Si pide crear una imagen de cero es "generar". Si quiere modificar/rehacer una imagen anterior también es "generar". Si no, es "chatear". Casi nunca es "analizar" sin imagen.'}
+
+Respondé SOLO con: generar, analizar o chatear.`,
         },
         { role: "user", content: textoUsuario },
       ],
@@ -336,12 +348,18 @@ Respondé con UNA SOLA PALABRA: image o chat.`,
       temperature: 0,
     });
     const out = (resp.choices?.[0]?.message?.content || "").toLowerCase().trim();
-    return out.includes("image");
+    if (out.includes("generar")) return "generar";
+    if (out.includes("analizar")) return "analizar";
+    if (out.includes("chatear")) return "chatear";
+    // Si devolvió algo raro: con imagen, lo más seguro es analizar; sin imagen, chatear.
+    return tieneImagenAdjunta ? "analizar" : "chatear";
   } catch (err) {
-    console.error("Error en detectarPedidoImagen:", err);
-    return false;
+    console.error("Error en detectarIntencion:", err);
+    // Ante error, nunca forzar generación: si hay imagen → analizar, si no → chatear.
+    return tieneImagenAdjunta ? "analizar" : "chatear";
   }
 }
+
 
 
 // ─── Modos del Mentor (10 especializados + 1 libre) ──────────
@@ -974,8 +992,11 @@ export default async function handler(req, res) {
     const ultimoUser = [...messages].reverse().find(m => m.role === "user");
     const textoUsuario = (ultimoUser?.content || "").toString().trim();
     if (textoUsuario && textoUsuario.length > 0) {
-      const pideImagen = await detectarPedidoImagen(textoUsuario, !!image);
-      if (pideImagen) {
+      const intencion = await detectarIntencion(textoUsuario, !!image);
+      // Solo entramos al generador de imágenes si la intención es CLARAMENTE "generar".
+      // Si es "analizar" (foto + pregunta) o "chatear", se cae al flujo normal del
+      // chat de más abajo, que ya sabe leer imágenes con visión y responder.
+      if (intencion === "generar") {
         // ─── GENERAR IMAGEN CON LÓGICA MEJORADA ───
         try {
           const today = new Date().toISOString().split("T")[0];
