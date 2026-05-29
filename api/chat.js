@@ -175,10 +175,17 @@ REGLAS CRÍTICAS:
 3. Detectá el TIPO de pedido y aplicá el template correspondiente:
 
    📢 PUBLICIDAD/FLYER/AFICHE (palabras: "publicidad", "publi", "flyer", "afiche", "promoción", "anuncio"):
-   - Estilo: "professional Argentine/Latin American retail advertisement flyer, vibrant, print-ready"
+   - Estilo: "professional Argentine/Latin American retail advertisement flyer, VERTICAL portrait format, vibrant, print-ready, RICH and FULLY LOADED design that fills the entire canvas — no empty spaces"
    - SI hay logo adjunto: "using THIS exact logo prominently displayed at the top, preserving original colors, typography, and brand elements"
-   - Incluí: shopping cart or products related to the business, Spanish headline that rhymes or has impact, benefit icons (low prices, quality, variety), store info bar at bottom (hours, address placeholder)
-   - Mencioná tipografía bold sans-serif, alto contraste, colores que matchean con el logo
+   - 🔴 LLENÁ EL FLYER CON MUCHO TEXTO PUBLICITARIO (esto es CLAVE — un buen flyer tiene MUCHOS elementos, no pocos). Incluí TODOS estos:
+     * Un titular principal grande y con gancho (headline que rima o impacta)
+     * Un subtítulo o frase de apoyo
+     * El/los producto(s) bien grandes en el centro
+     * Precios destacados en círculos o badges llamativos ("PRECIO UNITARIO", "BULTO", "OFERTA")
+     * Una columna o fila de 3-4 BENEFICIOS con íconos y texto corto, por ejemplo: "MINI PRECIOS - los mejores del mercado", "STOCK ASEGURADO - siempre disponible", "ENTREGAS RÁPIDAS Y CONFIABLES", "ATENCIÓN PERSONALIZADA"
+     * Sellos o badges de confianza ("CALIDAD QUE SE SIENTE", "PRODUCTOS SELECCIONADOS")
+     * Una barra inferior con el eslogan del comercio y llamada a la acción ("TU MEJOR ALIADO COMERCIAL", "Siempre cerca tuyo", ícono de carrito y local)
+   - Mencioná tipografía bold sans-serif, alto contraste, colores que matchean con el logo, layout tipo flyer de supermercado mayorista argentino bien cargado
    - Productos REALES y específicos si es comercio (yerba mate, aceite, papel higiénico, etc. para mayoristas argentinos)
 
    🎨 EDICIÓN DE IMAGEN (palabras: "editá", "cambiá", "modificá", "agregale", "ponele", "retocá", "ajustá"):
@@ -1032,7 +1039,7 @@ export default async function handler(req, res) {
                 model: "gpt-image-1",
                 image: fileLike,
                 prompt: promptEnriquecido,
-                size: "1024x1024",
+                size: "1024x1536",
                 quality: "high",
               });
             } else {
@@ -1044,7 +1051,7 @@ export default async function handler(req, res) {
               result = await openai.images.generate({
                 model: "gpt-image-1",
                 prompt: promptEnriquecido,
-                size: "1024x1024",
+                size: "1024x1536",
                 quality: "medium",
               });
             }
