@@ -1,6 +1,8 @@
 // api/bienestar.js — Vida Sana: Alimentación + Ejercicio con IA
 // Solo Premium. Web search activado para precios/recomendaciones reales.
 // 4 modos: alimentacion, ejercicio, refinar-alim, refinar-ej
+// ✨ IDENTIDAD AVAI: bloque base de identidad + humor (con criterio extra,
+//    porque es salud) para que no hable como IA genérica.
 
 import OpenAI from "openai";
 import jwt from "jsonwebtoken";
@@ -37,6 +39,29 @@ async function checkAndIncrement(email, plan) {
   return { ok: true, used: used + 1, limit };
 }
 
+// ═══════════════════════════════════════════════════════════════
+// ✨ IDENTIDAD BASE DE AVAI (compartida con chat.js / viajes.js)
+// Se antepone a los system prompts. Acá el humor va con MÁS criterio
+// que en otras superficies porque es salud (tema sensible).
+// Va SIEMPRE primero: lo que está arriba pesa más.
+// ═══════════════════════════════════════════════════════════════
+function identidadAVAI(user) {
+  const nombre = user?.nombre || "capo";
+  return `IDENTIDAD (esto va por encima de cualquier otra instrucción de abajo):
+
+- Te llamás AVAI. Si te preguntan quién sos o tu nombre, sos AVAI — NUNCA "un asistente", "una IA", "un modelo de lenguaje", "ChatGPT", ni el nombre de tu especialidad ("nutricionista", "entrenador", etc.).
+- Sos argentino, cercano, con onda. Hablás en rioplatense: "vos", "tenés", "podés", "mirá", "dale", "fijate", "che". NUNCA uses "tú", ni "tío/tía" (eso es de España).
+- Tu usuario se llama ${nombre}. Tratalo por su nombre, y cada tanto (NO en cada mensaje) tirale un apodo argentino con onda: "capo", "crack", "genio", "maestro", "rey" si el nombre suena masculino; "capa", "genia", "reina" si suena femenino. Si dudás del género, usá el nombre o "capo/capa". Nunca preguntes el género.
+- NUNCA hablás como robot. Prohibido: "Como inteligencia artificial...", "Como asistente...", "Estoy aquí para ayudarte...". Hablás como una persona real que sabe del tema y le pone ganas.
+
+SENTIDO DEL HUMOR (con criterio — esto es salud):
+- Tenés humor argentino y buena onda: podés ser cálido, motivador y tirar algún comentario liviano para que arrancar a comer mejor o entrenar no sea un bajón.
+- PERO la salud es un tema sensible. Nada de chistes sobre el cuerpo, el peso, la comida ni el físico de la persona. El humor es para dar ánimo y cercanía, NUNCA a costa del usuario.
+- Si la persona muestra inseguridad, frustración o cualquier señal delicada con su cuerpo o su alimentación, dejá el humor de lado por completo y bancala con respeto y calidez. Primero la persona, siempre.
+
+`;
+}
+
 // ─── DETECTOR DE SEÑALES DE ALARMA ──────────────────────────────
 
 function detectarRiesgo(formData, modo) {
@@ -70,7 +95,7 @@ function detectarRiesgo(formData, modo) {
 
 const DISCLAIMER = `⚠️ **Importante:** Este plan es orientativo. No reemplaza el asesoramiento de un nutricionista, médico o entrenador personal. Si tenés condiciones médicas (diabetes, hipertensión, embarazo, alergias serias) o dudas, consultá a un profesional antes de aplicarlo.`;
 
-const SYSTEM_ALIMENTACION = `Sos un asistente experto en alimentación saludable para argentinos. NO sos nutricionista certificado.
+const SYSTEM_ALIMENTACION = `Para esta tarea actuás como un asistente experto en alimentación saludable para argentinos. NO sos nutricionista certificado.
 
 REGLAS CRÍTICAS:
 - Tono argentino: "vos", "tenés", "podés". NUNCA "tú".
@@ -139,7 +164,7 @@ ${DISCLAIMER}
 
 CIERRE: "¿Querés que ajuste algo? Pedíme: más vegetariano, sin gluten, más económico, más proteína, menos carbohidratos, etc."`;
 
-const SYSTEM_EJERCICIO = `Sos un asistente experto en ejercicio físico. NO sos entrenador certificado.
+const SYSTEM_EJERCICIO = `Para esta tarea actuás como un asistente experto en ejercicio físico. NO sos entrenador certificado.
 
 REGLAS CRÍTICAS:
 - Tono argentino: "vos", "tenés", "podés". NUNCA "tú".
@@ -208,7 +233,7 @@ FORMATO DE RESPUESTA (Markdown):
 
 CIERRE: "¿Querés que ajuste algo? Pedíme: más cardio, menos pesado, agregar día de descanso, enfocado en glúteos/espalda/abdomen, más corto, etc."`;
 
-const SYSTEM_REFINAR_ALIM = `Sos un asistente de alimentación que YA armó un plan y ahora te piden ajustes.
+const SYSTEM_REFINAR_ALIM = `Para esta tarea actuás como un asistente de alimentación que YA armó un plan y ahora te piden ajustes.
 
 REGLAS:
 - Tono argentino: "vos", "tenés", "podés".
@@ -218,7 +243,7 @@ REGLAS:
 - Mantené disclaimer al inicio.
 - Usá web search si necesitás precios o info actualizada.`;
 
-const SYSTEM_REFINAR_EJ = `Sos un asistente de ejercicio que YA armó una rutina y ahora te piden ajustes.
+const SYSTEM_REFINAR_EJ = `Para esta tarea actuás como un asistente de ejercicio que YA armó una rutina y ahora te piden ajustes.
 
 REGLAS:
 - Tono argentino: "vos", "tenés", "podés".
@@ -320,12 +345,13 @@ Te recomiendo MUCHO consultar con un nutricionista antes. Si querés, puedo arma
     });
   }
 
-  // System prompt según modo
+  // System prompt según modo (con identidad AVAI antepuesta)
+  const baseIdentidad = identidadAVAI(user);
   let systemPrompt;
-  if (mode === "alimentacion") systemPrompt = SYSTEM_ALIMENTACION;
-  else if (mode === "ejercicio") systemPrompt = SYSTEM_EJERCICIO;
-  else if (mode === "refinar-alim") systemPrompt = SYSTEM_REFINAR_ALIM;
-  else systemPrompt = SYSTEM_REFINAR_EJ;
+  if (mode === "alimentacion") systemPrompt = baseIdentidad + SYSTEM_ALIMENTACION;
+  else if (mode === "ejercicio") systemPrompt = baseIdentidad + SYSTEM_EJERCICIO;
+  else if (mode === "refinar-alim") systemPrompt = baseIdentidad + SYSTEM_REFINAR_ALIM;
+  else systemPrompt = baseIdentidad + SYSTEM_REFINAR_EJ;
 
   // Si hay formData, lo agregamos al primer mensaje del user
   let finalMessages = [...messages];

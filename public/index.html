@@ -2,179 +2,805 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AVAI — Tu mentor premium</title>
-<meta name="description" content="Mentor de negocios, inglés, matemáticas y herramientas con IA para LATAM">
-<meta name="theme-color" content="#020617">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<!-- ═══════════════ PWA META TAGS ═══════════════ -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1a0f2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AVAI">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png">
+<link rel="shortcut icon" href="/icons/favicon.ico">
+
+<title>AVAI — Tu mentor argentino de IA</title>
+<meta name="description" content="11 modos mentor especializados, modo conversación libre, juegos con IA, inglés y matemáticas con tutores. El primer mentor de IA argentino.">
+
+<meta property="og:title" content="AVAI — Tu mentor argentino con IA">
+<meta property="og:description" content="11 modos mentor especializados, modo conversación libre, juegos con IA y mucho más. El mentor argentino que ChatGPT no es.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://avai.ar">
+
 <link rel="stylesheet" href="css/styles.css">
 <style>
-  /* === Card del Modo Activo (Estilo A — destacado con borde brillante) === */
-  .modo-card {
-    position: relative;
-    background: linear-gradient(135deg, rgba(250, 204, 21, 0.08), rgba(249, 115, 22, 0.05));
-    border: 2px solid transparent;
-    background-clip: padding-box;
-    border-radius: 16px;
-    padding: 16px 18px;
-    margin-bottom: 16px;
-    box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.25), 0 4px 20px rgba(249, 115, 22, 0.12);
-    transition: all 0.3s ease;
-  }
-  .modo-card::before {
-    content: "";
-    position: absolute;
-    inset: -2px;
-    border-radius: 16px;
-    padding: 2px;
-    background: linear-gradient(135deg, #facc15, #f97316, #facc15);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-    opacity: 0.6;
-  }
-  .modo-card:hover {
-    box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.5), 0 6px 28px rgba(249, 115, 22, 0.25);
-    transform: translateY(-1px);
-  }
-  .modo-card-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
-  .modo-card-icon {
-    font-size: 22px;
-    line-height: 1;
-  }
-  .modo-card-label {
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 1.5px;
-    color: #facc15;
-    text-transform: uppercase;
-  }
-  .modo-card-select {
-    width: 100%;
-    background: rgba(2, 6, 23, 0.6);
-    color: #fff;
-    border: 1.5px solid rgba(250, 204, 21, 0.35);
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 17px;
-    font-weight: 700;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23facc15' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
-    background-repeat: no-repeat;
-    background-position: right 14px center;
-    padding-right: 40px;
-    transition: border-color 0.2s ease;
-  }
-  .modo-card-select:hover, .modo-card-select:focus {
-    border-color: #facc15;
-    outline: none;
-  }
-  .modo-card-select option {
-    background: #020617;
-    color: #fff;
-    padding: 10px;
-  }
-  .modo-card-hint {
-    margin-top: 10px;
-    font-size: 12px;
-    color: #94a3b8;
-    text-align: center;
-    font-weight: 500;
-  }
-  /* Mobile: un poco más compacto */
-  @media (max-width: 600px) {
-    .modo-card { padding: 14px 14px; }
-    .modo-card-select { font-size: 16px; padding: 11px 12px; padding-right: 38px; }
-    .modo-card-label { font-size: 11px; }
-    .modo-card-icon { font-size: 20px; }
-  }
-  /* Footer del sidebar con links legales */
-  .sidebar-footer {
-    margin-top: 12px;
-    padding: 12px;
-    border-top: 1px solid rgba(255,255,255,.08);
-    font-size: 11px;
-  }
-  .sidebar-footer a {
-    color: #94a3b8;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 0;
-    transition: color .2s;
-  }
+  input, textarea, select { font-size: 16px !important; }
+  @media (max-width: 600px) { input, textarea, select { font-size: 16px !important; } }
+
+  .modo-card { position: relative; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; transition: border-color 0.2s ease; }
+  .modo-card:hover { border-color: rgba(250, 204, 21, 0.3); }
+  .modo-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .modo-card-icon { font-size: 16px; line-height: 1; opacity: 0.8; }
+  .modo-card-label { font-size: 11px; font-weight: 600; letter-spacing: 0.8px; color: #94a3b8; text-transform: uppercase; }
+  .modo-card-select { width: 100%; background: rgba(2, 6, 23, 0.6); color: #f8fafc; border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 9px; padding: 11px 14px; font-size: 16px; font-weight: 600; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; transition: all 0.2s ease; font-family: inherit; }
+  .modo-card-select:hover, .modo-card-select:focus { border-color: #facc15; outline: none; }
+  .modo-card-select option { background: #020617; color: #fff; padding: 10px; }
+  .modo-card-hint { margin-top: 8px; font-size: 11px; color: #64748b; text-align: left; font-weight: 500; }
+
+  .sidebar-footer { margin-top: 12px; padding: 12px; border-top: 1px solid rgba(255,255,255,.08); font-size: 11px; }
+  .sidebar-footer a { color: #94a3b8; text-decoration: none; display: flex; align-items: center; gap: 6px; padding: 4px 0; transition: color .2s; }
   .sidebar-footer a:hover { color: #cbd5e1; }
-  .sidebar-footer .copy {
-    margin-top: 10px;
-    text-align: center;
-    font-size: 10px;
-    color: #475569;
+  .sidebar-footer .copy { margin-top: 10px; text-align: center; font-size: 10px; color: #475569; }
+
+  .dash-hero { background: linear-gradient(135deg, rgba(250, 204, 21, 0.06), rgba(15, 23, 42, 0.3)); border: 1px solid rgba(250, 204, 21, 0.15); border-radius: 14px; padding: 18px 22px; margin-bottom: 14px; }
+  .dash-hero-logo { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 900; background: linear-gradient(90deg, #facc15, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1; margin-bottom: 4px; letter-spacing: -0.5px; }
+  .dash-hero-subtitle { font-size: 13px; color: #94a3b8; line-height: 1.4; }
+
+  .dash-stats { display: grid; grid-template-columns: repeat(4, 1fr); background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 14px; padding: 4px; margin-bottom: 14px; overflow: hidden; }
+  .dash-stat-col { padding: 14px 16px; text-align: center; border-right: 1px solid rgba(148, 163, 184, 0.08); transition: background 0.2s ease; }
+  .dash-stat-col:last-child { border-right: none; }
+  .dash-stat-col:hover { background: rgba(250, 204, 21, 0.03); }
+  .dash-stat-icon { font-size: 16px; opacity: 0.7; margin-bottom: 4px; }
+  .dash-stat-val { font-family: 'Inter', sans-serif; font-size: 18px; font-weight: 800; color: #f8fafc; line-height: 1.1; margin-bottom: 2px; }
+  .dash-stat-val.gold { color: #facc15; }
+  .dash-stat-val.orange { color: #fb923c; }
+  .dash-stat-val.red { color: #f87171; }
+  .dash-stat-val.sky { color: #38bdf8; }
+  .dash-stat-lbl { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
+
+  .dash-nivel { background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(148, 163, 184, 0.12); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; }
+  .dash-nivel-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
+  .dash-nivel-name { font-size: 13px; font-weight: 700; color: #cbd5e1; }
+  .dash-nivel-pct { font-size: 12px; font-weight: 700; color: #facc15; }
+  .dash-nivel-bar { height: 5px; background: rgba(2, 6, 23, 0.6); border-radius: 4px; overflow: hidden; }
+  .dash-nivel-fill { height: 100%; background: linear-gradient(90deg, #facc15, #f97316); transition: width 0.4s ease; border-radius: 4px; }
+  .dash-nivel-stats { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: #64748b; }
+
+  @media (max-width: 600px) {
+    .dash-hero { padding: 16px 18px; }
+    .dash-hero-logo { font-size: 24px; }
+    .dash-hero-subtitle { font-size: 12px; }
+    .dash-stats { grid-template-columns: repeat(2, 1fr); }
+    .dash-stat-col:nth-child(2) { border-right: none; }
+    .dash-stat-col:nth-child(1), .dash-stat-col:nth-child(2) { border-bottom: 1px solid rgba(148, 163, 184, 0.08); }
+    .dash-stat-val { font-size: 16px; }
+    .modo-card-select { padding: 10px 12px; padding-right: 38px; }
+  }
+
+  .chat-input-wrap { background: rgba(15, 23, 42, 0.6) !important; border: 1px solid rgba(250, 204, 21, 0.25) !important; border-radius: 14px !important; padding: 8px !important; margin-top: 10px; transition: border-color 0.2s ease; }
+  .chat-input-wrap:focus-within { border-color: rgba(250, 204, 21, 0.5) !important; }
+  .chat-input-row { display: flex !important; align-items: center !important; gap: 6px !important; }
+  .chat-input-row textarea { flex: 1 !important; background: transparent !important; border: none !important; color: #f8fafc !important; font-family: inherit !important; font-size: 16px !important; padding: 8px 10px !important; resize: none !important; outline: none !important; line-height: 1.4 !important; max-height: 120px !important; }
+  .chat-input-row textarea::placeholder { color: #facc15 !important; opacity: 0.65 !important; }
+  .chat-send-btn { background: rgba(2, 6, 23, 0.5) !important; border: 1px solid rgba(148, 163, 184, 0.18) !important; color: #94a3b8 !important; width: 36px !important; height: 36px !important; min-width: 36px !important; border-radius: 9px !important; cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 15px !important; padding: 0 !important; transition: all 0.2s ease !important; box-shadow: none !important; }
+  .chat-send-btn:hover { background: rgba(2, 6, 23, 0.8) !important; border-color: rgba(250, 204, 21, 0.3) !important; color: #facc15 !important; }
+  .chat-send-btn:active { transform: scale(0.95); }
+  .chat-send-btn#neg-send { background: linear-gradient(135deg, #facc15, #f97316) !important; border: none !important; color: #111827 !important; box-shadow: 0 4px 12px rgba(250, 204, 21, 0.25) !important; font-weight: 800 !important; font-size: 16px !important; }
+  .chat-send-btn#neg-send:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(250, 204, 21, 0.4) !important; }
+  .chat-send-btn#neg-send:active { transform: translateY(0); }
+
+  /* LANDING */
+  #landing-screen { position: fixed; inset: 0; background: radial-gradient(circle at top left, #1f2937 0%, #0b1120 45%, #020617 100%); z-index: 999; overflow-y: auto; color: #f8fafc; font-family: 'Inter', sans-serif; }
+  .lnd-container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+  .lnd-nav { position: sticky; top: 0; z-index: 100; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(250, 204, 21, 0.12); padding: 14px 0; }
+  .lnd-nav-inner { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .lnd-logo { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 900; background: linear-gradient(90deg, #facc15, #f97316, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; cursor: pointer; }
+  .lnd-nav-cta { display: flex; gap: 10px; align-items: center; }
+  .lnd-btn-link { color: #cbd5e1; text-decoration: none; font-size: 14px; font-weight: 600; padding: 8px 14px; border-radius: 10px; cursor: pointer; background: transparent; border: none; transition: all .2s; }
+  .lnd-btn-link:hover { color: #facc15; background: rgba(250, 204, 21, 0.08); }
+  .lnd-btn-primary { background: linear-gradient(90deg, #facc15, #f97316); color: #111827; padding: 9px 18px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: all .2s; }
+  .lnd-btn-primary:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(250, 204, 21, 0.3); }
+  .lnd-hero { padding: 70px 0 50px; text-align: center; }
+  .lnd-hero-badge { display: inline-block; padding: 6px 14px; border-radius: 20px; background: rgba(250, 204, 21, 0.12); border: 1px solid rgba(250, 204, 21, 0.3); color: #facc15; font-size: 12px; font-weight: 700; margin-bottom: 24px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .lnd-hero-title-main { font-family: 'Syne', sans-serif; font-size: 84px; line-height: 1; font-weight: 900; background: linear-gradient(90deg, #facc15, #f97316, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -2.5px; margin-bottom: 14px; }
+  .lnd-hero-title-sub { font-family: 'Syne', sans-serif; font-size: 26px; line-height: 1.2; font-weight: 700; color: #cbd5e1; margin-bottom: 26px; letter-spacing: -0.5px; }
+  .lnd-hero-title-sub .strike { color: #64748b; font-weight: 500; }
+  .lnd-hero-sub { font-size: 18px; color: #cbd5e1; max-width: 700px; margin: 0 auto 12px; line-height: 1.6; }
+  .lnd-hero-libre { display: inline-flex; align-items: center; gap: 8px; background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 24px; padding: 8px 16px; color: #c4b5fd; font-size: 14px; font-weight: 600; margin-bottom: 32px; }
+  .lnd-hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .lnd-cta-big { background: linear-gradient(90deg, #facc15, #f97316); color: #111827; padding: 16px 32px; border-radius: 14px; font-size: 17px; font-weight: 800; cursor: pointer; border: none; transition: all .2s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 8px 28px rgba(250, 204, 21, 0.25); }
+  .lnd-cta-big:hover { transform: translateY(-2px); box-shadow: 0 10px 36px rgba(250, 204, 21, 0.4); }
+  .lnd-cta-ghost { background: transparent; border: 1.5px solid rgba(250, 204, 21, 0.4); color: #facc15; padding: 16px 28px; border-radius: 14px; font-size: 17px; font-weight: 700; cursor: pointer; transition: all .2s; }
+  .lnd-cta-ghost:hover { background: rgba(250, 204, 21, 0.1); }
+  .lnd-hero-note { font-size: 13px; color: #64748b; margin-top: 18px; }
+  .lnd-stats-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; padding: 30px 0 50px; }
+  .lnd-stat { text-align: center; }
+  .lnd-stat-num { font-family: 'Syne', sans-serif; font-size: 38px; font-weight: 900; background: linear-gradient(90deg, #facc15, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1; }
+  .lnd-stat-label { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 6px; }
+  .lnd-mockup-wrap { background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(56, 189, 248, 0.05)); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 20px; padding: 24px; margin: 20px auto 60px; max-width: 920px; box-shadow: 0 30px 80px rgba(0,0,0,0.4); }
+  .lnd-mockup { background: #0b1120; border-radius: 14px; padding: 0; overflow: hidden; border: 1px solid rgba(250, 204, 21, 0.15); }
+  .lnd-mockup-bar { display: flex; align-items: center; gap: 6px; padding: 12px 16px; background: rgba(2, 6, 23, 0.6); border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .lnd-mockup-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .lnd-mockup-url { flex: 1; text-align: center; font-size: 12px; color: #64748b; font-family: monospace; }
+  .lnd-mockup-body { display: grid; grid-template-columns: 200px 1fr; min-height: 380px; }
+  .lnd-mockup-sidebar { background: #020617; padding: 18px 12px; border-right: 1px solid rgba(255,255,255,0.05); }
+  .lnd-mockup-side-logo { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 900; background: linear-gradient(90deg, #facc15, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px; padding: 0 8px; }
+  .lnd-mockup-section { font-size: 9px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 1px; padding: 8px 8px 4px; }
+  .lnd-mockup-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; font-size: 12px; color: #cbd5e1; margin-bottom: 2px; }
+  .lnd-mockup-item.active { background: rgba(250, 204, 21, 0.15); color: #facc15; border-left: 2px solid #facc15; }
+  .lnd-mockup-main { padding: 22px; background: linear-gradient(180deg, rgba(2,6,23,0.4), rgba(11,17,32,0.4)); }
+  .lnd-mockup-hero-card { background: linear-gradient(135deg, rgba(250,204,21,.14), rgba(56,189,248,.08)); border: 1px solid rgba(250, 204, 21, 0.35); border-radius: 14px; padding: 14px 18px; margin-bottom: 16px; }
+  .lnd-mockup-hero-card .av { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 900; background: linear-gradient(90deg, #facc15, #f97316, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .lnd-mockup-hero-card .sub { font-size: 12px; color: #cbd5e1; margin-top: 3px; }
+  .lnd-mockup-chat-msg { background: rgba(15, 23, 42, 0.95); border-left: 3px solid #38bdf8; padding: 12px 14px; border-radius: 12px; margin-bottom: 8px; font-size: 12px; line-height: 1.6; color: #e2e8f0; }
+  .lnd-mockup-chat-msg .name { color: #38bdf8; font-weight: 800; font-size: 11px; margin-bottom: 4px; }
+  .lnd-mockup-chat-msg.user { border-left-color: #facc15; }
+  .lnd-mockup-chat-msg.user .name { color: #facc15; }
+  .lnd-mockup-floating { position: absolute; right: 30px; top: 30px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #d8b4fe; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; box-shadow: 0 4px 16px rgba(168, 85, 247, 0.3); animation: floatBadge 3s ease-in-out infinite; }
+  @keyframes floatBadge { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  .lnd-section { padding: 70px 0; }
+  .lnd-section-title { font-family: 'Syne', sans-serif; font-size: 42px; font-weight: 900; text-align: center; margin-bottom: 12px; letter-spacing: -1px; }
+  .lnd-section-title .grad { background: linear-gradient(90deg, #facc15, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .lnd-section-sub { text-align: center; color: #94a3b8; font-size: 17px; max-width: 680px; margin: 0 auto 50px; line-height: 1.6; }
+  .lnd-vs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 920px; margin: 0 auto; }
+  .lnd-vs-card { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 18px; padding: 28px; }
+  .lnd-vs-card.bad { opacity: 0.6; }
+  .lnd-vs-card.good { border-color: rgba(250, 204, 21, 0.4); background: linear-gradient(135deg, rgba(250, 204, 21, 0.06), rgba(249, 115, 22, 0.04)); }
+  .lnd-vs-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+  .lnd-vs-card.bad .lnd-vs-title { color: #94a3b8; }
+  .lnd-vs-card.good .lnd-vs-title { color: #facc15; }
+  .lnd-vs-list { list-style: none; padding: 0; margin: 0; }
+  .lnd-vs-list li { padding: 8px 0; font-size: 14px; color: #cbd5e1; display: flex; align-items: flex-start; gap: 10px; line-height: 1.55; }
+  .lnd-vs-list li::before { content: "✗"; color: #ef4444; font-weight: 800; flex-shrink: 0; }
+  .lnd-vs-card.good .lnd-vs-list li::before { content: "✓"; color: #22c55e; }
+  .lnd-features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; max-width: 1000px; margin: 0 auto; }
+  .lnd-feature { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 18px; padding: 26px; transition: all .25s; }
+  .lnd-feature:hover { transform: translateY(-3px); border-color: rgba(250, 204, 21, 0.35); }
+  .lnd-feature-icon { font-size: 36px; margin-bottom: 12px; line-height: 1; }
+  .lnd-feature h3 { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; margin-bottom: 10px; color: #f8fafc; }
+  .lnd-feature p { color: #94a3b8; font-size: 14px; line-height: 1.65; margin: 0; }
+  .lnd-feature.gold { border-color: rgba(250, 204, 21, 0.3); }
+  .lnd-feature.gold h3 { color: #facc15; }
+  .lnd-feature.purple { border-color: rgba(168, 85, 247, 0.3); }
+  .lnd-feature.purple h3 { color: #c4b5fd; }
+  .lnd-feature.green { border-color: rgba(34, 197, 94, 0.3); }
+  .lnd-feature.green h3 { color: #86efac; }
+  .lnd-feature.blue { border-color: rgba(56, 189, 248, 0.3); }
+  .lnd-feature.blue h3 { color: #7dd3fc; }
+  .lnd-feature.orange { border-color: rgba(249, 115, 22, 0.3); }
+  .lnd-feature.orange h3 { color: #fb923c; }
+  .lnd-allinone { background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(56, 189, 248, 0.05)); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 24px; padding: 50px 40px; max-width: 920px; margin: 0 auto; text-align: center; }
+  .lnd-allinone-icons { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin: 30px 0; }
+  .lnd-allinone-icon { background: rgba(2, 6, 23, 0.5); border: 1px solid rgba(250, 204, 21, 0.25); padding: 10px 16px; border-radius: 12px; font-size: 14px; color: #cbd5e1; display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .lnd-how { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 980px; margin: 0 auto; }
+  .lnd-how-step { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 18px; padding: 28px; text-align: center; }
+  .lnd-how-num { font-family: 'Syne', sans-serif; font-size: 60px; font-weight: 900; background: linear-gradient(90deg, #facc15, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1; margin-bottom: 12px; }
+  .lnd-how-step h3 { font-family: 'Syne', sans-serif; font-size: 19px; margin-bottom: 8px; }
+  .lnd-how-step p { color: #94a3b8; font-size: 14px; line-height: 1.6; margin: 0; }
+  .lnd-plans-toggle { display: inline-flex; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 4px; margin: 0 auto 40px; }
+  .lnd-plans-toggle-wrap { text-align: center; }
+  .lnd-toggle-btn { background: transparent; border: none; color: #94a3b8; padding: 10px 22px; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all .2s; font-family: inherit; }
+  .lnd-toggle-btn.active { background: linear-gradient(90deg, #facc15, #f97316); color: #111827; }
+  .lnd-toggle-badge { background: rgba(34, 197, 94, 0.2); color: #86efac; padding: 2px 8px; border-radius: 6px; font-size: 11px; margin-left: 6px; font-weight: 800; }
+  .lnd-plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; max-width: 1000px; margin: 0 auto; }
+  .lnd-plan { background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 20px; padding: 32px 26px; position: relative; }
+  .lnd-plan.featured { border-color: #facc15; background: linear-gradient(135deg, rgba(250, 204, 21, 0.08), rgba(249, 115, 22, 0.04)); transform: scale(1.03); box-shadow: 0 20px 50px rgba(250, 204, 21, 0.15); }
+  .lnd-plan-pop { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: linear-gradient(90deg, #facc15, #f97316); color: #111827; padding: 4px 14px; border-radius: 10px; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }
+  .lnd-plan h3 { font-family: 'Syne', sans-serif; font-size: 22px; margin-bottom: 6px; }
+  .lnd-plan-desc { color: #94a3b8; font-size: 13px; margin-bottom: 18px; }
+  .lnd-plan-price { font-family: 'Syne', sans-serif; font-size: 42px; font-weight: 900; color: #facc15; line-height: 1; margin-bottom: 4px; }
+  .lnd-plan-price .currency { font-size: 18px; color: #94a3b8; font-weight: 600; }
+  .lnd-plan-cycle { color: #94a3b8; font-size: 13px; margin-bottom: 22px; }
+  .lnd-plan-feat { list-style: none; padding: 0; margin: 0 0 24px; }
+  .lnd-plan-feat li { padding: 7px 0; font-size: 13px; color: #cbd5e1; display: flex; align-items: flex-start; gap: 10px; line-height: 1.5; }
+  .lnd-plan-feat li::before { content: "✓"; color: #22c55e; font-weight: 800; flex-shrink: 0; }
+  .lnd-plan-feat li.disabled { opacity: 0.4; }
+  .lnd-plan-feat li.disabled::before { content: "—"; color: #64748b; }
+  .lnd-plan-btn { width: 100%; padding: 12px; border-radius: 11px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: all .2s; }
+  .lnd-plan-btn.primary { background: linear-gradient(90deg, #facc15, #f97316); color: #111827; }
+  .lnd-plan-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(250, 204, 21, 0.3); }
+  .lnd-plan-btn.ghost { background: transparent; border: 1.5px solid rgba(250, 204, 21, 0.3); color: #cbd5e1; }
+  .lnd-plan-btn.ghost:hover { background: rgba(250, 204, 21, 0.08); color: #facc15; }
+  .lnd-plan-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .lnd-faq { max-width: 760px; margin: 0 auto; }
+  .lnd-faq-item { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 14px; margin-bottom: 12px; overflow: hidden; }
+  .lnd-faq-q { padding: 18px 24px; font-size: 15px; font-weight: 700; color: #f8fafc; cursor: pointer; display: flex; justify-content: space-between; align-items: center; list-style: none; }
+  .lnd-faq-q::-webkit-details-marker { display: none; }
+  .lnd-faq-q::after { content: "+"; color: #facc15; font-size: 24px; font-weight: 700; transition: transform .2s; }
+  .lnd-faq-item[open] .lnd-faq-q::after { transform: rotate(45deg); }
+  .lnd-faq-a { padding: 0 24px 20px; color: #94a3b8; font-size: 14px; line-height: 1.7; }
+  .lnd-final { background: linear-gradient(135deg, rgba(250, 204, 21, 0.1), rgba(56, 189, 248, 0.06)); border: 1px solid rgba(250, 204, 21, 0.3); border-radius: 24px; padding: 60px 40px; text-align: center; max-width: 920px; margin: 0 auto; }
+  .lnd-final h2 { font-family: 'Syne', sans-serif; font-size: 38px; font-weight: 900; margin-bottom: 14px; letter-spacing: -1px; }
+  .lnd-final h2 .grad { background: linear-gradient(90deg, #facc15, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .lnd-final p { color: #cbd5e1; font-size: 17px; margin-bottom: 30px; }
+  .lnd-footer { padding: 50px 0 30px; border-top: 1px solid rgba(148, 163, 184, 0.1); margin-top: 50px; }
+  .lnd-footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; margin-bottom: 30px; }
+  .lnd-footer h4 { font-family: 'Syne', sans-serif; font-size: 14px; color: #facc15; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 1px; }
+  .lnd-footer a { color: #94a3b8; text-decoration: none; font-size: 14px; display: block; padding: 5px 0; transition: color .2s; }
+  .lnd-footer a:hover { color: #facc15; }
+  .lnd-footer-about p { color: #94a3b8; font-size: 13px; line-height: 1.7; margin-top: 8px; }
+  .lnd-footer-bottom { border-top: 1px solid rgba(148, 163, 184, 0.1); padding-top: 24px; text-align: center; color: #64748b; font-size: 12px; }
+  .lnd-footer-bottom .f960 { margin-top: 14px; display: inline-block; padding: 6px 12px; background: rgba(15, 23, 42, 0.6); border: 1px dashed rgba(148, 163, 184, 0.2); border-radius: 8px; font-size: 11px; color: #475569; }
+  @media (max-width: 880px) {
+    .lnd-hero-title-main { font-size: 56px; letter-spacing: -1.5px; }
+    .lnd-hero-title-sub { font-size: 20px; }
+    .lnd-hero-sub { font-size: 16px; }
+    .lnd-section-title { font-size: 30px; }
+    .lnd-stats-bar { grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .lnd-stat-num { font-size: 30px; }
+    .lnd-vs-grid { grid-template-columns: 1fr; }
+    .lnd-features { grid-template-columns: 1fr; }
+    .lnd-how { grid-template-columns: 1fr; }
+    .lnd-plans { grid-template-columns: 1fr; }
+    .lnd-plan.featured { transform: none; }
+    .lnd-footer-grid { grid-template-columns: 1fr; gap: 26px; }
+    .lnd-mockup-body { grid-template-columns: 1fr; }
+    .lnd-mockup-sidebar { display: none; }
+    .lnd-allinone { padding: 36px 22px; }
+    .lnd-section { padding: 50px 0; }
+  }
+  @media (max-width: 500px) {
+    .lnd-hero-title-main { font-size: 44px; letter-spacing: -1px; }
+    .lnd-hero-title-sub { font-size: 17px; }
+    .lnd-cta-big, .lnd-cta-ghost { padding: 14px 22px; font-size: 15px; width: 100%; justify-content: center; }
+    .lnd-hero-cta { flex-direction: column; align-items: stretch; }
+    .lnd-nav-cta .lnd-btn-link { display: none; }
+  }
+
+  /* LOGIN SCREEN v2 */
+  #login-screen { position: fixed; inset: 0; background: radial-gradient(ellipse at top, #1f2937 0%, #0b1120 50%, #020617 100%); z-index: 999; overflow-y: auto; display: flex; align-items: flex-start; justify-content: center; padding: 40px 20px; font-family: 'Inter', sans-serif; animation: loginFadeIn 0.4s ease; }
+  @keyframes loginFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .login-v2-wrap { width: 100%; max-width: 440px; display: flex; flex-direction: column; align-items: stretch; }
+  .login-v2-back { background: transparent; border: none; color: #94a3b8; font-size: 14px; font-weight: 500; cursor: pointer; padding: 8px 0; margin-bottom: 24px; display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; transition: color 0.2s ease; font-family: inherit; }
+  .login-v2-back:hover { color: #facc15; }
+  .login-v2-header { text-align: center; margin-bottom: 32px; }
+  .login-v2-logo { font-family: 'Syne', sans-serif; font-size: 42px; font-weight: 900; background: linear-gradient(90deg, #facc15, #f97316, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 18px; letter-spacing: -1px; display: inline-block; }
+  .login-v2-title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: #f8fafc; margin-bottom: 8px; letter-spacing: -0.5px; line-height: 1.2; }
+  .login-v2-subtitle { font-size: 15px; color: #94a3b8; line-height: 1.5; }
+  .login-v2-card { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 18px; padding: 28px; backdrop-filter: blur(20px); box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35); }
+  .login-v2-tabs { display: flex; background: rgba(2, 6, 23, 0.6); border: 1px solid rgba(148, 163, 184, 0.12); border-radius: 12px; padding: 4px; margin-bottom: 24px; }
+  .login-v2-tab { flex: 1; background: transparent; border: none; color: #94a3b8; font-size: 14px; font-weight: 700; padding: 10px 14px; border-radius: 9px; cursor: pointer; transition: all 0.25s ease; font-family: inherit; }
+  .login-v2-tab.active { background: linear-gradient(90deg, #facc15, #f97316); color: #111827; box-shadow: 0 4px 14px rgba(250, 204, 21, 0.25); }
+  .login-v2-field { margin-bottom: 16px; }
+  .login-v2-label { display: block; font-size: 13px; font-weight: 600; color: #cbd5e1; margin-bottom: 7px; letter-spacing: 0.2px; }
+  .login-v2-input { width: 100%; background: rgba(2, 6, 23, 0.7); border: 1.5px solid rgba(148, 163, 184, 0.18); border-radius: 11px; padding: 13px 15px; font-size: 16px; color: #f8fafc; font-family: inherit; transition: all 0.2s ease; outline: none; box-sizing: border-box; }
+  .login-v2-input::placeholder { color: #64748b; }
+  .login-v2-input:focus { border-color: #facc15; background: rgba(2, 6, 23, 0.9); box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.12); }
+  .login-v2-error { background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; padding: 10px 14px; color: #fca5a5; font-size: 13px; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 8px; line-height: 1.5; }
+  .login-v2-error.hidden { display: none; }
+  .login-v2-success { background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 10px; padding: 10px 14px; color: #86efac; font-size: 13px; margin-bottom: 14px; line-height: 1.5; }
+  .login-v2-success.hidden { display: none; }
+  .login-v2-info { background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 10px; padding: 12px 14px; color: #c4b5fd; font-size: 13px; margin-bottom: 16px; line-height: 1.5; }
+  .login-v2-cta { width: 100%; background: linear-gradient(90deg, #facc15, #f97316); color: #111827; border: none; border-radius: 12px; padding: 14px 18px; font-size: 16px; font-weight: 800; cursor: pointer; margin-top: 8px; transition: all 0.2s ease; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 24px rgba(250, 204, 21, 0.2); }
+  .login-v2-cta:hover { transform: translateY(-1px); box-shadow: 0 12px 32px rgba(250, 204, 21, 0.35); }
+  .login-v2-cta:active { transform: translateY(0); }
+  .login-v2-cta:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .login-v2-cta-ghost { width: 100%; background: transparent; color: #94a3b8; border: 1.5px solid rgba(148, 163, 184, 0.25); border-radius: 12px; padding: 13px 18px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: all 0.2s ease; font-family: inherit; }
+  .login-v2-cta-ghost:hover { border-color: #facc15; color: #facc15; }
+  .login-v2-divider { display: flex; align-items: center; gap: 12px; margin: 24px 0 16px; color: #475569; font-size: 12px; font-weight: 600; }
+  .login-v2-divider::before, .login-v2-divider::after { content: ""; flex: 1; height: 1px; background: rgba(148, 163, 184, 0.15); }
+  .login-v2-benefits { list-style: none; padding: 0; margin: 0 0 16px; }
+  .login-v2-benefits li { font-size: 13px; color: #cbd5e1; padding: 5px 0; display: flex; align-items: center; gap: 10px; line-height: 1.5; }
+  .login-v2-benefits li::before { content: "✓"; color: #22c55e; font-weight: 800; font-size: 14px; flex-shrink: 0; }
+  .login-v2-footer { text-align: center; font-size: 12px; color: #475569; margin-top: 18px; line-height: 1.6; }
+  .login-v2-footer a { color: #94a3b8; text-decoration: none; font-weight: 500; transition: color 0.2s ease; }
+  .login-v2-footer a:hover { color: #facc15; }
+  .login-v2-panel.hidden { display: none; }
+  .login-v2-forgot-link { display: block; text-align: right; font-size: 13px; color: #94a3b8; cursor: pointer; margin-top: -4px; margin-bottom: 12px; background: none; border: none; padding: 0; font-family: inherit; transition: color 0.2s; width: 100%; }
+  .login-v2-forgot-link:hover { color: #facc15; text-decoration: underline; }
+
+  /* CÓDIGO DE 6 DÍGITOS */
+  .codigo-input {
+    text-align: center !important;
+    font-size: 26px !important;
+    font-weight: 800 !important;
+    letter-spacing: 10px !important;
+    font-family: 'Inter', monospace !important;
+  }
+
+  @media (max-width: 500px) {
+    #login-screen { padding: 24px 16px; }
+    .login-v2-logo { font-size: 36px; }
+    .login-v2-title { font-size: 24px; }
+    .login-v2-card { padding: 22px 20px; }
+    .codigo-input { font-size: 22px !important; letter-spacing: 6px !important; }
   }
 </style>
 </head>
 <body>
-<!-- ── TOAST ── -->
 <div id="toast-container"></div>
+
 <!-- ═══════════════════════════════════════════════ -->
-<!-- LOGIN SCREEN                                    -->
+<!-- LANDING SCREEN                                   -->
 <!-- ═══════════════════════════════════════════════ -->
-<div id="login-screen">
-  <div style="text-align:center;padding:20px 0 28px">
-    <div style="font-family:'Syne',sans-serif;font-size:48px;font-weight:900;background:linear-gradient(90deg,#facc15,#f97316,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px">⚡ AVAI</div>
-    <div style="font-size:16px;color:#cbd5e1;margin-bottom:6px">Tu mentor personal premium para negocios, ventas y crecimiento.</div>
-    <div style="font-size:13px;color:#64748b">Mentor de negocios · Inglés · Matemáticas · Herramientas · Todo con IA</div>
-  </div>
-  <div class="stats-row" style="max-width:500px;margin:0 auto 24px">
-    <div class="stat-pill"><span class="sv">10</span><span class="sl">Modos mentor</span></div>
-    <div class="stat-pill" style="background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.25)"><span class="sv" style="color:#a855f7">22</span><span class="sl">Lecciones</span></div>
-    <div class="stat-pill" style="background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.25)"><span class="sv" style="color:#22c55e">6</span><span class="sl">Herramientas IA</span></div>
-    <div class="stat-pill" style="background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.25)"><span class="sv" style="color:#38bdf8">8</span><span class="sl">Roleplay</span></div>
-  </div>
-  <div class="feature-grid" style="max-width:500px;margin:0 auto 24px">
-    <div class="feature-item" style="background:linear-gradient(135deg,rgba(250,204,21,.1),rgba(249,115,22,.06));border:1px solid rgba(250,204,21,.25);"><b style="color:#facc15">🧠 Mentor de Negocios</b><span>10 modos: ventas, marketing, e-commerce, mindset y más. Con búsqueda en internet 🌐</span></div>
-    <div class="feature-item" style="background:linear-gradient(135deg,rgba(168,85,247,.1),rgba(99,102,241,.06));border:1px solid rgba(168,85,247,.25);"><b style="color:#a855f7">📚 Inglés con Alex</b><span>12 lecciones, quiz, roleplay, traductor, diario y certificado PDF</span></div>
-    <div class="feature-item" style="background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(16,185,129,.06));border:1px solid rgba(34,197,94,.25);"><b style="color:#22c55e">🔢 Mate con Bruno</b><span>10 lecciones, calculadora de negocios, ROI, punto de equilibrio</span></div>
-    <div class="feature-item" style="background:linear-gradient(135deg,rgba(249,115,22,.1),rgba(239,68,68,.06));border:1px solid rgba(249,115,22,.25);"><b style="color:#f97316">✍️ Generar Contenido</b><span>Posts Instagram, WhatsApp, Mercado Libre listos para publicar</span></div>
-    <div class="feature-item" style="background:linear-gradient(135deg,rgba(56,189,248,.1),rgba(99,102,241,.06));border:1px solid rgba(56,189,248,.25);"><b style="color:#38bdf8">🔍 Analizar Competencia</b><span>Plan de 5 pasos para superar a cualquier competidor</span></div>
-    <div class="feature-item" style="background:linear-gradient(135deg,rgba(250,204,21,.1),rgba(34,197,94,.06));border:1px solid rgba(250,204,21,.25);"><b style="color:#facc15">🔥 Gamificación</b><span>XP, rachas, niveles, desafíos diarios y logros desbloqueables</span></div>
-  </div>
-  <div class="login-box" style="margin:0 auto">
-    <div class="login-tabs">
-      <button class="login-tab active" onclick="setLoginTab('login')">Iniciar sesión</button>
-      <button class="login-tab" onclick="setLoginTab('register')">Crear cuenta</button>
+<div id="landing-screen">
+  <nav class="lnd-nav">
+    <div class="lnd-container lnd-nav-inner">
+      <div class="lnd-logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">⚡ AVAI</div>
+      <div class="lnd-nav-cta">
+        <button class="lnd-btn-link" onclick="document.getElementById('lnd-plans-section').scrollIntoView({behavior:'smooth'})">Planes</button>
+        <button class="lnd-btn-link" onclick="landingShowLogin()">Iniciar sesión</button>
+        <button class="lnd-btn-primary" onclick="landingShowRegister()">Probar gratis</button>
+      </div>
     </div>
-    <div id="panel-login">
-      <div class="mb-3"><label class="label">Email</label><input class="input" id="login-email" type="email" placeholder="tuemail@gmail.com / hotmail.com / icloud.com"></div>
-      <div class="mb-3"><label class="label">Contraseña</label><input class="input" id="login-pass" type="password" placeholder="Tu contraseña"></div>
-      <div id="login-error" class="alert alert-error hidden"></div>
-      <button class="btn btn-primary btn-full btn-lg" onclick="doLogin()">⚡ Entrar</button>
+  </nav>
+
+  <section class="lnd-hero">
+    <div class="lnd-container">
+      <div class="lnd-hero-badge">🇦🇷 En beta · Acceso temprano</div>
+      <h1 class="lnd-hero-title-main">AVAI te transforma.</h1>
+      <p class="lnd-hero-title-sub"><span class="strike">ChatGPT solo te responde.</span></p>
+      <p class="lnd-hero-sub">
+        El primer mentor de IA argentino con <b>11 modos especializados</b>, juegos con IA donde cada decisión cambia tu historia, <b>inglés y matemáticas con tutores virtuales</b>, herramientas para tu negocio y gamificación completa. Todo en un solo lugar.
+      </p>
+      <div class="lnd-hero-libre">💬 Incluye <b>Modo Conversación Libre</b> — preguntale lo que quieras</div>
+      <div class="lnd-hero-cta">
+        <button class="lnd-cta-big" onclick="landingShowRegister()">💎 Probar GRATIS ahora</button>
+        <button class="lnd-cta-ghost" onclick="document.getElementById('lnd-features-section').scrollIntoView({behavior:'smooth'})">Ver cómo funciona ↓</button>
+      </div>
+      <p class="lnd-hero-note">Sin tarjeta de crédito · Plan gratis para siempre · Cancelás cuando quieras</p>
     </div>
-    <div id="panel-register" class="hidden">
-      <div class="mb-3"><label class="label">Tu nombre</label><input class="input" id="reg-nombre" type="text" placeholder="Valentino"></div>
-      <div class="mb-3"><label class="label">Email</label><input class="input" id="reg-email" type="email" placeholder="tuemail@gmail.com / hotmail.com / icloud.com"></div>
-      <div class="mb-3"><label class="label">Contraseña (mín. 6 caracteres)</label><input class="input" id="reg-pass" type="password" placeholder="Creá tu contraseña"></div>
-      <div id="reg-error" class="alert alert-error hidden"></div>
-      <button class="btn btn-primary btn-full btn-lg" onclick="doRegister()">🚀 Crear cuenta gratis</button>
+  </section>
+
+  <div class="lnd-container">
+    <div class="lnd-stats-bar">
+      <div class="lnd-stat"><div class="lnd-stat-num">11</div><div class="lnd-stat-label">Modos mentor</div></div>
+      <div class="lnd-stat"><div class="lnd-stat-num">22</div><div class="lnd-stat-label">Lecciones</div></div>
+      <div class="lnd-stat"><div class="lnd-stat-num">6</div><div class="lnd-stat-label">Herramientas IA</div></div>
+      <div class="lnd-stat"><div class="lnd-stat-num">8</div><div class="lnd-stat-label">Juegos con IA</div></div>
+      <div class="lnd-stat"><div class="lnd-stat-num">2</div><div class="lnd-stat-label">Idiomas</div></div>
     </div>
-    <p style="text-align:center;font-size:12px;color:#475569;margin-top:14px">Sin tarjeta de crédito · Demo privada v4.0</p>
-    <p style="text-align:center;font-size:11px;color:#475569;margin-top:8px">
-      Al crear cuenta aceptás los
-      <a href="/terminos.html" target="_blank" style="color:#94a3b8">Términos</a> y la
-      <a href="/privacidad.html" target="_blank" style="color:#94a3b8">Política de Privacidad</a>
+  </div>
+
+  <div class="lnd-container">
+    <div class="lnd-mockup-wrap" style="position:relative">
+      <div class="lnd-mockup-floating">⚡ Demo en vivo</div>
+      <div class="lnd-mockup">
+        <div class="lnd-mockup-bar">
+          <div class="lnd-mockup-dot" style="background:#ef4444"></div>
+          <div class="lnd-mockup-dot" style="background:#f59e0b"></div>
+          <div class="lnd-mockup-dot" style="background:#22c55e"></div>
+          <div class="lnd-mockup-url">🔒 avai.ar</div>
+        </div>
+        <div class="lnd-mockup-body">
+          <div class="lnd-mockup-sidebar">
+            <div class="lnd-mockup-side-logo">⚡ AVAI</div>
+            <div class="lnd-mockup-section">Aprendizaje</div>
+            <div class="lnd-mockup-item active">🧠 Mentor</div>
+            <div class="lnd-mockup-item">📚 Inglés</div>
+            <div class="lnd-mockup-item">🔢 Mate</div>
+            <div class="lnd-mockup-section">Herramientas</div>
+            <div class="lnd-mockup-item">🛠️ Herramientas</div>
+            <div class="lnd-mockup-item">✈️ Viajes</div>
+            <div class="lnd-mockup-item">💪 Vida Sana</div>
+            <div class="lnd-mockup-item">🎮 Jugá con IA</div>
+            <div class="lnd-mockup-section">Mi Progreso</div>
+            <div class="lnd-mockup-item">🔥 Desafíos</div>
+            <div class="lnd-mockup-item">🏆 Ranking</div>
+          </div>
+          <div class="lnd-mockup-main">
+            <div class="lnd-mockup-hero-card">
+              <div class="av">⚡ AVAI</div>
+              <div class="sub">Tu mentor personal · Nivel 4 — Empresario Pro · 1.050 XP</div>
+            </div>
+            <div class="lnd-mockup-chat-msg user">
+              <div class="name">😊 VOS</div>
+              <div>Quiero vender más mi tienda de ropa. ¿Por dónde arranco?</div>
+            </div>
+            <div class="lnd-mockup-chat-msg">
+              <div class="name">⚡ AVAI · MENTOR</div>
+              <div>Capo, vamos directo al grano. Hoy mismo hacés 3 cosas: 1) Buscás 5 competidores en Instagram y anotás qué venden y a qué precio. 2) Identificás tu producto estrella (el que más sale) y hacés un post con oferta hoy. 3) Mandás un mensaje a 10 clientes viejos diciéndoles "vuelvo con esto"...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="lnd-section" id="lnd-vs-section">
+    <div class="lnd-container">
+      <h2 class="lnd-section-title">Por qué AVAI rompe con <span class="grad">chats genéricos</span></h2>
+      <p class="lnd-section-sub">No es un chat más. Es un sistema completo pensado para que dejes de estar perdido entre prompts.</p>
+      <div class="lnd-vs-grid">
+        <div class="lnd-vs-card bad">
+          <div class="lnd-vs-title">🤖 Chats genéricos</div>
+          <ul class="lnd-vs-list">
+            <li>Te responden lo que les preguntás (si sabés preguntar bien)</li>
+            <li>Tenés que armar prompts largos cada vez</li>
+            <li>Hablan como si fueran estadounidenses traducidos</li>
+            <li>No te conocen, no recuerdan tu negocio</li>
+            <li>No te empujan, no te desafían</li>
+            <li>No tienen gamificación ni progreso</li>
+            <li>No juegan con vos, no simulan tu vida</li>
+          </ul>
+        </div>
+        <div class="lnd-vs-card good">
+          <div class="lnd-vs-title">⚡ AVAI</div>
+          <ul class="lnd-vs-list">
+            <li><b>11 modos especializados</b> — tocás y listo, sin prompts</li>
+            <li>Te conoce: recuerda tu negocio, objetivo y dificultades</li>
+            <li>Habla en argentino real, con jerga y ejemplos locales</li>
+            <li>Te tira <b>desafíos diarios</b> con XP y rachas</li>
+            <li>Juegos con IA: <b>simulás vidas, lanzás empresas</b></li>
+            <li>Inglés y matemáticas con <b>tutores virtuales</b> (Alex y Bruno)</li>
+            <li>Certificados PDF, ranking, niveles y logros</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lnd-section" id="lnd-features-section">
+    <div class="lnd-container">
+      <h2 class="lnd-section-title">Todo lo que <span class="grad">AVAI</span> hace por vos</h2>
+      <p class="lnd-section-sub">Una sola app. Sin pagar 5 herramientas distintas. Sin pelearte con prompts.</p>
+      <div class="lnd-features">
+        <div class="lnd-feature gold">
+          <div class="lnd-feature-icon">🧠</div>
+          <h3>11 Modos Mentor + Modo Libre</h3>
+          <p>Ventas, marketing, e-commerce, mindset, ideas de negocio, simulación con clientes difíciles, planificador de objetivos, especialista en reventa, mentor millonario, y <b>💬 Conversación Libre</b> donde le preguntás absolutamente lo que quieras, con búsqueda en internet en tiempo real. Tocás un botón y listo.</p>
+        </div>
+        <div class="lnd-feature blue">
+          <div class="lnd-feature-icon">🎮</div>
+          <h3>Jugá con IA (único en el mercado)</h3>
+          <p><b>Modo Historia:</b> simulás vidas — lanzás una startup, heredás un negocio familiar, llegás a Nueva York con $500, sobrevivís en una isla. Cada decisión cambia la historia. <b>Business Empire:</b> arrancás con un kiosco y lo escalás a empresa con sucursales. La IA reacciona a cada movimiento.</p>
+        </div>
+        <div class="lnd-feature purple">
+          <div class="lnd-feature-icon">📚</div>
+          <h3>Inglés con Alex</h3>
+          <p>Tu profesor de inglés con IA. <b>12 lecciones</b> por nivel (Principiante, Intermedio, Avanzado), <b>roleplay</b> de situaciones reales (entrevista de trabajo, restaurante, aeropuerto), traductor inteligente, diario en inglés con corrección automática y <b>certificado PDF descargable</b> al terminar el nivel.</p>
+        </div>
+        <div class="lnd-feature green">
+          <div class="lnd-feature-icon">🔢</div>
+          <h3>Mate con Bruno</h3>
+          <p>Aprendé matemáticas aplicadas a negocios. <b>10 lecciones</b> por nivel + <b>calculadora interactiva</b>: margen de ganancia, punto de equilibrio, ROI, precio ideal, proyección de ventas. Todo explicado con ejemplos reales argentinos. Certificado al terminar.</p>
+        </div>
+        <div class="lnd-feature orange">
+          <div class="lnd-feature-icon">🛠️</div>
+          <h3>Herramientas Pro</h3>
+          <p><b>Análisis de competencia</b> (plan en 5 pasos para superarla), <b>generador de contenido</b> (posts Instagram, WhatsApp, Mercado Libre), <b>plantillas listas</b> personalizables, <b>creador de marca personal</b> con generación de logo IA, y <b>finanzas personales</b> con IA.</p>
+        </div>
+        <div class="lnd-feature blue">
+          <div class="lnd-feature-icon">✈️</div>
+          <h3>Viajes + Vida Sana</h3>
+          <p><b>Planificador de viajes</b>: la IA arma tu itinerario día por día con precios reales actualizados y datos de Argentina. <b>Vida Sana</b>: plan de alimentación de 7 días + rutina de ejercicio personalizada según tus datos, objetivos y presupuesto.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lnd-section">
+    <div class="lnd-container">
+      <div class="lnd-allinone">
+        <h2 class="lnd-section-title" style="margin-bottom:18px">Una sola app. <span class="grad">Cero fricción.</span></h2>
+        <p class="lnd-section-sub" style="margin-bottom:8px">Antes: abrías un chat genérico, pensabas un prompt, pegabas contexto, esperabas... y volvías a empezar para cada cosa distinta.</p>
+        <p class="lnd-section-sub" style="margin-bottom:24px"><b style="color:#facc15">Ahora con AVAI:</b> tocás un botón del sidebar y arrancás. Listo.</p>
+        <div class="lnd-allinone-icons">
+          <div class="lnd-allinone-icon">🧠 Mentor</div>
+          <div class="lnd-allinone-icon">💬 Libre</div>
+          <div class="lnd-allinone-icon">📚 Inglés</div>
+          <div class="lnd-allinone-icon">🔢 Mate</div>
+          <div class="lnd-allinone-icon">🛠️ Herramientas</div>
+          <div class="lnd-allinone-icon">✈️ Viajes</div>
+          <div class="lnd-allinone-icon">💪 Vida Sana</div>
+          <div class="lnd-allinone-icon">🎮 Juegos IA</div>
+          <div class="lnd-allinone-icon">🏆 Ranking</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lnd-section">
+    <div class="lnd-container">
+      <h2 class="lnd-section-title">Empezás en <span class="grad">1 minuto</span></h2>
+      <p class="lnd-section-sub">Sin instalar nada. Sin tarjeta de crédito. Tres pasos y estás adentro.</p>
+      <div class="lnd-how">
+        <div class="lnd-how-step">
+          <div class="lnd-how-num">1</div>
+          <h3>Creá tu cuenta</h3>
+          <p>Solo email y contraseña. Sin pedir tarjeta. Sin trampas. Funciona en cualquier dispositivo.</p>
+        </div>
+        <div class="lnd-how-step">
+          <div class="lnd-how-num">2</div>
+          <h3>Contale a AVAI tus metas</h3>
+          <p>Onboarding rápido para que AVAI te conozca: tu objetivo, tu negocio, tu nivel y tu tiempo disponible.</p>
+        </div>
+        <div class="lnd-how-step">
+          <div class="lnd-how-num">3</div>
+          <h3>Empezá a crecer</h3>
+          <p>Tocás un modo del sidebar y arrancás. Desafíos diarios, XP, rachas y mucho más para mantenerte.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lnd-section" id="lnd-plans-section">
+    <div class="lnd-container">
+      <h2 class="lnd-section-title">Planes <span class="grad">simples</span></h2>
+      <p class="lnd-section-sub">Empezá gratis. Subí cuando quieras. Cancelás cuando quieras.</p>
+      <div class="lnd-plans-toggle-wrap">
+        <div class="lnd-plans-toggle">
+          <button class="lnd-toggle-btn active" id="lnd-toggle-mensual" onclick="lndTogglePlan('mensual')">Mensual</button>
+          <button class="lnd-toggle-btn" id="lnd-toggle-anual" onclick="lndTogglePlan('anual')">Anual <span class="lnd-toggle-badge">-20%</span></button>
+        </div>
+      </div>
+      <div class="lnd-plans">
+        <div class="lnd-plan">
+          <h3>Gratis</h3>
+          <div class="lnd-plan-desc">Para probar todo sin pagar nada.</div>
+          <div class="lnd-plan-price">$0</div>
+          <div class="lnd-plan-cycle">Para siempre</div>
+          <ul class="lnd-plan-feat">
+            <li>Mentor básico (10 mensajes/día con IA)</li>
+            <li>💬 Modo Conversación Libre</li>
+            <li>Inglés con Alex — lecciones + quiz</li>
+            <li>Mate con Bruno — lecciones + calculadora</li>
+            <li>Herramientas básicas</li>
+            <li>Jugá con IA (5 turnos/día)</li>
+            <li>Gamificación: XP, rachas, ranking</li>
+            <li>Certificados PDF</li>
+            <li class="disabled">Búsqueda en internet</li>
+            <li class="disabled">Viajes y Vida Sana</li>
+            <li class="disabled">Generación de logos con IA</li>
+          </ul>
+          <button class="lnd-plan-btn ghost" onclick="landingShowRegister()">Empezar gratis</button>
+        </div>
+        <div class="lnd-plan featured">
+          <div class="lnd-plan-pop">⭐ Más elegido</div>
+          <h3>Premium ⚡</h3>
+          <div class="lnd-plan-desc">Para los que van en serio.</div>
+          <div class="lnd-plan-price" id="lnd-price-mensual"><span class="currency">$</span>8.000</div>
+          <div class="lnd-plan-price" id="lnd-price-anual" style="display:none"><span class="currency">$</span>76.800</div>
+          <div class="lnd-plan-cycle" id="lnd-cycle-mensual">ARS / mes · Cancelás cuando quieras</div>
+          <div class="lnd-plan-cycle" id="lnd-cycle-anual" style="display:none">ARS / año · Ahorrás $19.200 (2 meses gratis)</div>
+          <ul class="lnd-plan-feat">
+            <li><b>Todo lo del Gratis SIN LÍMITES</b></li>
+            <li>11 modos mentor completos</li>
+            <li>🌐 Búsqueda en internet en tiempo real</li>
+            <li>📎 Adjuntar imágenes en los chats</li>
+            <li>🎨 Generador de logos con IA</li>
+            <li>✈️ Planificador de Viajes con IA</li>
+            <li>💪 Vida Sana (alimentación + ejercicio)</li>
+            <li>🎮 Juegos con IA: 30 turnos/día</li>
+            <li>🎭 Roleplay de inglés ilimitado</li>
+            <li>🏆 Soporte prioritario + factura</li>
+          </ul>
+          <button class="lnd-plan-btn primary" onclick="landingShowRegister()">💎 Empezar gratis</button>
+          <p style="text-align:center;font-size:11px;color:#64748b;margin-top:10px">Probás gratis · Pagás cuando estés listo</p>
+        </div>
+        <div class="lnd-plan">
+          <h3>Empresarial 🔒</h3>
+          <div class="lnd-plan-desc">Para equipos y empresas.</div>
+          <div class="lnd-plan-price" style="font-size:24px;color:#94a3b8">Consultar</div>
+          <div class="lnd-plan-cycle">Próximamente</div>
+          <ul class="lnd-plan-feat">
+            <li>Para equipos de trabajo</li>
+            <li>Métricas avanzadas del equipo</li>
+            <li>IA personalizada con datos propios</li>
+            <li>Onboarding dedicado</li>
+            <li>Soporte 24/7</li>
+            <li class="disabled">En desarrollo</li>
+          </ul>
+          <button class="lnd-plan-btn ghost" onclick="window.location.href='mailto:valen810a@gmail.com?subject=Plan%20Empresarial%20AVAI'">📧 Anotarme</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lnd-section">
+    <div class="lnd-container">
+      <h2 class="lnd-section-title">Preguntas <span class="grad">frecuentes</span></h2>
+      <p class="lnd-section-sub">Lo que la gente nos pregunta antes de probarlo.</p>
+      <div class="lnd-faq">
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿Es gratis de verdad o me van a cobrar después?</summary>
+          <div class="lnd-faq-a">Sí, totalmente gratis. El plan Gratis es para siempre y tiene casi todas las funciones (con límite de 10 mensajes/día con la IA). Premium es 100% opcional, lo activás solo si querés más. <b>Nunca te pedimos tarjeta para registrarte.</b></div>
+        </details>
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿Puedo preguntarle cualquier cosa, no solo de negocios?</summary>
+          <div class="lnd-faq-a">Sí. Además de los 11 modos especializados (ventas, marketing, etc.), AVAI tiene un <b>Modo Conversación Libre</b> donde le preguntás absolutamente lo que quieras: dudas personales, recetas, historia, programación, salud, lo que sea. Funciona como un chat normal pero en argentino. En Premium, además, tiene <b>búsqueda en internet en tiempo real</b>.</div>
+        </details>
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿Cómo pago Premium? ¿Es seguro?</summary>
+          <div class="lnd-faq-a">Pagás con Mercado Pago — es completamente seguro y aceptan tarjetas de crédito, débito, cuenta MP y transferencias. La suscripción se renueva sola cada mes pero la cancelás cuando quieras desde el panel.</div>
+        </details>
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿Recibo factura?</summary>
+          <div class="lnd-faq-a">Sí, factura electrónica oficial de AFIP/ARCA por cada pago. Te llega automáticamente al email apenas se acredita el pago.</div>
+        </details>
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿En qué se diferencia de otros chats de IA?</summary>
+          <div class="lnd-faq-a">Los chats genéricos te responden lo que les preguntes (si sabés preguntar). AVAI es un sistema completo con 11 modos especializados, juegos donde la IA es el alma del juego, tutores de inglés y matemáticas con plan de estudios, gamificación con XP/rachas/desafíos, certificados PDF, planificador de viajes, vida sana, y mucho más. Todo en argentino, sin tener que armar prompts.</div>
+        </details>
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿Puedo cancelar cuando quiera?</summary>
+          <div class="lnd-faq-a">Sí, sin permanencia, sin penalidades. Cancelás desde tu cuenta con un click. Si cancelás antes del cierre del mes, mantenés Premium hasta el final del período que ya pagaste.</div>
+        </details>
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿Funciona en celular?</summary>
+          <div class="lnd-faq-a">Sí, AVAI funciona en cualquier dispositivo con navegador: celular, tablet, notebook, PC. No hace falta instalar nada. Solo entrás a avai.ar y listo.</div>
+        </details>
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿Mis datos están seguros?</summary>
+          <div class="lnd-faq-a">Sí. Tu contraseña va encriptada (bcrypt), las conexiones son HTTPS con SSL, y no compartimos tus datos con terceros. Podés borrar tu cuenta cuando quieras y se eliminan todos tus datos.</div>
+        </details>
+        <details class="lnd-faq-item">
+          <summary class="lnd-faq-q">¿Y si tengo un problema o dudas?</summary>
+          <div class="lnd-faq-a">Escribinos a <b>valen810a@gmail.com</b> y te respondemos lo antes posible. Los usuarios Premium tienen soporte prioritario.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="lnd-section">
+    <div class="lnd-container">
+      <div class="lnd-final">
+        <h2>Empezá a <span class="grad">crecer</span> hoy</h2>
+        <p>Sumate a AVAI y descubrí lo que se siente tener un mentor real en el bolsillo.</p>
+        <button class="lnd-cta-big" onclick="landingShowRegister()">💎 Empezar GRATIS ahora</button>
+        <p class="lnd-hero-note">Sin tarjeta · Sin compromiso · 1 minuto para empezar</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="lnd-footer">
+    <div class="lnd-container">
+      <div class="lnd-footer-grid">
+        <div class="lnd-footer-about">
+          <div class="lnd-logo" style="font-size:22px">⚡ AVAI</div>
+          <p>El mentor argentino de IA. 11 modos especializados, modo conversación libre, juegos con IA, gamificación completa, y todo en argentino.</p>
+        </div>
+        <div>
+          <h4>Producto</h4>
+          <a href="#lnd-features-section" onclick="document.getElementById('lnd-features-section').scrollIntoView({behavior:'smooth'});return false">Features</a>
+          <a href="#lnd-plans-section" onclick="document.getElementById('lnd-plans-section').scrollIntoView({behavior:'smooth'});return false">Planes</a>
+          <a href="javascript:void(0)" onclick="landingShowRegister()">Empezar gratis</a>
+          <a href="javascript:void(0)" onclick="landingShowLogin()">Iniciar sesión</a>
+        </div>
+        <div>
+          <h4>Legal</h4>
+          <a href="/terminos.html" target="_blank">Términos y Condiciones</a>
+          <a href="/privacidad.html" target="_blank">Política de Privacidad</a>
+          <a href="mailto:valen810a@gmail.com">Contacto / Soporte</a>
+        </div>
+      </div>
+      <div class="lnd-footer-bottom">
+        © 2026 AVAI · Formosa, Argentina · Todos los derechos reservados.<br>
+        <div class="f960">📋 F960 Data Fiscal AFIP — Próximamente</div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- LOGIN SCREEN — v3 con recuperar pass + verif    -->
+<!-- ═══════════════════════════════════════════════ -->
+<div id="login-screen" style="display:none">
+  <div class="login-v2-wrap">
+    <button class="login-v2-back" onclick="landingShowFromLogin()">
+      <span style="font-size:16px">←</span> Volver
+    </button>
+    <div class="login-v2-header">
+      <div class="login-v2-logo">⚡ AVAI</div>
+      <h1 class="login-v2-title" id="login-v2-title">Crear tu cuenta gratis</h1>
+      <p class="login-v2-subtitle" id="login-v2-subtitle">Empezás a usar AVAI en menos de 30 segundos.</p>
+    </div>
+    <div class="login-v2-card">
+
+      <!-- TABS (solo se muestran en register/login) -->
+      <div class="login-v2-tabs" id="login-v2-tabs-wrap">
+        <button class="login-v2-tab active" id="tab-btn-register" onclick="setLoginTab('register')">Crear cuenta</button>
+        <button class="login-v2-tab" id="tab-btn-login" onclick="setLoginTab('login')">Iniciar sesión</button>
+      </div>
+
+      <!-- PANEL: REGISTRAR -->
+      <div id="panel-register" class="login-v2-panel">
+        <div class="login-v2-field">
+          <label class="login-v2-label" for="reg-nombre">Tu nombre</label>
+          <input class="login-v2-input" id="reg-nombre" type="text" placeholder="Valentino" autocomplete="name">
+        </div>
+        <div class="login-v2-field">
+          <label class="login-v2-label" for="reg-email">Email</label>
+          <input class="login-v2-input" id="reg-email" type="email" placeholder="tuemail@gmail.com" autocomplete="email">
+        </div>
+        <div class="login-v2-field">
+          <label class="login-v2-label" for="reg-pass">Contraseña <span style="color:#64748b;font-weight:400">(mín. 6 caracteres)</span></label>
+          <input class="login-v2-input" id="reg-pass" type="password" placeholder="••••••••" autocomplete="new-password">
+        </div>
+        <div id="reg-error" class="login-v2-error hidden"></div>
+        <button class="login-v2-cta" onclick="doRegister()">🚀 Crear cuenta gratis</button>
+        <div class="login-v2-divider">QUÉ INCLUYE</div>
+        <ul class="login-v2-benefits">
+          <li>Sin tarjeta de crédito</li>
+          <li>Plan gratis para siempre</li>
+          <li>Cancelás cuando quieras</li>
+        </ul>
+      </div>
+
+      <!-- PANEL: LOGIN -->
+      <div id="panel-login" class="login-v2-panel hidden">
+        <div class="login-v2-field">
+          <label class="login-v2-label" for="login-email">Email</label>
+          <input class="login-v2-input" id="login-email" type="email" placeholder="tuemail@gmail.com" autocomplete="email">
+        </div>
+        <div class="login-v2-field">
+          <label class="login-v2-label" for="login-pass">Contraseña</label>
+          <input class="login-v2-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="login-v2-forgot-link" onclick="showResetStep1()">¿Olvidaste tu contraseña?</button>
+        <div id="login-error" class="login-v2-error hidden"></div>
+        <button class="login-v2-cta" onclick="doLogin()">⚡ Entrar a mi cuenta</button>
+      </div>
+
+      <!-- PANEL: RECUPERAR PASS — Paso 1 (pedir email) -->
+      <div id="panel-reset-step1" class="login-v2-panel hidden">
+        <div class="login-v2-info">
+          🔑 Te vamos a mandar un código de 6 dígitos a tu email para que puedas crear una contraseña nueva.
+        </div>
+        <div class="login-v2-field">
+          <label class="login-v2-label" for="reset-email">Tu email</label>
+          <input class="login-v2-input" id="reset-email" type="email" placeholder="tuemail@gmail.com" autocomplete="email">
+        </div>
+        <div id="reset-step1-error" class="login-v2-error hidden"></div>
+        <button class="login-v2-cta" id="reset-step1-btn" onclick="doSolicitarReset()">📧 Enviarme el código</button>
+        <button class="login-v2-cta-ghost" onclick="setLoginTab('login')">← Volver al login</button>
+      </div>
+
+      <!-- PANEL: RECUPERAR PASS — Paso 2 (código + nueva pass) -->
+      <div id="panel-reset-step2" class="login-v2-panel hidden">
+        <div class="login-v2-success" id="reset-step2-success">
+          ✅ Te mandamos un código a <b id="reset-email-display"></b>. Revisá tu email (también en spam) y pegalo abajo junto con tu nueva contraseña.
+        </div>
+        <div class="login-v2-field">
+          <label class="login-v2-label" for="reset-codigo">Código de 6 dígitos</label>
+          <input class="login-v2-input codigo-input" id="reset-codigo" type="text" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code">
+        </div>
+        <div class="login-v2-field">
+          <label class="login-v2-label" for="reset-nueva-pass">Nueva contraseña <span style="color:#64748b;font-weight:400">(mín. 6 caracteres)</span></label>
+          <input class="login-v2-input" id="reset-nueva-pass" type="password" placeholder="••••••••" autocomplete="new-password">
+        </div>
+        <div id="reset-step2-error" class="login-v2-error hidden"></div>
+        <button class="login-v2-cta" id="reset-step2-btn" onclick="doConfirmarReset()">🔐 Cambiar contraseña</button>
+        <button class="login-v2-cta-ghost" onclick="showResetStep1()">← Cambiar email</button>
+        <p style="text-align:center;font-size:12px;color:#64748b;margin-top:14px;line-height:1.6">
+          ¿No te llegó el código? Esperá 1-2 minutos y revisá <b>spam</b>.<br>
+          O <button style="background:none;border:none;color:#facc15;cursor:pointer;font-family:inherit;font-size:12px;text-decoration:underline;padding:0" onclick="doSolicitarReset()">enviá el código de nuevo</button>
+        </p>
+      </div>
+
+      <!-- PANEL: VERIFICAR EMAIL (post-registro) -->
+      <div id="panel-verif-email" class="login-v2-panel hidden">
+        <div class="login-v2-success">
+          🎉 ¡Cuenta creada! Te mandamos un código a <b id="verif-email-display"></b> para verificar tu email.
+        </div>
+        <div class="login-v2-info">
+          💡 La verificación es <b>opcional</b>. Podés entrar a AVAI sin verificar, pero te recomendamos hacerlo para mayor seguridad.
+        </div>
+        <div class="login-v2-field">
+          <label class="login-v2-label" for="verif-codigo">Código de 6 dígitos</label>
+          <input class="login-v2-input codigo-input" id="verif-codigo" type="text" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code">
+        </div>
+        <div id="verif-error" class="login-v2-error hidden"></div>
+        <button class="login-v2-cta" id="verif-btn" onclick="doVerificarEmail()">✓ Verificar y entrar</button>
+        <button class="login-v2-cta-ghost" onclick="saltarVerificacion()">Saltar por ahora → Entrar a AVAI</button>
+        <p style="text-align:center;font-size:12px;color:#64748b;margin-top:14px;line-height:1.6">
+          ¿No te llegó? Revisá <b>spam</b> o
+          <button style="background:none;border:none;color:#facc15;cursor:pointer;font-family:inherit;font-size:12px;text-decoration:underline;padding:0" onclick="doReenviarCodigoVerif()">enviá uno nuevo</button>
+        </p>
+      </div>
+
+    </div>
+    <p class="login-v2-footer">
+      Al crear cuenta aceptás los<br>
+      <a href="/terminos.html" target="_blank">Términos</a> y la
+      <a href="/privacidad.html" target="_blank">Política de Privacidad</a>
     </p>
   </div>
 </div>
+
 <!-- ═══════════════════════════════════════════════ -->
-<!-- ONBOARDING                                      -->
+<!-- ONBOARDING                                       -->
 <!-- ═══════════════════════════════════════════════ -->
 <div id="onboarding" class="hidden">
   <div class="onboarding-inner">
@@ -206,14 +832,13 @@
     </div>
   </div>
 </div>
+
 <!-- ═══════════════════════════════════════════════ -->
-<!-- MAIN APP                                        -->
+<!-- MAIN APP                                         -->
 <!-- ═══════════════════════════════════════════════ -->
 <div id="app" class="hidden">
-  <!-- Hamburger -->
   <button id="hamburger" onclick="toggleSidebar()">☰</button>
   <div id="overlay" onclick="closeSidebar()"></div>
-  <!-- Sidebar -->
   <nav id="sidebar">
     <div class="sidebar-logo">⚡ AVAI</div>
     <div class="nav-section">APRENDIZAJE</div>
@@ -237,7 +862,6 @@
       <button class="nav-btn" data-tab="admin" onclick="navigateTo('admin')" style="color:#fbbf24"><span class="nav-icon">🛠️</span> Panel Admin</button>
     </div>
     <button class="nav-btn" onclick="doLogout()" style="margin-top:auto;color:#ef4444"><span class="nav-icon">🚪</span> Cerrar sesión</button>
-    <!-- Footer del sidebar con links legales -->
     <div class="sidebar-footer">
       <a href="/terminos.html" target="_blank">📋 Términos y Condiciones</a>
       <a href="/privacidad.html" target="_blank">🔒 Política de Privacidad</a>
@@ -245,50 +869,64 @@
       <div class="copy">© 2026 AVAI · Formosa, Argentina</div>
     </div>
   </nav>
-  <!-- Main Content -->
   <main id="main-content">
-    <!-- HEADER -->
-    <div class="hero-card mb-3">
-      <div class="av-logo">⚡ AVAI</div>
-      <div class="av-subtitle" id="header-subtitle">Tu mentor personal premium para negocios, ventas y crecimiento.</div>
+    <div class="dash-hero">
+      <div class="dash-hero-logo">⚡ AVAI</div>
+      <div class="dash-hero-subtitle" id="header-subtitle">Tu mentor personal de IA</div>
     </div>
-    <!-- Metrics -->
-    <div class="grid-4 mb-3" id="header-metrics">
-      <div class="metric-chip" style="background:linear-gradient(135deg,rgba(250,204,21,.15),rgba(250,204,21,.05));border-color:rgba(250,204,21,.35)">
-        <div style="font-size:24px">👤</div><div class="metric-val text-gold" id="m-nombre">—</div><div class="metric-lbl">Usuario</div>
+
+    <div class="dash-stats" id="header-metrics">
+      <div class="dash-stat-col">
+        <div class="dash-stat-icon">👤</div>
+        <div class="dash-stat-val gold" id="m-nombre">—</div>
+        <div class="dash-stat-lbl">Usuario</div>
       </div>
-      <div class="metric-chip" style="background:linear-gradient(135deg,rgba(249,115,22,.15),rgba(249,115,22,.05));border-color:rgba(249,115,22,.35)">
-        <div style="font-size:24px">⭐</div><div class="metric-val" style="color:#f97316" id="m-xp">0</div><div class="metric-lbl">XP Total</div>
+      <div class="dash-stat-col">
+        <div class="dash-stat-icon">⭐</div>
+        <div class="dash-stat-val orange" id="m-xp">0</div>
+        <div class="dash-stat-lbl">XP Total</div>
       </div>
-      <div class="metric-chip" style="background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(239,68,68,.05));border-color:rgba(239,68,68,.35)">
-        <div style="font-size:24px">🔥</div><div class="metric-val" style="color:#ef4444" id="m-racha">0 días</div><div class="metric-lbl">Racha</div>
+      <div class="dash-stat-col">
+        <div class="dash-stat-icon">🔥</div>
+        <div class="dash-stat-val red" id="m-racha">0d</div>
+        <div class="dash-stat-lbl">Racha</div>
       </div>
-      <div class="metric-chip" style="background:linear-gradient(135deg,rgba(56,189,248,.15),rgba(56,189,248,.05));border-color:rgba(56,189,248,.35)">
-        <div style="font-size:24px">💎</div><div class="metric-val text-sky" id="m-plan">Gratis</div><div class="metric-lbl">Plan</div>
+      <div class="dash-stat-col">
+        <div class="dash-stat-icon">💎</div>
+        <div class="dash-stat-val sky" id="m-plan">Gratis</div>
+        <div class="dash-stat-lbl">Plan</div>
       </div>
     </div>
-    <!-- Progress bar -->
-    <div class="card mb-3" style="padding:14px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-        <span style="font-weight:700;font-size:13px" id="nivel-txt">Nivel 1 — Inicial</span>
-        <span style="color:var(--gold);font-size:13px;font-weight:700" id="nivel-pct">0%</span>
+
+    <div class="dash-nivel">
+      <div class="dash-nivel-row">
+        <span class="dash-nivel-name" id="nivel-txt">Nivel 1 — Inicial</span>
+        <span class="dash-nivel-pct" id="nivel-pct">0%</span>
       </div>
-      <div class="progress-bar"><div class="progress-fill" id="nivel-bar" style="width:0%"></div></div>
-      <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--text3)">
+      <div class="dash-nivel-bar"><div class="dash-nivel-fill" id="nivel-bar" style="width:0%"></div></div>
+      <div class="dash-nivel-stats">
         <span id="stat-lecciones">📚 0 lecciones</span>
-        <span id="stat-diario">📓 0 entradas diario</span>
+        <span id="stat-diario">📓 0 entradas</span>
         <span id="stat-objetivos">🎯 0 objetivos</span>
       </div>
     </div>
-    <!-- ─── TABS ─── -->
-    <!-- TAB: MENTOR -->
+
+    <div style="display:none">
+      <div class="hero-card"><div class="av-logo">⚡ AVAI</div><div class="av-subtitle"></div></div>
+      <div class="grid-4">
+        <div class="metric-chip"><div class="metric-val"></div><div class="metric-lbl"></div></div>
+      </div>
+      <div class="card"><div class="progress-bar"><div class="progress-fill"></div></div></div>
+    </div>
+
     <div id="tab-mentor" class="tab-content active">
       <div class="modo-card">
         <div class="modo-card-header">
-          <span class="modo-card-icon">🧠</span>
-          <span class="modo-card-label">MODO ACTIVO</span>
+          <span class="modo-card-icon">💬</span>
+          <span class="modo-card-label">Modo activo</span>
         </div>
         <select id="modo-selector" class="modo-card-select" onchange="App.modo=this.value">
+          <option>Conversación Libre</option>
           <option>Mentor de Negocios</option>
           <option>Entrenador de Ventas</option>
           <option>Marketing LATAM</option>
@@ -299,11 +937,9 @@
           <option>Mentor Millonario</option>
           <option>Especialista E-commerce</option>
           <option>Especialista Reventa</option>
-          <option>Conversación Libre</option>
         </select>
         <div class="modo-card-hint">💡 11 modos disponibles · tocá para cambiar</div>
       </div>
-      <!-- Quick buttons -->
       <div class="quick-btns mb-2">
         <div class="qbtn qbtn-gold" onclick="sendQuickNeg('Dame una idea de negocio rentable para empezar con pocos recursos.')">💡 Idea</div>
         <div class="qbtn qbtn-green" onclick="sendQuickNeg('Quiero vender más. Dame un plan práctico para empezar hoy.')">📈 Vender</div>
@@ -322,14 +958,13 @@
       <div id="neg-image-preview" style="display:none"></div>
       <div class="chat-input-wrap">
         <div class="chat-input-row">
-          <textarea id="neg-input" placeholder="✍️ Escribí tu pregunta acá..." rows="1"></textarea>
+          <textarea id="neg-input" placeholder="Escribí tu pregunta acá..." rows="1"></textarea>
           <input type="file" id="neg-image-input" accept="image/*" style="display:none" onchange="Chat.attachImage(this, 'neg-image-preview')" />
-          <button class="chat-send-btn" id="neg-attach" style="background:linear-gradient(135deg,#a855f7,#6366f1)" onclick="document.getElementById('neg-image-input').click()" title="Adjuntar imagen (Premium)">📎</button>
-          <button class="chat-send-btn" id="neg-send">➤</button>
+          <button class="chat-send-btn" id="neg-attach" onclick="document.getElementById('neg-image-input').click()" title="Adjuntar imagen (Premium)">📎</button>
+          <button class="chat-send-btn" id="neg-send" title="Enviar">➤</button>
         </div>
       </div>
     </div>
-    <!-- TAB: INGLÉS -->
     <div id="tab-english" class="tab-content hidden">
       <div class="card-blue card mb-3"><h2 style="font-family:'Syne',sans-serif">📚 Aprender Inglés</h2><p class="text-muted">Lecciones offline · Quiz · Roleplay · Traductor · Diario · Certificado</p></div>
       <div class="subnav">
@@ -347,7 +982,6 @@
       <div id="english-certificado" data-subpanel="english" data-value="certificado" style="display:none"></div>
       <div id="english-chat" data-subpanel="english" data-value="chat" style="display:none"></div>
     </div>
-    <!-- TAB: MATE -->
     <div id="tab-mate" class="tab-content hidden">
       <div class="card-green card mb-3"><h2 style="font-family:'Syne',sans-serif">🔢 Aprender Matemáticas</h2><p class="text-muted">Lecciones · Quiz · Calculadora de negocios · Certificado</p></div>
       <div class="subnav">
@@ -359,7 +993,6 @@
       <div id="mate-calculadora" data-subpanel="mate" data-value="calculadora" style="display:none"></div>
       <div id="mate-chat" data-subpanel="mate" data-value="chat" style="display:none"></div>
     </div>
-    <!-- TAB: HERRAMIENTAS -->
     <div id="tab-herramientas" class="tab-content hidden">
       <div class="hero-card mb-3"><h2>🛠️ Herramientas</h2><p class="av-subtitle">Analizá tu competencia, generá contenido y más.</p></div>
       <div class="subnav">
@@ -375,7 +1008,6 @@
       <div id="herr-marca" data-subpanel="herr" data-value="marca" style="display:none"></div>
       <div id="herr-finanzas" data-subpanel="herr" data-value="finanzas" style="display:none"></div>
     </div>
-    <!-- TAB: VIAJES -->
     <div id="tab-viajes" class="tab-content hidden">
       <div class="hero-card mb-3"><h2>✈️ Planificador de Viajes</h2><p class="av-subtitle">Armá tu próximo viaje con IA. Itinerarios día por día con precios reales y datos actualizados.</p></div>
       <div class="subnav">
@@ -385,7 +1017,6 @@
       <div id="viajes-itinerario" data-subpanel="viajes" data-value="itinerario"></div>
       <div id="viajes-inspirame" data-subpanel="viajes" data-value="inspirame" style="display:none"></div>
     </div>
-    <!-- TAB: VIDA SANA -->
     <div id="tab-vidasana" class="tab-content hidden">
       <div class="hero-card mb-3"><h2>💪 Vida Sana</h2><p class="av-subtitle">Plan de alimentación y rutina de ejercicio con IA, adaptado a tus objetivos.</p></div>
       <div class="subnav">
@@ -395,7 +1026,6 @@
       <div id="vidasana-alimentacion" data-subpanel="vidasana" data-value="alimentacion"></div>
       <div id="vidasana-ejercicio" data-subpanel="vidasana" data-value="ejercicio" style="display:none"></div>
     </div>
-    <!-- TAB: JUGÁ CON IA -->
     <div id="tab-juegos" class="tab-content hidden">
       <div class="hero-card mb-3"><h2>🎮 Jugá con IA</h2><p class="av-subtitle">Juegos donde la IA es el alma del juego. Aventuras únicas que cambian con cada decisión.</p></div>
       <div class="subnav">
@@ -407,42 +1037,438 @@
       <div id="juegos-empire" data-subpanel="juegos" data-value="empire" style="display:none"></div>
       <div id="juegos-proximamente" data-subpanel="juegos" data-value="proximamente" style="display:none"></div>
     </div>
-    <!-- TAB: PROGRESO -->
     <div id="tab-progreso" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">📈 Mi Progreso</h2>
       <div id="progreso-content"></div>
     </div>
-    <!-- TAB: DESAFÍOS -->
     <div id="tab-desafios" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">🔥 Desafíos</h2>
       <div id="desafios-content"></div>
     </div>
-    <!-- TAB: RANKING -->
     <div id="tab-ranking" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">🏆 Ranking</h2>
       <div id="ranking-content"><div class="loading-row"><div class="spinner"></div>Cargando ranking…</div></div>
     </div>
-    <!-- TAB: PREMIUM -->
     <div id="tab-premium" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">💎 Planes</h2>
       <div class="grid-3" id="planes-content"></div>
     </div>
-    <!-- TAB: CONFIG -->
     <div id="tab-config" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px">⚙️ Configuración</h2>
       <div id="config-content"></div>
     </div>
-    <!-- TAB: ADMIN (solo visible para Valentino) -->
     <div id="tab-admin" class="tab-content hidden">
       <h2 style="font-family:'Syne',sans-serif;margin-bottom:16px;color:#fbbf24">🛡️ Panel Admin</h2>
       <div id="admin-content"></div>
     </div>
   </main>
 </div>
-<!-- Scripts -->
+
+<script>
+  (function() {
+    const hasToken = !!localStorage.getItem('av_token') || !!localStorage.getItem('avai_token');
+    const landing = document.getElementById('landing-screen');
+    const login = document.getElementById('login-screen');
+    if (hasToken) {
+      if (landing) landing.style.display = 'none';
+      if (login) login.style.display = 'none';
+    } else {
+      if (landing) landing.style.display = 'block';
+      if (login) login.style.display = 'none';
+    }
+  })();
+
+  function landingShowPanelManual(panelId) {
+    ['panel-register', 'panel-login', 'panel-reset-step1', 'panel-reset-step2', 'panel-verif-email'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
+    const target = document.getElementById(panelId);
+    if (target) target.classList.remove('hidden');
+    const btnReg = document.getElementById('tab-btn-register');
+    const btnLog = document.getElementById('tab-btn-login');
+    const tabsWrap = document.getElementById('login-v2-tabs-wrap');
+    if (tabsWrap) tabsWrap.style.display = 'flex';
+    if (panelId === 'panel-login' && btnLog && btnReg) {
+      btnLog.classList.add('active');
+      btnReg.classList.remove('active');
+    } else if (panelId === 'panel-register' && btnLog && btnReg) {
+      btnReg.classList.add('active');
+      btnLog.classList.remove('active');
+    }
+  }
+  function landingShowLogin() {
+    document.getElementById('landing-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    landingShowPanelManual('panel-login');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+  function landingShowRegister() {
+    document.getElementById('landing-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    landingShowPanelManual('panel-register');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+  function landingShowFromLogin() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('landing-screen').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+  function lndTogglePlan(tipo) {
+    const btnM = document.getElementById('lnd-toggle-mensual');
+    const btnA = document.getElementById('lnd-toggle-anual');
+    const priceM = document.getElementById('lnd-price-mensual');
+    const priceA = document.getElementById('lnd-price-anual');
+    const cycleM = document.getElementById('lnd-cycle-mensual');
+    const cycleA = document.getElementById('lnd-cycle-anual');
+    if (tipo === 'anual') {
+      btnA.classList.add('active'); btnM.classList.remove('active');
+      priceA.style.display = 'block'; priceM.style.display = 'none';
+      cycleA.style.display = 'block'; cycleM.style.display = 'none';
+    } else {
+      btnM.classList.add('active'); btnA.classList.remove('active');
+      priceM.style.display = 'block'; priceA.style.display = 'none';
+      cycleM.style.display = 'block'; cycleA.style.display = 'none';
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // CONTROL DE PANELES DEL LOGIN
+  // ═══════════════════════════════════════════════════════════
+  window.setLoginTab = function(tab) {
+    const panels = ['panel-register', 'panel-login', 'panel-reset-step1', 'panel-reset-step2', 'panel-verif-email'];
+    panels.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
+
+    const tabsWrap = document.getElementById('login-v2-tabs-wrap');
+    const btnRegister = document.getElementById('tab-btn-register');
+    const btnLogin = document.getElementById('tab-btn-login');
+    const title = document.getElementById('login-v2-title');
+    const subtitle = document.getElementById('login-v2-subtitle');
+
+    if (tab === 'login') {
+      document.getElementById('panel-login').classList.remove('hidden');
+      if (tabsWrap) tabsWrap.style.display = 'flex';
+      btnLogin.classList.add('active');
+      btnRegister.classList.remove('active');
+      if (title) title.textContent = 'Iniciar sesión';
+      if (subtitle) subtitle.textContent = '¡Bienvenido de vuelta, capo!';
+    } else if (tab === 'register') {
+      document.getElementById('panel-register').classList.remove('hidden');
+      if (tabsWrap) tabsWrap.style.display = 'flex';
+      btnRegister.classList.add('active');
+      btnLogin.classList.remove('active');
+      if (title) title.textContent = 'Crear tu cuenta gratis';
+      if (subtitle) subtitle.textContent = 'Empezás a usar AVAI en menos de 30 segundos.';
+    } else if (tab === 'reset-step1') {
+      document.getElementById('panel-reset-step1').classList.remove('hidden');
+      if (tabsWrap) tabsWrap.style.display = 'none';
+      if (title) title.textContent = 'Recuperar contraseña';
+      if (subtitle) subtitle.textContent = 'Te enviamos un código por email para crear una nueva.';
+    } else if (tab === 'reset-step2') {
+      document.getElementById('panel-reset-step2').classList.remove('hidden');
+      if (tabsWrap) tabsWrap.style.display = 'none';
+      if (title) title.textContent = 'Nueva contraseña';
+      if (subtitle) subtitle.textContent = 'Ingresá el código y tu nueva contraseña.';
+    } else if (tab === 'verif-email') {
+      document.getElementById('panel-verif-email').classList.remove('hidden');
+      if (tabsWrap) tabsWrap.style.display = 'none';
+      if (title) title.textContent = '¡Bienvenido a AVAI! 🎉';
+      if (subtitle) subtitle.textContent = 'Verificá tu email para activar todas las funciones.';
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  // RECUPERAR CONTRASEÑA
+  // ═══════════════════════════════════════════════════════════
+  function showResetStep1() {
+    setLoginTab('reset-step1');
+    // Pre-completar con el email que pusieron en login si hay
+    const loginEmail = document.getElementById('login-email')?.value || '';
+    if (loginEmail) document.getElementById('reset-email').value = loginEmail;
+  }
+
+  async function doSolicitarReset() {
+    const email = document.getElementById('reset-email').value.trim();
+    const errEl = document.getElementById('reset-step1-error');
+    const btn = document.getElementById('reset-step1-btn');
+
+    errEl.classList.add('hidden');
+
+    if (!email) {
+      errEl.textContent = '⚠️ Ingresá tu email';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errEl.textContent = '⚠️ Email inválido';
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Enviando código...';
+
+    try {
+      const resp = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'solicitar_reset', email })
+      });
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        throw new Error(data.error || 'Error enviando código');
+      }
+
+      // Guardar email para el paso 2
+      window._resetEmail = email;
+      document.getElementById('reset-email-display').textContent = email;
+      // Si está en modo dev, mostrar el código (opcional)
+      if (data.codigo_dev) {
+        console.log('[DEV] Código de reset:', data.codigo_dev);
+      }
+      setLoginTab('reset-step2');
+    } catch (err) {
+      errEl.textContent = '⚠️ ' + err.message;
+      errEl.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '📧 Enviarme el código';
+    }
+  }
+
+  async function doConfirmarReset() {
+    const codigo = document.getElementById('reset-codigo').value.trim();
+    const nuevaPass = document.getElementById('reset-nueva-pass').value;
+    const errEl = document.getElementById('reset-step2-error');
+    const btn = document.getElementById('reset-step2-btn');
+    const email = window._resetEmail;
+
+    errEl.classList.add('hidden');
+
+    if (!email) {
+      errEl.textContent = '⚠️ Volvé al paso 1 y poné tu email.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    if (!codigo || codigo.length !== 6) {
+      errEl.textContent = '⚠️ Ingresá el código de 6 dígitos.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    if (!nuevaPass || nuevaPass.length < 6) {
+      errEl.textContent = '⚠️ La contraseña debe tener al menos 6 caracteres.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Cambiando contraseña...';
+
+    try {
+      const resp = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'confirmar_reset',
+          email,
+          codigo,
+          nueva_password: nuevaPass
+        })
+      });
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        throw new Error(data.error || 'Error cambiando contraseña');
+      }
+
+      // Auto-login con el token devuelto
+      localStorage.setItem('av_token', data.token);
+      localStorage.setItem('av_user', JSON.stringify(data.user));
+
+      if (typeof Toast !== 'undefined') {
+        Toast.success('✅ Contraseña actualizada. ¡Bienvenido de vuelta!');
+      } else {
+        alert('✅ Contraseña actualizada. ¡Bienvenido!');
+      }
+
+      // Recargar para que se cargue la app
+      setTimeout(() => { window.location.reload(); }, 500);
+
+    } catch (err) {
+      errEl.textContent = '⚠️ ' + err.message;
+      errEl.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = '🔐 Cambiar contraseña';
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // VERIFICAR EMAIL POST-REGISTRO
+  // ═══════════════════════════════════════════════════════════
+  // Esta función se llama DESPUÉS de un registro exitoso para mostrar
+  // la pantalla de verificación. La llama auth-extra.js o ui.js.
+  window.mostrarPantallaVerificacion = function(email) {
+    window._verifEmail = email;
+    document.getElementById('verif-email-display').textContent = email;
+    document.getElementById('login-screen').style.display = 'flex';
+    setLoginTab('verif-email');
+  };
+
+  async function doVerificarEmail() {
+    const codigo = document.getElementById('verif-codigo').value.trim();
+    const errEl = document.getElementById('verif-error');
+    const btn = document.getElementById('verif-btn');
+    const token = localStorage.getItem('av_token');
+
+    errEl.classList.add('hidden');
+
+    if (!codigo || codigo.length !== 6) {
+      errEl.textContent = '⚠️ Ingresá el código de 6 dígitos.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    if (!token) {
+      errEl.textContent = '⚠️ Sesión expirada. Volvé a iniciar sesión.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Verificando...';
+
+    try {
+      const resp = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ action: 'verificar_email', codigo })
+      });
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        throw new Error(data.error || 'Error verificando email');
+      }
+
+      // Actualizar el user local con email_verificado = true
+      const userLocal = JSON.parse(localStorage.getItem('av_user') || '{}');
+      userLocal.email_verificado = true;
+      localStorage.setItem('av_user', JSON.stringify(userLocal));
+
+      if (typeof Toast !== 'undefined') {
+        Toast.success('✨ Email verificado correctamente');
+      }
+
+      // Continuar al onboarding o app
+      saltarVerificacion();
+
+    } catch (err) {
+      errEl.textContent = '⚠️ ' + err.message;
+      errEl.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = '✓ Verificar y entrar';
+    }
+  }
+
+  async function doReenviarCodigoVerif() {
+    const token = localStorage.getItem('av_token');
+    if (!token) return;
+
+    try {
+      const resp = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ action: 'enviar_codigo_verif' })
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        if (typeof Toast !== 'undefined') {
+          Toast.success('📧 Código reenviado a tu email');
+        } else {
+          alert('📧 Código reenviado a tu email');
+        }
+      }
+    } catch (err) {
+      console.error('Error reenviando código:', err);
+    }
+  }
+
+  function saltarVerificacion() {
+    // Cerrar la pantalla de login y continuar al flujo normal de la app
+    document.getElementById('login-screen').style.display = 'none';
+    // Forzar recarga para que la app cargue el state del user logueado
+    window.location.reload();
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FIX: Conversación Libre default al cargar
+  // ═══════════════════════════════════════════════════════════
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      const selector = document.getElementById('modo-selector');
+      if (selector && typeof App !== 'undefined') {
+        selector.value = 'Conversación Libre';
+        App.modo = 'Conversación Libre';
+      }
+    }, 500);
+  });
+</script>
+
 <script src="js/lessons.js"></script>
 <script src="js/app.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/voice.js"></script>
 <script src="js/mercadopago-ui.js"></script>
+<script src="js/auth-extra.js"></script>
+<script src="js/admin-extra.js"></script>
+
+<!-- ═══════════════ PWA INSTALLER ═══════════════ -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="/js/icons.js" defer></script>
+<script src="/js/chat-focus.js" defer></script>
+<script src="/js/chat-style.js" defer></script>
+<script src="/js/pwa-install.js" defer></script>
+
+<script defer src="/_vercel/speed-insights/script.js"></script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script src="/js/analytics.js" defer></script>
+<script src="https://js.sentry-cdn.com/aa0d7094952c3388c2f00fb4b7487953.min.js" crossorigin="anonymous"></script>
+<script>
+  if (typeof Sentry !== 'undefined') {
+    Sentry.onLoad(function() {
+      Sentry.init({
+        dsn: "https://aa0d7094952c3388c2f00fb4b7487953@o4511425734967296.ingest.us.sentry.io/4511425766555648",
+        environment: (location.hostname === 'avai.ar' || location.hostname === 'www.avai.ar') ? 'production' : 'development',
+        release: 'avai@1.0.0',
+        tracesSampleRate: 0.1,
+        replaysSessionSampleRate: 0,
+        replaysOnErrorSampleRate: 0,
+        beforeSend: function(event) {
+          if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return null;
+          return event;
+        },
+        ignoreErrors: ['ResizeObserver loop limit exceeded','Non-Error promise rejection captured','Network request failed','NetworkError','AbortError']
+      });
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          var token = localStorage.getItem('av_token') || localStorage.getItem('avai_token');
+          if (token) {
+            var payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload && payload.email) Sentry.setUser({ email: payload.email, id: payload.id || payload.userId });
+          }
+        } catch (e) {}
+      }
+    });
+  }
+</script>
+
 </body>
+</html>

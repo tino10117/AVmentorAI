@@ -1,33 +1,93 @@
 // ui.js — All UI rendering and interactions
 
-document.addEventListener("DOMContentLoaded", () => {
-  // Mostrar login si no hay sesión
+// ═══════════════════════════════════════════════
+// INICIALIZACIÓN ROBUSTA — Garantiza que SIEMPRE se muestre algo
+// ═══════════════════════════════════════════════
+function avaiInit() {
+  const landing = document.getElementById('landing-screen');
+  const login = document.getElementById('login-screen');
+  const onboarding = document.getElementById('onboarding');
+  const app = document.getElementById('app');
+
+  // Si no hay token → mostrar landing
   if (!localStorage.getItem('av_token')) {
-    document.getElementById('login-screen').style.display='flex';
-    document.getElementById('onboarding').style.display='none';
-    document.getElementById('app').style.display='none';
-    renderPremiumPlanes();
+    if (landing) landing.style.display = 'block';
+    if (login) login.style.display = 'none';
+    if (onboarding) { onboarding.style.display = 'none'; onboarding.classList.add('hidden'); }
+    if (app) { app.style.display = 'none'; app.classList.add('hidden'); }
+    try { renderPremiumPlanes(); } catch(e) { console.warn('renderPremiumPlanes falló:', e); }
     return;
   }
-  Store.load();
-  if (App.user && App.token) {
-    if (!App.user.onboarding_completo) showOnboarding();
-    else showApp();
-  } else {
-    document.getElementById('login-screen').style.display='flex';
-    document.getElementById('onboarding').style.display='none';
-    document.getElementById('app').style.display='none';
+
+  // Hay token → cargar sesión
+  try {
+    Store.load();
+    if (App.user && App.token) {
+      if (!App.user.onboarding_completo) {
+        showOnboarding();
+      } else {
+        showApp();
+      }
+    } else {
+      // Token raro: mostrar landing como fallback seguro
+      if (landing) landing.style.display = 'block';
+      if (login) login.style.display = 'none';
+      if (onboarding) onboarding.style.display = 'none';
+      if (app) app.style.display = 'none';
+    }
+    try { renderPremiumPlanes(); } catch(e) {}
+  } catch(e) {
+    console.error('[AVAI INIT] Error:', e);
+    // Si algo falló, mostrar landing como rescate
+    if (landing) landing.style.display = 'block';
+    if (login) login.style.display = 'none';
+    if (onboarding) onboarding.style.display = 'none';
+    if (app) app.style.display = 'none';
   }
-  renderPremiumPlanes();
-});
+}
+
+// Ejecutar cuando DOM esté listo (compatible con todos los timings de carga)
+if (document.readyState === 'loading') {
+  document.addEventListener("DOMContentLoaded", avaiInit);
+} else {
+  // DOM ya cargado → ejecutar inmediato
+  avaiInit();
+}
+
+// 🛡️ FALLBACK DE RESCATE: si después de 1 segundo TODAS las pantallas están ocultas,
+// forzar mostrar landing. Esto cubre cualquier race condition o script externo
+// que oculte todo por error.
+setTimeout(function() {
+  try {
+    const landing = document.getElementById('landing-screen');
+    const login = document.getElementById('login-screen');
+    const onboarding = document.getElementById('onboarding');
+    const app = document.getElementById('app');
+
+    const landingVisible = landing && getComputedStyle(landing).display !== 'none';
+    const loginVisible = login && getComputedStyle(login).display !== 'none';
+    const onboardingVisible = onboarding && getComputedStyle(onboarding).display !== 'none';
+    const appVisible = app && getComputedStyle(app).display !== 'none' && !app.classList.contains('hidden');
+
+    if (!landingVisible && !loginVisible && !onboardingVisible && !appVisible) {
+      console.warn('[AVAI RESCATE] Todas las pantallas ocultas. Forzando landing.');
+      // Decidir según token
+      if (localStorage.getItem('av_token') && typeof showApp === 'function') {
+        try { showApp(); return; } catch(e) {}
+      }
+      // Default: mostrar landing
+      if (landing) landing.style.display = 'block';
+    }
+  } catch(e) {
+    console.error('[AVAI RESCATE] Error:', e);
+  }
+}, 1200);
 
 // ── AUTH ────────────────────────────────────────
-function setLoginTab(tab) {
-  document.querySelectorAll(".login-tab").forEach((t, i) =>
-    t.classList.toggle("active", (i===0&&tab==="login")||(i===1&&tab==="register")));
-  document.getElementById("panel-login").classList.toggle("hidden", tab!=="login");
-  document.getElementById("panel-register").classList.toggle("hidden", tab!=="register");
-}
+// NOTA: setLoginTab(tab) está definido en index.html y maneja
+// los 5 paneles (register, login, reset-step1, reset-step2, verif-email).
+// NO lo redefinimos acá para no romper el flujo de recuperar pass.
+
 async function doLogin() {
   const email=document.getElementById("login-email").value.trim();
   const pass=document.getElementById("login-pass").value;
@@ -36,9 +96,13 @@ async function doLogin() {
   try{
     const d=await API.login(email,pass);
     App.token=d.token;App.user=d.user;Store.save();
+    // ✨ Guardar también en el namespace 'avai_*' para que auth-extra.js funcione
+    localStorage.setItem('avai_token', d.token);
+    localStorage.setItem('avai_user', JSON.stringify(d.user));
     if(!App.user.onboarding_completo)showOnboarding();else showApp();
   }catch(e){err.textContent=e.message;err.classList.remove("hidden");}
 }
+
 async function doRegister() {
   const n=document.getElementById("reg-nombre").value.trim();
   const e=document.getElementById("reg-email").value.trim();
@@ -49,23 +113,46 @@ async function doRegister() {
   if(p.length<6){err.textContent="Mínimo 6 caracteres.";err.classList.remove("hidden");return;}
   try{
     const d=await API.register(n,e,p);
-    App.token=d.token;App.user=d.user;Store.save();showOnboarding();
+    App.token=d.token;App.user=d.user;Store.save();
+    // ✨ Guardar también en namespace 'avai_*'
+    localStorage.setItem('avai_token', d.token);
+    localStorage.setItem('avai_user', JSON.stringify(d.user));
+
+    // ✨ Si el backend mandó código de verificación, mostrar pantalla
+    if (d.verificacion_email && d.verificacion_email.enviado && typeof window.mostrarPantallaVerificacion === 'function') {
+      window.mostrarPantallaVerificacion(e);
+      return;
+    }
+
+    // Si no, ir directo al onboarding
+    showOnboarding();
   }catch(ex){err.textContent=ex.message;err.classList.remove("hidden");}
 }
+
 function doLogout(){
   App.user=null;App.token=null;Store.clear();
-  document.getElementById("app").classList.add("hidden");
-  document.getElementById("login-screen").classList.remove("hidden");
+  // Limpiar ambos namespaces
+  localStorage.removeItem('av_token');
+  localStorage.removeItem('av_user');
+  localStorage.removeItem('avai_token');
+  localStorage.removeItem('avai_user');
+  sessionStorage.removeItem('verif_oculto');
+  // Recargar para limpiar el state
+  window.location.reload();
 }
 
 // ── ONBOARDING ──────────────────────────────────
 function showOnboarding(){
   document.getElementById("login-screen").classList.add("hidden");
+  document.getElementById("login-screen").style.display = 'none';
+  document.getElementById("landing-screen").style.display = 'none';
   document.getElementById("app").classList.add("hidden");
+  document.getElementById("app").style.display = 'none';
   document.getElementById("onboarding").classList.remove("hidden");
+  document.getElementById("onboarding").style.display = 'block';
   const u=App.user;
-  if(u.objetivo)document.getElementById("ob-objetivo").value=u.objetivo;
-  if(u.negocio)document.getElementById("ob-negocio").value=u.negocio;
+  if(u && u.objetivo)document.getElementById("ob-objetivo").value=u.objetivo;
+  if(u && u.negocio)document.getElementById("ob-negocio").value=u.negocio;
 }
 async function saveOnboarding(){
   const u=App.user;
@@ -77,16 +164,23 @@ async function saveOnboarding(){
   u.principal_dificultad=document.getElementById("ob-dificultad").value.trim();
   u.onboarding_completo=true;
   Store.save();
+  // Sync con avai_user
+  localStorage.setItem('avai_user', JSON.stringify(u));
   API.saveUser({objetivo:u.objetivo,negocio:u.negocio,tipo_negocio:u.tipo_negocio,nivel_usuario:u.nivel_usuario,onboarding_completo:true}).catch(()=>{});
   document.getElementById("onboarding").classList.add("hidden");
+  document.getElementById("onboarding").style.display = 'none';
   showApp();
 }
 
 // ── SHOW APP ────────────────────────────────────
 function showApp(){
+  document.getElementById("landing-screen").style.display = 'none';
   document.getElementById("login-screen").classList.add("hidden");
+  document.getElementById("login-screen").style.display = 'none';
   document.getElementById("onboarding").classList.add("hidden");
+  document.getElementById("onboarding").style.display = 'none';
   document.getElementById("app").classList.remove("hidden");
+  document.getElementById("app").style.display = '';
   refreshHeader();
   UserHelper.genDesafio();
   initMentorTab();
@@ -255,10 +349,8 @@ async function completeLesson(type,id,xp){
     Toast.info("Ya completaste esta lección.");
     return;
   }
-  // Sumamos al array local (esto no es campo protegido para arrays)
   App.user[k].push(id);
   Store.save();
-  // Ahora pedimos la acción al backend para el XP
   const data = await UserHelper.accion(type==="english"?"leccion_ingles":"leccion_mate");
   if(data && data.ok){
     Toast.success(`¡Lección completada! +${xp} XP 🎉`);
@@ -267,7 +359,6 @@ async function completeLesson(type,id,xp){
   } else {
     Toast.success(`¡Lección completada!`);
   }
-  // Guardar el array de lecciones (NO es campo protegido)
   API.saveUser({[k]:App.user[k]}).catch(()=>{});
   if(type==="english")renderEnglishLecciones();else renderMateLecciones();
 }
@@ -581,7 +672,6 @@ async function showBrunoResult(prompt){
   r.innerHTML=`<div class="loading-row"><div class="spinner"></div>Bruno está calculando…</div>`;
   try{
     const d=await API.chat({type:"mate",messages:[{role:"user",content:prompt}],mateModo:"calculadora",leccion:"Calculadora"});
-    // Guardamos el contexto para usarlo si el usuario quiere seguir charlando
     window._lastBrunoContext = { prompt, reply: d.reply };
     r.innerHTML=`<div class="msg-mate chat-msg" style="border-left-color:#22c55e">
       <div class="chat-msg-header"><div class="chat-avatar" style="background:linear-gradient(135deg,#22c55e,#16a34a)">🔢</div>
@@ -597,14 +687,12 @@ async function showBrunoResult(prompt){
 function seguirConBruno(){
   const ctx = window._lastBrunoContext;
   if(!ctx){Toast.error("No hay contexto previo.");return;}
-  // Cargar el contexto del cálculo como historial del chat de Bruno
   if(!App.user.mate_messages) App.user.mate_messages = [];
   App.user.mate_messages.push({role:"user", content:ctx.prompt});
   App.user.mate_messages.push({role:"assistant", content:ctx.reply});
   App.chatMessages.mate = App.user.mate_messages.slice(-40);
   Store.save();
   API.saveUser({mate_messages: App.user.mate_messages}).catch(()=>{});
-  // Navegar al chat de Bruno
   navigateTo("mate");
   setSubnav("mate","chat");
   initMateChat();
@@ -614,14 +702,12 @@ function seguirConBruno(){
 function seguirConMentor(ctxKey){
   const ctx = window[ctxKey];
   if(!ctx){Toast.error("No hay contexto previo.");return;}
-  // Cargar el contexto como historial del chat del Mentor
   if(!App.user.messages) App.user.messages = [];
   App.user.messages.push({role:"user", content:ctx.prompt});
   App.user.messages.push({role:"assistant", content:ctx.reply});
   App.chatMessages.negocio = App.user.messages.slice(-40);
   Store.save();
   API.saveUser({messages: App.user.messages}).catch(()=>{});
-  // Navegar al chat del Mentor
   navigateTo("mentor");
   initMentorTab();
   Toast.info("Seguí la conversación con el Mentor acá.");
@@ -630,14 +716,12 @@ function seguirConMentor(ctxKey){
 function seguirConAlex(ctxKey){
   const ctx = window[ctxKey];
   if(!ctx){Toast.error("No hay contexto previo.");return;}
-  // Cargar el contexto como historial del chat de Alex
   if(!App.user.english_messages) App.user.english_messages = [];
   App.user.english_messages.push({role:"user", content:ctx.prompt});
   App.user.english_messages.push({role:"assistant", content:ctx.reply});
   App.chatMessages.english = App.user.english_messages.slice(-40);
   Store.save();
   API.saveUser({english_messages: App.user.english_messages}).catch(()=>{});
-  // Navegar al chat de Alex
   navigateTo("english");
   setSubnav("english","chat");
   initEnglishChat();
@@ -864,7 +948,6 @@ function renderMarca(){
     <h3 style="margin-bottom:8px">🎨 Creador de marca personal</h3>
     <p class="text-muted mb-3">La IA te crea una identidad de marca completa, lista para publicar hoy.</p>
 
-    <!-- ▼▼▼ NUEVO: Botón Generar Logo arriba de todo ▼▼▼ -->
     <div style="background:linear-gradient(135deg,rgba(168,85,247,.12),rgba(99,102,241,.08));border:1.5px solid rgba(168,85,247,.4);border-radius:14px;padding:14px 16px;margin-bottom:18px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
         <span style="font-size:22px">🖼️</span>
@@ -874,7 +957,6 @@ function renderMarca(){
       <p style="font-size:12px;color:#94a3b8;margin-bottom:10px;line-height:1.5">Generá tu logo en segundos con IA. Listo para usar en tu marca. Tenés 10 generaciones diarias.</p>
       <button class="btn btn-purple" style="width:100%" onclick="openLogoModal()">🎨 Generar mi logo ahora</button>
     </div>
-    <!-- ▲▲▲ FIN del bloque nuevo ▲▲▲ -->
 
     <div class="grid-2 mb-3">
       <div><label class="label">Tu nombre o apodo</label>
@@ -938,7 +1020,6 @@ function renderMarca(){
 function toggleMarcaPers(btn){
   const active = btn.classList.toggle("btn-purple");
   btn.classList.toggle("btn-ghost", !active);
-  // Limitar a 3
   const selected = document.querySelectorAll('#mpersonality .btn-purple');
   if(selected.length > 3){
     btn.classList.remove("btn-purple");
@@ -1254,6 +1335,7 @@ function renderConfig(){
       <button class="btn btn-primary" onclick="saveConfig()">💾 Guardar cambios</button>
       <button class="btn btn-ghost" onclick="if(confirm('¿Borrar conversación del mentor?')){clearMentorChat()}">🗑️ Borrar conversación</button>
       <button class="btn btn-ghost" onclick="if(confirm('¿Rehacer onboarding?')){App.user.onboarding_completo=false;Store.save();showOnboarding()}">🔁 Rehacer onboarding</button>
+      ${!u.email_verificado ? `<button class="btn btn-purple" onclick="if(typeof abrirModalVerifEmail==='function')abrirModalVerifEmail()">✉️ Verificar mi email</button>` : ''}
       <button class="btn btn-red" onclick="doLogout()">🚪 Cerrar sesión</button>
     </div>
     <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border)">
@@ -1281,6 +1363,7 @@ function saveConfig(){
   u.habito_clave=document.getElementById("cfg-hab").value.trim();
   u.principal_dificultad=document.getElementById("cfg-dif").value.trim();
   Store.save();
+  localStorage.setItem('avai_user', JSON.stringify(u));
   API.saveUser({nombre:u.nombre,objetivo:u.objetivo,negocio:u.negocio,tipo_negocio:u.tipo_negocio,
     meta_mensual:u.meta_mensual,ingresos_objetivo:u.ingresos_objetivo,habito_clave:u.habito_clave,
     principal_dificultad:u.principal_dificultad}).catch(()=>{});
@@ -1303,18 +1386,13 @@ function sendFeedback(){
 }
 
 function openLogoModal(){
-  // Si tiene plan Gratis → toast y no abrir
   if(!App.user || App.user.plan === "Gratis"){
     Toast.error("Generar logos con IA es una función Premium. Activá Premium para usarla.");
     return;
   }
-
-  // Pre-rellenar con datos del form si ya los completó
   const prefName = document.getElementById("mname")?.value?.trim() || App.user?.nombre || "";
   const prefRub  = document.getElementById("mrub")?.value?.trim() || "";
   const prefEst  = document.getElementById("mest")?.value || "Moderno y minimalista";
-
-  // Mapear estilo del select al valor que entiende DALL-E
   const estiloMap = {
     "Moderno y minimalista": "minimalista",
     "Divertido y colorido": "divertido",
@@ -1325,7 +1403,6 @@ function openLogoModal(){
     "Profesional y confiable": "profesional",
   };
   const prefEstValue = estiloMap[prefEst] || "moderno";
-
   const modalHtml = `
     <div id="logo-modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeLogoModal()">
       <div style="background:#0f172a;border:1.5px solid rgba(168,85,247,.4);border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(168,85,247,.3)">
@@ -1333,19 +1410,15 @@ function openLogoModal(){
           <h3 style="margin:0;font-size:18px">🎨 Generar logo con IA</h3>
           <button onclick="closeLogoModal()" style="background:none;border:none;color:#f87171;font-size:22px;cursor:pointer;padding:0 4px" title="Cerrar">✕</button>
         </div>
-
         <p class="text-muted" style="font-size:13px;margin-bottom:14px">La IA va a crear tu logo en alta calidad (1024×1024). Tarda ~15 segundos.</p>
-
         <div class="mb-3">
           <label class="label">Nombre de tu marca <span style="color:#f87171">*</span></label>
           <input class="input" id="logo-nombre" maxlength="60" placeholder="Bela Store, AVAI, Tino Tech…" value="${esc(prefName)}">
         </div>
-
         <div class="mb-3">
           <label class="label">¿Qué vende tu marca? <span style="color:#f87171">*</span></label>
           <textarea class="input" id="logo-desc" rows="2" maxlength="300" placeholder="Ropa femenina urbana para mujeres 18-30 años">${esc(prefRub)}</textarea>
         </div>
-
         <div class="grid-2 mb-3">
           <div>
             <label class="label">Estilo del logo</label>
@@ -1364,15 +1437,11 @@ function openLogoModal(){
             <input class="input" id="logo-paleta" placeholder="negro y dorado, pastel, blanco y rojo…">
           </div>
         </div>
-
         <button class="btn btn-purple" style="width:100%" id="logo-generate-btn" onclick="doGenerateLogo()">🚀 Generar mi logo</button>
-
         <div id="logo-modal-result" style="margin-top:18px"></div>
       </div>
     </div>
   `;
-
-  // Inyectar modal en el body
   const wrapper = document.createElement("div");
   wrapper.innerHTML = modalHtml;
   document.body.appendChild(wrapper.firstElementChild);
@@ -1388,14 +1457,11 @@ async function doGenerateLogo(){
   const desc   = document.getElementById("logo-desc").value.trim();
   const estilo = document.getElementById("logo-estilo").value;
   const paleta = document.getElementById("logo-paleta").value.trim();
-
   if(!nombre){ Toast.error("Poné el nombre de tu marca."); return; }
   if(!desc){ Toast.error("Contame qué vende tu marca."); return; }
   if(desc.length > 300){ Toast.error("La descripción es muy larga (máx 300 caracteres)."); return; }
-
   const btn = document.getElementById("logo-generate-btn");
   const result = document.getElementById("logo-modal-result");
-
   btn.disabled = true;
   btn.textContent = "⏳ Generando… (~30 seg)";
   result.innerHTML = `
@@ -1403,19 +1469,13 @@ async function doGenerateLogo(){
       <div class="spinner" style="margin:0 auto 10px"></div>
       <div style="font-size:13px;color:#94a3b8">La IA está creando tu logo…<br>Esto tarda unos 15 segundos. No cierres la ventana.</div>
     </div>`;
-
   try {
     const data = await Logo.generate({ nombre, descripcion: desc, estilo, paleta });
-
     if(!data.images || data.images.length === 0){
       throw new Error("No se generó ninguna imagen. Probá de nuevo.");
     }
-
-    // Guardar las imágenes en una variable global para que los botones las referencien
-    // (las imágenes son base64 muy largas, no se pueden meter en onclick directamente)
     window._lastLogoImages = data.images;
     window._lastLogoName = nombre;
-
     const remaining = (data.limit || 0) - (data.used || 0);
     result.innerHTML = `
       <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#86efac">
@@ -1448,8 +1508,6 @@ async function doGenerateLogo(){
   }
 }
 
-// Helpers para que los botones de descarga/abrir referencien por índice
-// (no podemos meter el base64 largo dentro de onclick="")
 function downloadLogoByIndex(i){
   const imgs = window._lastLogoImages || [];
   const img = imgs[i];
@@ -1656,11 +1714,9 @@ async function doPlanificarViaje() {
   const intereses = Array.from(document.querySelectorAll('#v-intereses .btn-primary')).map(b => b.dataset.int).join(", ");
   const especial = document.getElementById("v-especial").value.trim();
 
-  // Reset historial (nuevo viaje)
   Viajes.reset();
 
   const r = document.getElementById("viaje-result");
-  // Preparar UI de streaming: spinner + container donde se va escribiendo
   r.innerHTML = `
     <div id="viaje-result-stream-status" class="loading-row" style="padding:12px 16px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:10px;margin-bottom:12px">
       <div class="spinner"></div>
@@ -1754,13 +1810,11 @@ async function doInspirameViaje() {
   }
 }
 
-// Cuando termina el streaming, sacamos el spinner y mostramos botones + refine
 function finishViajeStream(resultId, data) {
   const container = document.getElementById(resultId);
   if (!container) return;
   const remaining = (data.limit || 0) - (data.used || 0);
 
-  // Sacar el status box de loading
   const statusBox = document.getElementById(`${resultId}-stream-status`);
   if (statusBox) {
     statusBox.outerHTML = `
@@ -1769,7 +1823,6 @@ function finishViajeStream(resultId, data) {
       </div>`;
   }
 
-  // Sumarle botones y refine a la card
   const card = document.getElementById(`${resultId}-card`);
   if (card) {
     const actionsHtml = `
@@ -1793,7 +1846,6 @@ async function doRefinarViaje(resultId) {
   if (!text) { Toast.error("Decime qué querés ajustar."); return; }
 
   const container = document.getElementById(resultId);
-  // Limpiar lo anterior y armar una nueva card de streaming
   container.innerHTML = `
     <div id="${resultId}-stream-status" class="loading-row" style="padding:12px 16px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.25);border-radius:10px;margin-bottom:12px">
       <div class="spinner"></div>
@@ -1821,6 +1873,7 @@ async function doRefinarViaje(resultId) {
     container.innerHTML = `<div class="alert alert-error">${esc(e.message)}</div>`;
   }
 }
+
 
 // ═══════════════════════════════════════════════════════════════
 // VIDA SANA (Alimentación + Ejercicio)
@@ -2134,7 +2187,6 @@ function finishBienestarStream(resultId, data) {
   const statusBox = document.getElementById(`${resultId}-stream-status`);
   if (statusBox) {
     if (data.riesgo_detectado) {
-      // Mensaje protector — no mostramos "te quedan X planes"
       statusBox.outerHTML = `
         <div style="background:rgba(244,114,182,.08);border:1px solid rgba(244,114,182,.3);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#f9a8d4">
           💗 Mensaje importante de seguridad
@@ -2147,7 +2199,6 @@ function finishBienestarStream(resultId, data) {
     }
   }
 
-  // Solo agregar botones si NO fue mensaje de riesgo
   if (!data.riesgo_detectado) {
     const card = document.getElementById(`${resultId}-card`);
     if (card) {
@@ -2206,7 +2257,6 @@ async function doRefinarBienestar(resultId) {
 // JUEGOS — MODO HISTORIA (juego narrativo con IA)
 // ═══════════════════════════════════════════════════════════════
 
-// ─── Escenarios disponibles (datos visuales para los cards) ────
 const ESCENARIOS_HISTORIA = [
   {
     id: "startup",
@@ -2274,7 +2324,6 @@ const ESCENARIOS_HISTORIA = [
   },
 ];
 
-// ─── RENDER PRINCIPAL DEL TAB ─────────────────────────────────
 function renderJuegos() {
   renderJuegosHistoria();
   renderJuegosEmpire();
@@ -2303,7 +2352,6 @@ function renderJuegosProximamente() {
   `;
 }
 
-// ─── PANTALLA HISTORIA: lista de partidas + opción de empezar ──
 async function renderJuegosHistoria() {
   const c = document.getElementById("juegos-historia");
   c.innerHTML = `
@@ -2399,7 +2447,6 @@ function fechaCorta(iso) {
   } catch { return "—"; }
 }
 
-// ─── ELEGIR ESCENARIO ────────────────────────────────────────
 function elegirEscenarioHistoria(id) {
   if (id === "libre") {
     abrirModalLibre();
@@ -2442,9 +2489,7 @@ function iniciarHistoriaLibre() {
   iniciarHistoria(null, txt);
 }
 
-// ─── INICIAR HISTORIA ────────────────────────────────────────
 async function iniciarHistoria(escenario_id, escenario_libre) {
-  // Renderizamos la pantalla de juego "vacía" y arrancamos a streamear
   mostrarPantallaJuego(null);
 
   const narrativaEl = document.getElementById("hist-narrativa");
@@ -2457,7 +2502,6 @@ async function iniciarHistoria(escenario_id, escenario_libre) {
       escenario_libre,
       onDelta: (chunk, fullText) => {
         if (narrativaEl) {
-          // Mostramos texto en vivo pero limpiando los tags meta
           const limpio = Historia.limpiarNarrativa(fullText);
           narrativaEl.innerHTML = mdRender(limpio);
         }
@@ -2465,15 +2509,14 @@ async function iniciarHistoria(escenario_id, escenario_libre) {
     });
     Historia.partidaActual = data.partida;
     Historia.ultimasOpciones = data.opciones || [];
-    UserHelper.accion("chat_message"); // suma XP por turno (usa el mismo tope diario)
+    UserHelper.accion("chat_message");
     finalizarPantallaJuego(data);
   } catch (e) {
     Toast.error(e.message);
-    renderJuegosHistoria(); // volver al menú
+    renderJuegosHistoria();
   }
 }
 
-// ─── RETOMAR HISTORIA ────────────────────────────────────────
 async function retomarHistoria(partida_id) {
   mostrarPantallaJuego(null);
   const narrativaEl = document.getElementById("hist-narrativa");
@@ -2499,7 +2542,6 @@ async function retomarHistoria(partida_id) {
   }
 }
 
-// ─── BORRAR HISTORIA ─────────────────────────────────────────
 async function borrarHistoria(partida_id, titulo) {
   if (!confirm(`¿Borrar la historia "${titulo}"? Esta acción no se puede deshacer.`)) return;
   try {
@@ -2511,7 +2553,6 @@ async function borrarHistoria(partida_id, titulo) {
   }
 }
 
-// ─── PANTALLA DE JUEGO ───────────────────────────────────────
 function mostrarPantallaJuego(partida) {
   const c = document.getElementById("juegos-historia");
   const titulo = partida?.titulo || "Cargando…";
@@ -2585,9 +2626,7 @@ function actualizarMetricasUI(metricas, dia) {
   if (diaEl) diaEl.textContent = dia;
 }
 
-// ─── FINALIZAR STREAM Y MOSTRAR OPCIONES ─────────────────────
 function finalizarPantallaJuego(data) {
-  // Actualizar barra de status
   const statusBox = document.getElementById("hist-stream-status");
   if (statusBox) {
     const remaining = (data.limit || 0) - (data.used || 0);
@@ -2597,14 +2636,12 @@ function finalizarPantallaJuego(data) {
       </div>`;
   }
 
-  // Actualizar título, día y métricas
   if (data.partida) {
     const tEl = document.getElementById("hist-titulo");
     if (tEl) tEl.textContent = data.partida.titulo;
     actualizarMetricasUI(data.partida.metricas, data.partida.dia);
   }
 
-  // Game over
   if (data.game_over) {
     const opc = document.getElementById("hist-opciones");
     const libre = document.getElementById("hist-libre");
@@ -2623,7 +2660,6 @@ function finalizarPantallaJuego(data) {
     return;
   }
 
-  // Mostrar opciones
   const opciones = data.opciones || Historia.ultimasOpciones || [];
   const opcDiv = document.getElementById("hist-opciones");
   if (opcDiv) {
@@ -2644,7 +2680,6 @@ function finalizarPantallaJuego(data) {
     }
   }
 
-  // Mostrar textarea libre
   const libre = document.getElementById("hist-libre");
   if (libre) {
     libre.style.display = "block";
@@ -2653,14 +2688,12 @@ function finalizarPantallaJuego(data) {
   }
 }
 
-// ─── ELEGIR UNA OPCIÓN DEL MENÚ ──────────────────────────────
 async function elegirOpcion(letra, btn) {
   const decision = btn.dataset.decision;
   if (!decision) return;
   await avanzarHistoria(`Elijo opción ${letra}: ${decision}`);
 }
 
-// ─── ENVIAR DECISIÓN LIBRE ───────────────────────────────────
 async function enviarDecisionLibre() {
   const ta = document.getElementById("hist-decision-libre");
   const txt = ta?.value?.trim() || "";
@@ -2675,7 +2708,6 @@ async function enviarDecisionLibre() {
   await avanzarHistoria(txt);
 }
 
-// ─── AVANZAR HISTORIA (común para opciones y libre) ──────────
 async function avanzarHistoria(decision) {
   if (Historia.cargandoTurno) return;
   if (!Historia.partidaActual) {
@@ -2684,7 +2716,6 @@ async function avanzarHistoria(decision) {
   }
   Historia.cargandoTurno = true;
 
-  // UI: mostrar nuevamente el spinner y limpiar narrativa
   const narrativaEl = document.getElementById("hist-narrativa");
   const opcEl = document.getElementById("hist-opciones");
   const libreEl = document.getElementById("hist-libre");
@@ -2692,11 +2723,9 @@ async function avanzarHistoria(decision) {
   if (opcEl) opcEl.style.display = "none";
   if (libreEl) libreEl.style.display = "none";
 
-  // Restaurar el spinner status
   const c = document.getElementById("juegos-historia");
   const oldStatus = document.getElementById("hist-stream-status");
   if (!oldStatus) {
-    // Si el viejo se reemplazó por el "te quedan X turnos", lo restauramos
     const statusGreen = c.querySelector("[style*='Te quedan']");
     if (statusGreen) {
       const newStatusEl = document.createElement("div");
@@ -2725,13 +2754,11 @@ async function avanzarHistoria(decision) {
     finalizarPantallaJuego(data);
   } catch (e) {
     Toast.error(e.message);
-    // No volvemos al menú — dejamos al usuario donde está para que reintente
   } finally {
     Historia.cargandoTurno = false;
   }
 }
 
-// ─── VOLVER AL MENÚ ──────────────────────────────────────────
 function volverAlMenuHistoria() {
   Historia.partidaActual = null;
   Historia.ultimasOpciones = [];
@@ -2743,7 +2770,6 @@ function volverAlMenuHistoria() {
 // BUSINESS EMPIRE IA — Simulador de empresa
 // ═══════════════════════════════════════════════════════════════
 
-// ─── PANTALLA PRINCIPAL ────────────────────────────────────────
 async function renderJuegosEmpire() {
   const c = document.getElementById("juegos-empire");
   if (!c) return;
@@ -2834,7 +2860,6 @@ async function renderJuegosEmpire() {
   }
 }
 
-// ─── INICIAR EMPRESA ──────────────────────────────────────────
 async function iniciarEmpire(negocio_id) {
   mostrarPantallaEmpire(null);
   const narrEl = document.getElementById("emp-narrativa");
@@ -2861,7 +2886,6 @@ async function iniciarEmpire(negocio_id) {
   }
 }
 
-// ─── RETOMAR ──────────────────────────────────────────────────
 async function retomarEmpire(partida_id) {
   mostrarPantallaEmpire(null);
   const narrEl = document.getElementById("emp-narrativa");
@@ -2887,7 +2911,6 @@ async function retomarEmpire(partida_id) {
   }
 }
 
-// ─── BORRAR ───────────────────────────────────────────────────
 async function borrarEmpire(partida_id, nombre) {
   if (!confirm(`¿Cerrar la empresa "${nombre}"? Esta acción no se puede deshacer.`)) return;
   try {
@@ -2897,7 +2920,6 @@ async function borrarEmpire(partida_id, nombre) {
   } catch (e) { Toast.error(e.message); }
 }
 
-// ─── PANTALLA DE JUEGO ────────────────────────────────────────
 function mostrarPantallaEmpire(partida) {
   const c = document.getElementById("juegos-empire");
   const titulo = partida?.nombre_empresa || "Cargando…";
@@ -2991,7 +3013,6 @@ function actualizarMetricasEmpireUI(p) {
   if (nivelEl) nivelEl.textContent = `📈 ${p.nivel?.nombre || "Micro"}`;
 }
 
-// ─── FINALIZAR Y MOSTRAR OPCIONES ─────────────────────────────
 function finalizarPantallaEmpire(data) {
   const statusBox = document.getElementById("emp-stream-status");
   if (statusBox) {
@@ -3012,7 +3033,6 @@ function finalizarPantallaEmpire(data) {
     actualizarMetricasEmpireUI(data.partida);
   }
 
-  // Game Over
   if (data.game_over) {
     const opc = document.getElementById("emp-opciones");
     const libre = document.getElementById("emp-libre");
@@ -3031,7 +3051,6 @@ function finalizarPantallaEmpire(data) {
     return;
   }
 
-  // Mostrar opciones
   const opciones = data.opciones || Empire.ultimasOpciones || [];
   const opcDiv = document.getElementById("emp-opciones");
   if (opcDiv) {
@@ -3060,7 +3079,6 @@ function finalizarPantallaEmpire(data) {
   }
 }
 
-// ─── ACCIONES ─────────────────────────────────────────────────
 async function elegirOpcionEmpire(letra, btn) {
   const decision = btn.dataset.decision;
   if (!decision) return;
@@ -3120,7 +3138,6 @@ async function avanzarEmpire(decision) {
   }
 }
 
-// ─── GESTIONAR EMPRESA (modal con acciones rápidas) ────────────
 function abrirGestionarEmpresa() {
   if (!Empire.partidaActual) return;
   const p = Empire.partidaActual;
@@ -3223,11 +3240,9 @@ async function ejecutarGestion(accion) {
   }
 }
 
-// ─── DETALLE FINANCIERO ───────────────────────────────────────
 async function abrirDetalleFinanciero() {
   if (!Empire.partidaActual) return;
 
-  // Mostrar modal con spinner mientras carga
   const modalHtml = `
     <div id="empire-detalle-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)cerrarDetalleFinanciero()">
       <div style="background:#0f172a;border:1.5px solid rgba(56,189,248,.4);border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;padding:24px">
@@ -3285,15 +3300,15 @@ function cerrarDetalleFinanciero() {
   document.getElementById("empire-detalle-modal")?.remove();
 }
 
-// ─── VOLVER AL MENÚ ──────────────────────────────────────────
 function volverAlMenuEmpire() {
   Empire.partidaActual = null;
   Empire.ultimasOpciones = [];
   renderJuegosEmpire();
 }
 
+
 // ═══════════════════════════════════════════════════════════════
-// ADMIN PANEL — Solo visible para el admin (valen810a@gmail.com)
+// ADMIN PANEL — Panel completo con eliminar, banear, resetear, CSV
 // ═══════════════════════════════════════════════════════════════
 
 async function renderAdminPanel() {
@@ -3313,11 +3328,10 @@ async function renderAdminPanel() {
     <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:14px 16px;margin-bottom:18px">
       <strong style="color:#fbbf24">🛡️ Modo Admin activo</strong>
       <p class="text-muted" style="font-size:12px;margin-top:6px;margin-bottom:0">
-        Desde acá podés activar/desactivar Premium a otros usuarios mientras integrás pagos reales.
+        Desde acá podés gestionar usuarios, planes, suscripciones MP y el gasto de la app.
       </p>
     </div>
 
-    <!-- ─── GASTO Y HARD CAP ─── -->
     <div class="card mb-4" style="border-left:3px solid #ef4444">
       <h3 style="font-size:16px;margin-bottom:12px">💰 Gasto del día y Hard Cap</h3>
       <div id="admin-gasto">
@@ -3326,7 +3340,6 @@ async function renderAdminPanel() {
       </div>
     </div>
 
-    <!-- ─── ESTADÍSTICAS ─── -->
     <div class="card mb-4" style="border-left:3px solid #38bdf8">
       <h3 style="font-size:16px;margin-bottom:12px">📊 Estadísticas de la app</h3>
       <div id="admin-stats">
@@ -3335,7 +3348,6 @@ async function renderAdminPanel() {
       </div>
     </div>
 
-    <!-- ─── ACTIVAR PREMIUM RÁPIDO ─── -->
     <div class="card mb-4" style="border-left:3px solid #fbbf24">
       <h3 style="font-size:16px;margin-bottom:12px">⚡ Cambiar plan de un usuario</h3>
       <p class="text-muted" style="font-size:12px;margin-bottom:12px">
@@ -3357,12 +3369,25 @@ async function renderAdminPanel() {
       <div id="admin-result" style="margin-top:12px"></div>
     </div>
 
-    <!-- ─── LISTA DE USUARIOS ─── -->
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
         <h3 style="font-size:16px;margin:0">👥 Usuarios registrados</h3>
-        <button class="btn btn-ghost btn-sm" onclick="renderAdminPanel()">🔄 Refrescar</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="adminExportarCSV()" style="background:rgba(34,197,94,.15);color:#86efac">📥 Exportar CSV</button>
+          <button class="btn btn-ghost btn-sm" onclick="renderAdminPanel()">🔄 Refrescar</button>
+        </div>
       </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <input type="text" id="admin-search" class="input" placeholder="🔍 Buscar por email o nombre..." style="flex:1;min-width:200px" oninput="filtrarUsuariosAdmin()">
+        <select id="admin-filtro-plan" class="input" style="max-width:160px" onchange="filtrarUsuariosAdmin()">
+          <option value="">Todos los planes</option>
+          <option value="Gratis">Solo Gratis</option>
+          <option value="Premium">Solo Premium</option>
+          <option value="Empresarial">Solo Empresarial</option>
+        </select>
+      </div>
+
       <div id="admin-users-list">
         <div class="loading-row" style="padding:20px"><div class="spinner"></div>
           <span style="margin-left:10px;color:#94a3b8">Cargando usuarios…</span></div>
@@ -3370,7 +3395,6 @@ async function renderAdminPanel() {
     </div>
   `;
 
-  // Cargar GASTO Y HARD CAP
   Admin.gasto().then(data => {
     const gastoEl = document.getElementById("admin-gasto");
     if (!gastoEl) return;
@@ -3414,11 +3438,11 @@ async function renderAdminPanel() {
     if (gastoEl) gastoEl.innerHTML = `<div class="alert alert-error">❌ ${esc(e.message)}</div>`;
   });
 
-  // Cargar estadísticas
   Admin.stats().then(data => {
     const s = data.stats;
     const statsEl = document.getElementById("admin-stats");
     if (statsEl) {
+      const ingresos = (s.ingresos_estimados_mensual_ars || 0).toLocaleString("es-AR");
       statsEl.innerHTML = `
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:12px">
           <div style="background:rgba(34,197,94,.1);padding:12px;border-radius:10px;text-align:center">
@@ -3429,18 +3453,28 @@ async function renderAdminPanel() {
             <div style="font-size:24px;font-weight:700;color:#d8b4fe">${s.plan.premium}</div>
             <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Premium</div>
           </div>
+          <div style="background:rgba(250,204,21,.1);padding:12px;border-radius:10px;text-align:center">
+            <div style="font-size:18px;font-weight:700;color:#fde68a">$${ingresos}</div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Ingresos/mes</div>
+          </div>
+          <div style="background:rgba(56,189,248,.1);padding:12px;border-radius:10px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:#7dd3fc">${s.nuevos_7d || 0}</div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Nuevos 7d</div>
+          </div>
           <div style="background:rgba(100,116,139,.1);padding:12px;border-radius:10px;text-align:center">
             <div style="font-size:24px;font-weight:700;color:#cbd5e1">${s.plan.gratis}</div>
             <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Gratis</div>
           </div>
-          <div style="background:rgba(56,189,248,.1);padding:12px;border-radius:10px;text-align:center">
-            <div style="font-size:24px;font-weight:700;color:#7dd3fc">${s.conversion_premium}%</div>
-            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Conversión</div>
+          <div style="background:rgba(239,68,68,.1);padding:12px;border-radius:10px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:#fca5a5">${s.baneados || 0}</div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">Baneados</div>
           </div>
         </div>
         <div style="display:flex;gap:10px;font-size:12px;color:#94a3b8;flex-wrap:wrap">
-          <span>🔥 Activos últimos 7 días: <strong style="color:#86efac">${s.actividad.activos_7d}</strong></span>
-          <span>📅 Activos últimos 30 días: <strong style="color:#86efac">${s.actividad.activos_30d}</strong></span>
+          <span>🔥 Activos 7d: <strong style="color:#86efac">${s.actividad.activos_7d}</strong></span>
+          <span>📅 Activos 30d: <strong style="color:#86efac">${s.actividad.activos_30d}</strong></span>
+          <span>✉️ Verificados: <strong style="color:#86efac">${s.email_verificados || 0}</strong></span>
+          <span>💎 Conversión: <strong style="color:#86efac">${s.conversion_premium}%</strong></span>
         </div>
       `;
     }
@@ -3449,43 +3483,225 @@ async function renderAdminPanel() {
     if (statsEl) statsEl.innerHTML = `<div class="alert alert-error">❌ ${esc(e.message)}</div>`;
   });
 
-  // Cargar lista de usuarios
   try {
     const data = await Admin.listarUsuarios();
-    const users = data.usuarios || [];
-
-    const listEl = document.getElementById("admin-users-list");
-    if (users.length === 0) {
-      listEl.innerHTML = `<p class="text-muted">No hay usuarios registrados aún.</p>`;
-    } else {
-      listEl.innerHTML = `
-        <p class="text-muted" style="font-size:12px;margin-bottom:12px">Total: ${data.total} usuarios</p>
-        ${users.map(u => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid rgba(255,255,255,.06);border-radius:8px;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-            <div style="flex:1;min-width:200px">
-              <div style="font-weight:600;font-size:14px">${esc(u.nombre)}</div>
-              <div style="font-size:11px;color:#94a3b8">${esc(u.email)}</div>
-              <div style="font-size:11px;color:#64748b;margin-top:2px">
-                ${u.xp || 0} XP · 🔥 ${u.racha || 0} días
-              </div>
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-              <span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${u.plan === 'Premium' ? 'rgba(168,85,247,.2);color:#d8b4fe' : u.plan === 'Empresarial' ? 'rgba(245,158,11,.2);color:#fbbf24' : 'rgba(100,116,139,.2);color:#94a3b8'}">
-                ${u.plan}
-              </span>
-              ${u.plan === "Gratis"
-                ? `<button class="btn btn-primary btn-sm" onclick="adminActivarRapido('${esc(u.email)}','Premium')">→ Premium</button>`
-                : `<button class="btn btn-ghost btn-sm" onclick="adminActivarRapido('${esc(u.email)}','Gratis')" style="color:#94a3b8">→ Gratis</button>`}
-            </div>
-          </div>
-        `).join("")}
-      `;
-    }
+    window._adminUsuarios = data.usuarios || [];
+    renderListaUsuariosAdmin(window._adminUsuarios);
   } catch (e) {
     document.getElementById("admin-users-list").innerHTML = `
       <div class="alert alert-error">❌ ${esc(e.message)}</div>
     `;
   }
+}
+
+function renderListaUsuariosAdmin(users) {
+  const listEl = document.getElementById("admin-users-list");
+  if (!listEl) return;
+
+  if (users.length === 0) {
+    listEl.innerHTML = `<p class="text-muted" style="text-align:center;padding:20px">No hay usuarios que coincidan con el filtro.</p>`;
+    return;
+  }
+
+  listEl.innerHTML = `
+    <p class="text-muted" style="font-size:12px;margin-bottom:12px">Mostrando: ${users.length} usuarios</p>
+    ${users.map(u => {
+      const planColors = {
+        'Premium': 'background:rgba(168,85,247,.2);color:#d8b4fe',
+        'Empresarial': 'background:rgba(245,158,11,.2);color:#fbbf24',
+        'Gratis': 'background:rgba(100,116,139,.2);color:#94a3b8',
+      };
+      const planStyle = planColors[u.plan] || planColors['Gratis'];
+      const baneadoTag = u.baneado ? '<span style="font-size:10px;background:rgba(239,68,68,.2);color:#fca5a5;padding:2px 6px;border-radius:4px;margin-left:4px">🚫 BAN</span>' : '';
+      const verifTag = u.email_verificado ? '<span title="Email verificado" style="color:#86efac">✓</span>' : '<span title="Email NO verificado" style="color:#64748b">○</span>';
+      const subMpTag = u.tiene_suscripcion_mp ? '<span style="font-size:10px;background:rgba(34,197,94,.2);color:#86efac;padding:2px 6px;border-radius:4px;margin-left:4px">💳 MP</span>' : '';
+      const ciudadTag = u.ciudad ? `· 🏠 ${esc(u.ciudad)}` : '';
+
+      return `
+        <div class="card mb-2" style="padding:12px 14px;border:1px solid rgba(255,255,255,.06)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <div style="font-weight:600;font-size:14px">${esc(u.nombre)} ${baneadoTag}${subMpTag}</div>
+              <div style="font-size:11px;color:#94a3b8">${verifTag} ${esc(u.email)}</div>
+              <div style="font-size:11px;color:#64748b;margin-top:2px">
+                ⭐ ${u.xp || 0} XP · 🔥 ${u.racha || 0} días ${ciudadTag}
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <span style="font-size:11px;padding:3px 8px;border-radius:6px;${planStyle}">${u.plan}</span>
+              <button class="btn btn-ghost btn-sm" onclick="abrirAccionesUsuario('${esc(u.email)}')" style="background:rgba(56,189,248,.15);color:#7dd3fc">⚙️ Acciones</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("")}
+  `;
+}
+
+function filtrarUsuariosAdmin() {
+  const q = (document.getElementById("admin-search")?.value || "").toLowerCase().trim();
+  const plan = document.getElementById("admin-filtro-plan")?.value || "";
+  let lista = window._adminUsuarios || [];
+
+  if (q) {
+    lista = lista.filter(u =>
+      (u.email || "").toLowerCase().includes(q) ||
+      (u.nombre || "").toLowerCase().includes(q)
+    );
+  }
+  if (plan) {
+    lista = lista.filter(u => (u.plan || "Gratis") === plan);
+  }
+  renderListaUsuariosAdmin(lista);
+}
+
+function abrirAccionesUsuario(email) {
+  const u = (window._adminUsuarios || []).find(x => x.email === email);
+  if (!u) return;
+
+  const modalHtml = `
+    <div id="admin-acciones-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)cerrarAccionesUsuario()">
+      <div style="background:#0f172a;border:1.5px solid rgba(56,189,248,.4);border-radius:16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;padding:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h3 style="margin:0;font-size:18px">⚙️ ${esc(u.nombre)}</h3>
+          <button onclick="cerrarAccionesUsuario()" style="background:none;border:none;color:#f87171;font-size:22px;cursor:pointer">✕</button>
+        </div>
+
+        <div style="background:rgba(255,255,255,.04);padding:12px;border-radius:10px;margin-bottom:16px;font-size:12px;color:#cbd5e1">
+          <div style="margin-bottom:4px">📧 ${esc(u.email)} ${u.email_verificado ? '✅' : '⚠️ no verificado'}</div>
+          <div style="margin-bottom:4px">🎯 Plan: <strong style="color:#fbbf24">${u.plan}</strong></div>
+          <div style="margin-bottom:4px">⭐ ${u.xp || 0} XP · 🔥 ${u.racha || 0} días</div>
+          ${u.ciudad ? `<div style="margin-bottom:4px">🏠 ${esc(u.ciudad)}</div>` : ''}
+          ${u.fecha_nacimiento ? `<div style="margin-bottom:4px">📅 ${esc(u.fecha_nacimiento)}</div>` : ''}
+          ${u.fecha_creacion ? `<div style="color:#64748b;font-size:11px;margin-top:6px">Creado: ${new Date(u.fecha_creacion).toLocaleString("es-AR")}</div>` : ''}
+          ${u.tiene_suscripcion_mp ? `<div style="color:#86efac;margin-top:6px;font-size:11px">💳 Suscripción Mercado Pago activa</div>` : ''}
+        </div>
+
+        <div style="display:grid;gap:8px">
+          <div>
+            <label class="label" style="font-size:12px">Cambiar plan</label>
+            <div style="display:flex;gap:6px">
+              <select class="input" id="acc-plan" style="flex:1">
+                <option value="">— Elegí —</option>
+                <option value="Gratis">🆓 Gratis</option>
+                <option value="Premium">💎 Premium</option>
+                <option value="Empresarial">🏢 Empresarial</option>
+              </select>
+              <button class="btn btn-primary btn-sm" onclick="adminAplicarCambioPlan('${esc(u.email)}')">Aplicar</button>
+            </div>
+          </div>
+
+          <button class="btn btn-ghost" style="background:rgba(168,85,247,.15);color:#d8b4fe;text-align:left;padding:10px 12px" onclick="adminResetearPass('${esc(u.email)}')">
+            🔑 Resetear contraseña (genera pass temporal)
+          </button>
+
+          <button class="btn btn-ghost" style="background:rgba(${u.baneado ? '34,197,94' : '245,158,11'},.15);color:${u.baneado ? '#86efac' : '#fbbf24'};text-align:left;padding:10px 12px" onclick="adminBanear('${esc(u.email)}', ${!u.baneado})">
+            ${u.baneado ? '✅ Desbanear usuario' : '🚫 Banear usuario'}
+          </button>
+
+          <button class="btn btn-ghost" style="background:rgba(239,68,68,.15);color:#fca5a5;text-align:left;padding:10px 12px" onclick="adminEliminarUsuario('${esc(u.email)}')">
+            🗑️ ELIMINAR usuario (permanente)
+          </button>
+        </div>
+
+        <div id="acc-msg" style="margin-top:14px;font-size:13px;text-align:center"></div>
+      </div>
+    </div>
+  `;
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = modalHtml;
+  document.body.appendChild(wrapper.firstElementChild);
+}
+
+function cerrarAccionesUsuario() {
+  document.getElementById("admin-acciones-modal")?.remove();
+}
+
+function setAccMsg(txt, ok = true) {
+  const el = document.getElementById("acc-msg");
+  if (el) {
+    el.style.color = ok ? "#86efac" : "#fca5a5";
+    el.innerHTML = (ok ? "✅ " : "❌ ") + esc(txt);
+  }
+}
+
+async function adminAplicarCambioPlan(email) {
+  const nuevo = document.getElementById("acc-plan").value;
+  if (!nuevo) { setAccMsg("Elegí un plan primero", false); return; }
+  try {
+    const data = await Admin.cambiarPlan(email, nuevo);
+    setAccMsg(data.mensaje || "Plan cambiado");
+    setTimeout(() => { cerrarAccionesUsuario(); renderAdminPanel(); }, 1200);
+  } catch (e) { setAccMsg(e.message, false); }
+}
+
+async function adminResetearPass(email) {
+  if (!confirm(`¿Resetear contraseña de ${email}?\n\nSe generará una pass temporal que vas a poder copiar.`)) return;
+  try {
+    const t = localStorage.getItem('avai_token') || localStorage.getItem('av_token');
+    const r = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+      body: JSON.stringify({ action: 'resetear_pass', email_objetivo: email })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Error');
+    alert(`✅ Contraseña reseteada\n\nPASSWORD TEMPORAL:\n${data.password_temporal}\n\nPasásela al usuario. Que la cambie cuando entre.`);
+    setAccMsg("Contraseña reseteada");
+  } catch (e) { setAccMsg(e.message, false); }
+}
+
+async function adminBanear(email, banear) {
+  const acc = banear ? 'banear' : 'desbanear';
+  if (!confirm(`¿${acc.charAt(0).toUpperCase() + acc.slice(1)} a ${email}?`)) return;
+  try {
+    const t = localStorage.getItem('avai_token') || localStorage.getItem('av_token');
+    const r = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+      body: JSON.stringify({ action: 'banear', email_objetivo: email, estado: banear })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Error');
+    setAccMsg(data.mensaje);
+    setTimeout(() => { cerrarAccionesUsuario(); renderAdminPanel(); }, 1200);
+  } catch (e) { setAccMsg(e.message, false); }
+}
+
+async function adminEliminarUsuario(email) {
+  if (!confirm(`⚠️ ¿ELIMINAR a ${email}?\n\nEsto es PERMANENTE. No se puede deshacer.`)) return;
+  if (!confirm(`ÚLTIMA CONFIRMACIÓN:\n\n¿Estás 100% seguro de eliminar ${email}?`)) return;
+  try {
+    const t = localStorage.getItem('avai_token') || localStorage.getItem('av_token');
+    const r = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+      body: JSON.stringify({ action: 'eliminar_usuario', email_objetivo: email, confirmar: 'SI_ELIMINAR' })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Error');
+    setAccMsg(data.mensaje);
+    setTimeout(() => { cerrarAccionesUsuario(); renderAdminPanel(); }, 1200);
+  } catch (e) { setAccMsg(e.message, false); }
+}
+
+async function adminExportarCSV() {
+  try {
+    const t = localStorage.getItem('avai_token') || localStorage.getItem('av_token');
+    const r = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+      body: JSON.stringify({ action: 'exportar_csv' })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Error');
+    const blob = new Blob([data.csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `avai-usuarios-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    Toast.success(`✅ CSV descargado (${data.total} usuarios)`);
+  } catch (e) { Toast.error(e.message); }
 }
 
 async function adminCambiarCap() {
@@ -3544,7 +3760,6 @@ async function adminCambiarPlan() {
       </div>
     `;
     document.getElementById("admin-email").value = "";
-    // Refrescar lista
     setTimeout(() => renderAdminPanel(), 1500);
   } catch (e) {
     resultEl.innerHTML = `<div class="alert alert-error">❌ ${esc(e.message)}</div>`;
