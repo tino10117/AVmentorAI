@@ -1331,22 +1331,23 @@ FEEDBACK SOBRE LA PROPIA PERSONA (importante):
     // porque ese no puede ver imágenes. Usamos gpt-4o que sí tiene visión.
     const effectiveWebSearch = useWebSearch && !imagenParaChat;
 
-    const openaiParams = effectiveWebSearch
-      ? {
-          model: "gpt-4o-search-preview",
-          messages: [{ role: "system", content: systemPrompt }, ...finalMessages],
-          web_search_options: { search_context_size: "medium" },
-          max_tokens: 2000,
-          stream: true,
-        }
-      : {
-          model: "gpt-4o",
-          messages: [{ role: "system", content: systemPrompt }, ...finalMessages],
-          temperature: 0.85,
-          max_tokens: 2000,
-          stream: true,
-        };
-
+    let openaiParams;
+    if (effectiveWebSearch) {
+      openaiParams = {
+        model: "gpt-4o-search-preview",
+        messages: [{ role: "system", content: systemPrompt }, ...finalMessages],
+        web_search_options: { search_context_size: "medium" },
+        max_tokens: 2000,
+        stream: true,
+      };
+    } else {
+      openaiParams = {
+        model: "gpt-5.5-instant",
+        messages: [{ role: "system", content: systemPrompt }, ...finalMessages],
+        max_completion_tokens: 2000,
+        stream: true,
+      };
+    }
     const stream = await openai.chat.completions.create(openaiParams);
 
     let fullReply = "";
