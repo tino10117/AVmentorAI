@@ -1348,11 +1348,31 @@ FEEDBACK SOBRE LA PROPIA PERSONA (importante):
         stream: true,
       };
     }
-    const stream = await openai.chat.completions.create(openaiParams);
+    // ✨ Reintento automático ante server_error de OpenAI (común en el modelo
+    // de búsqueda web gpt-4o-search-preview, que es inestable). Como el error
+    // suele saltar ANTES de empezar a streamear, reintentar es limpio.
+    async function crearStreamConReintento(params, maxIntentos = 3) {
+      let ultimoError = null;
+      for (let intento = 1; intento <= maxIntentos; intento++) {
+        try {
+          return await openai.chat.completions.create(params);
+        } catch (e) {
+          ultimoError = e;
+          const tipo = e?.type || e?.error?.type || "";
+          const esServerError = tipo === "server_error" || e?.status === 500 || e?.status === 503;
+          // Solo reintentamos si es un error temporal del servidor de OpenAI.
+          if (esServerError && intento < maxIntentos) {
+            console.warn(`[CHAT] server_error de OpenAI, reintento ${intento}/${maxIntentos - 1}...`);
+            await new Promise(r => setTimeout(r, 600 * intento)); // espera creciente
+            continue;
+          }
+          throw e; // si no es server_error, o ya agotamos intentos, cortamos
+        }
+      }
+      throw ultimoError;
+    }
 
-    let fullReply = "";
-    for await (const chunk of stream) {
-      const delta = chunk?.choices?.[0]?.delta?.content || "";
+    const stream = await crearStreamConReintento(openaiParams);      const delta = chunk?.choices?.[0]?.delta?.content || "";
       if (delta) {
         fullReply += delta;
         sendEvent("delta", { text: delta });
