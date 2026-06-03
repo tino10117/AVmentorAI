@@ -1,0 +1,240 @@
+/* ═══════════════════════════════════════════════════════════════
+   AVAI — TEMA CLARO (estilo Claude: blanco cálido + beige suave)
+   ───────────────────────────────────────────────────────────────
+   Capa de OVERRIDE. Se carga DESPUÉS de styles.css y pisa los
+   colores oscuros con una paleta clara y minimalista.
+   Alcance de esta versión: SIDEBAR + HEADER DASHBOARD + CHAT (Mentor).
+   El dorado queda solo como ACENTO en pocos lugares.
+
+   Para desactivar el tema claro: borrar la línea que carga este
+   archivo en index.html y vuelve todo al tema oscuro original.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Paleta clara cálida (estilo Claude) */
+  --c-bg:        #f5f4ef;   /* fondo general: blanco hueso cálido */
+  --c-surface:   #ffffff;   /* tarjetas / superficies */
+  --c-surface2:  #faf9f5;   /* superficie alternativa suave */
+  --c-border:    #e7e3da;   /* bordes finos cálidos */
+  --c-border2:   #d8d3c7;   /* borde un poco más marcado */
+  --c-text:      #2b2a27;   /* texto principal: gris tinta cálido */
+  --c-text2:     #56544e;   /* texto secundario */
+  --c-text3:     #87837a;   /* texto terciario / muted */
+  --c-gold:      #c79a3a;   /* dorado de ACENTO (más sobrio que el #facc15) */
+  --c-gold-soft: rgba(199,154,58,.12);
+  --c-user-bub:  #f0ece0;   /* globo del usuario: beige suave */
+}
+
+/* ───────────────────────────────────────────────
+   FONDO GENERAL
+   ─────────────────────────────────────────────── */
+body {
+  background: var(--c-bg) !important;
+  color: var(--c-text) !important;
+}
+
+/* ───────────────────────────────────────────────
+   SIDEBAR
+   ─────────────────────────────────────────────── */
+#sidebar {
+  background: var(--c-surface) !important;
+  border-right: 1px solid var(--c-border) !important;
+}
+.sidebar-logo {
+  /* el texto AVAI del sidebar: dorado sobrio sólido (sin degradé chillón) */
+  background: none !important;
+  -webkit-text-fill-color: var(--c-gold) !important;
+  color: var(--c-gold) !important;
+}
+.nav-section { color: var(--c-text3) !important; }
+.nav-btn { color: var(--c-text2) !important; }
+.nav-btn:hover {
+  background: var(--c-gold-soft) !important;
+  color: var(--c-text) !important;
+}
+.nav-btn.active {
+  background: var(--c-gold-soft) !important;
+  color: var(--c-gold) !important;
+  border-left: 3px solid var(--c-gold) !important;
+}
+.nav-btn .nav-icon svg.lucide { color: var(--c-text3) !important; }
+.nav-btn.active .nav-icon svg.lucide { color: var(--c-gold) !important; }
+/* Cerrar sesión queda rojo, pero un poco más suave */
+.nav-btn[onclick*="doLogout"] { color: #c0392b !important; }
+.sidebar-footer { border-top: 1px solid var(--c-border) !important; }
+.sidebar-footer a { color: var(--c-text3) !important; }
+.sidebar-footer a:hover { color: var(--c-text) !important; }
+.sidebar-footer .copy { color: var(--c-text3) !important; }
+
+/* Hamburguesa y overlay (mobile) */
+#hamburger {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border2) !important;
+  color: var(--c-gold) !important;
+}
+#overlay { background: rgba(0,0,0,.25) !important; }
+
+/* ───────────────────────────────────────────────
+   HEADER DEL DASHBOARD (hero + stats + nivel)
+   ─────────────────────────────────────────────── */
+.dash-hero {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.dash-hero-logo {
+  background: none !important;
+  -webkit-text-fill-color: var(--c-gold) !important;
+  color: var(--c-gold) !important;
+}
+.dash-hero-subtitle { color: var(--c-text3) !important; }
+
+.dash-stats {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.dash-stat-col { border-right: 1px solid var(--c-border) !important; }
+.dash-stat-col:hover { background: var(--c-surface2) !important; }
+.dash-stat-val { color: var(--c-text) !important; }
+.dash-stat-val.gold   { color: var(--c-gold) !important; }
+.dash-stat-val.orange { color: var(--c-gold) !important; }   /* unificamos a dorado sobrio */
+.dash-stat-val.red    { color: #c0392b !important; }
+.dash-stat-val.sky    { color: #3a7ca5 !important; }         /* azul apagado, no celeste neón */
+.dash-stat-lbl { color: var(--c-text3) !important; }
+
+.dash-nivel {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.dash-nivel-name { color: var(--c-text2) !important; }
+.dash-nivel-pct  { color: var(--c-gold) !important; }
+.dash-nivel-bar  { background: var(--c-border) !important; }
+.dash-nivel-fill {
+  background: var(--c-gold) !important;   /* barra dorada sobria, sin degradé naranja */
+}
+
+/* ───────────────────────────────────────────────
+   TARJETA DE MODO (selector "Conversación Libre")
+   ─────────────────────────────────────────────── */
+.modo-card {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.modo-card:hover { border-color: var(--c-gold) !important; }
+.modo-card-label { color: var(--c-text3) !important; }
+.modo-card-select {
+  background-color: var(--c-surface2) !important;
+  color: var(--c-text) !important;
+  border: 1px solid var(--c-border2) !important;
+}
+.modo-card-select:hover, .modo-card-select:focus {
+  border-color: var(--c-gold) !important;
+}
+.modo-card-select option { background: var(--c-surface) !important; color: var(--c-text) !important; }
+.modo-card-hint { color: var(--c-text3) !important; }
+
+/* ───────────────────────────────────────────────
+   QUICK BUTTONS (los botones de acceso rápido)
+   Pasan a fondo claro con borde sutil; el dorado solo en hover.
+   Pisa también el chat-style.js que los pone todos amarillos.
+   ─────────────────────────────────────────────── */
+.qbtn,
+.qbtn-gold, .qbtn-green, .qbtn-indigo, .qbtn-red, .qbtn-purple, .qbtn-sky, .qbtn-blue,
+[class*="qbtn-"] {
+  background: var(--c-surface) !important;
+  background-color: var(--c-surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--c-border2) !important;
+  color: var(--c-text2) !important;
+  box-shadow: none !important;
+}
+.qbtn:hover,
+[class*="qbtn-"]:hover {
+  background: var(--c-gold-soft) !important;
+  background-color: var(--c-gold-soft) !important;
+  border-color: var(--c-gold) !important;
+  color: var(--c-gold) !important;
+}
+
+/* ───────────────────────────────────────────────
+   ÁREA DE CHAT
+   ─────────────────────────────────────────────── */
+#chat-negocio { background: transparent !important; }
+
+/* Mensajes de AVAI: texto oscuro sobre fondo claro, ⚡ dorado al lado */
+.chat-msg.msg-ai,
+.chat-msg.msg-english,
+.chat-msg.msg-mate {
+  background: transparent !important;
+  color: var(--c-text) !important;
+}
+.chat-msg.msg-ai::before,
+.chat-msg.msg-english::before,
+.chat-msg.msg-mate::before {
+  color: var(--c-gold) !important;   /* el ⚡ en dorado sobrio */
+  filter: none !important;
+}
+
+/* Globo del usuario: beige suave con texto oscuro (en vez de dorado fuerte) */
+.chat-msg.msg-user,
+.chat-msg:not(.msg-ai):not(.msg-english):not(.msg-mate):not(.typing-indicator) {
+  background: var(--c-user-bub) !important;
+  background-image: none !important;
+  border: 1px solid var(--c-border2) !important;
+  color: var(--c-text) !important;
+}
+
+/* ───────────────────────────────────────────────
+   INPUT DEL CHAT
+   ─────────────────────────────────────────────── */
+.chat-input-wrap {
+  background: transparent !important;
+  border: none !important;
+}
+.chat-input-row {
+  background: var(--c-surface) !important;
+  border: 1.5px solid var(--c-border2) !important;
+}
+.chat-input-row:focus-within {
+  border-color: var(--c-gold) !important;
+}
+.chat-input-row textarea,
+#neg-input {
+  background: transparent !important;
+  color: var(--c-text) !important;
+}
+.chat-input-row textarea::placeholder,
+#neg-input::placeholder {
+  color: var(--c-text3) !important;
+  opacity: 1 !important;
+}
+
+/* Botones del input (adjuntar / mic / etc.): gris, hover dorado */
+.chat-input-row > button,
+.chat-input-row button {
+  background: transparent !important;
+  color: var(--c-text3) !important;
+  border: none !important;
+}
+.chat-input-row > button:hover,
+.chat-input-row button:hover {
+  background: var(--c-gold-soft) !important;
+  color: var(--c-gold) !important;
+}
+
+/* Botón enviar: dorado sobrio sólido con texto blanco */
+.chat-send-btn#neg-send,
+button#neg-send,
+#neg-send {
+  background: var(--c-gold) !important;
+  background-image: none !important;
+  border: none !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+#neg-send:hover {
+  background: #b5882f !important;   /* dorado un poco más oscuro al pasar */
+  color: #ffffff !important;
+}
+
+/* Scrollbar más clara */
+::-webkit-scrollbar-thumb { background: var(--c-border2) !important; }
