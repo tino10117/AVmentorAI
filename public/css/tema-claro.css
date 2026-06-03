@@ -303,6 +303,10 @@ button#neg-send,
    Ocultar el header "AVAI / Tu mentor personal de IA"
    (queda más limpio, estilo ChatGPT/Claude)
    ─────────────────────────────────────────────── */
+/* Header compacto estilo ChatGPT */
 .dash-hero {
-  display: none !important;
+  display: block !important;
+  padding: 10px 16px !important;
+  margin-bottom: 10px !important;
 }
+.dash-hero-subtitle { display: none !important; }
