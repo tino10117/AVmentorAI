@@ -774,3 +774,92 @@ input::placeholder, textarea::placeholder {
   border: 1px solid rgba(192,57,43,.3) !important;
   color: #a3342a !important;
 }
+/* Título principal del hero en negro (en vez del degradé dorado) */
+.lnd-hero-title-main {
+  background: none !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  color: #1a1a1a !important;
+}
+/* ═══════════════════════════════════════════════════════════════
+   AVAI — TEMA CLARO · BLOQUE 4: MOCKUP de la landing a claro
+   ───────────────────────────────────────────────────────────────
+   Pega al FINAL de tema-claro.css.
+   Pasa el "mockup / demo en vivo" de la landing al tema claro para
+   que matchee el chat nuevo (claro, sin globos oscuros).
+   Todo por CSS, sin tocar el HTML del index.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Marco del mockup (la "pantalla") */
+.lnd-mockup {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+
+/* Barra superior del navegador simulado */
+.lnd-mockup-bar {
+  background: var(--c-surface2) !important;
+  border-bottom: 1px solid var(--c-border) !important;
+}
+.lnd-mockup-url { color: var(--c-text3) !important; }
+
+/* Sidebar del mockup */
+.lnd-mockup-sidebar {
+  background: var(--c-surface2) !important;
+  border-right: 1px solid var(--c-border) !important;
+}
+.lnd-mockup-side-logo {
+  background: none !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  color: #1a1a1a !important;
+}
+.lnd-mockup-section { color: var(--c-text3) !important; }
+.lnd-mockup-item { color: var(--c-text2) !important; }
+.lnd-mockup-item.active {
+  background: var(--c-gold-soft) !important;
+  color: var(--c-gold) !important;
+  border-left: 2px solid var(--c-gold) !important;
+}
+
+/* Área principal del mockup */
+.lnd-mockup-main {
+  background: var(--c-surface) !important;
+}
+
+/* Header "AVAI" dentro del mockup */
+.lnd-mockup-hero-card {
+  background: var(--c-surface2) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.lnd-mockup-hero-card .av {
+  background: none !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  color: #1a1a1a !important;
+}
+.lnd-mockup-hero-card .sub { color: var(--c-text3) !important; }
+
+/* Mensajes del chat en el mockup */
+/* Mensaje de AVAI: sin globo oscuro, solo texto sobre claro */
+.lnd-mockup-chat-msg {
+  background: transparent !important;
+  border-left: none !important;
+  color: var(--c-text) !important;
+}
+.lnd-mockup-chat-msg .name { color: var(--c-gold) !important; }
+
+/* Mensaje del usuario: globo beige a la derecha (como el chat real) */
+.lnd-mockup-chat-msg.user {
+  background: var(--c-user-bub) !important;
+  border-left: none !important;
+  border: 1px solid var(--c-border2) !important;
+  border-radius: 14px !important;
+  color: var(--c-text) !important;
+}
+.lnd-mockup-chat-msg.user .name { color: var(--c-text2) !important; }
+
+/* Badge flotante "Demo en vivo": lo suavizamos a dorado sobre claro */
+.lnd-mockup-floating {
+  background: var(--c-gold-soft) !important;
+  border: 1px solid rgba(199,154,58,.4) !important;
+  color: #8a6d1f !important;
+  box-shadow: 0 4px 16px rgba(199,154,58,.15) !important;
+}
