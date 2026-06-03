@@ -299,14 +299,178 @@ button#neg-send,
   color: var(--c-text3) !important;
   opacity: 1 !important;
 }
-/* ───────────────────────────────────────────────
-   Ocultar el header "AVAI / Tu mentor personal de IA"
-   (queda más limpio, estilo ChatGPT/Claude)
-   ─────────────────────────────────────────────── */
-/* Header compacto estilo ChatGPT */
+/* ═══════════════════════════════════════════════════════════════
+   AVAI — TEMA CLARO · BLOQUE 2: resto de las secciones
+   ───────────────────────────────────────────────────────────────
+   Pega esto al FINAL de tema-claro.css.
+   Vuelve claros (blanco + texto negro) los componentes que seguían
+   oscuros: inputs, selects, textareas, cards, tabs, subnav, alerts,
+   badges, lesson cards, plan cards, modals, tablas, etc.
+   Apunta a las clases globales, así cubre TODAS las secciones.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── HEADER COMPACTO (estilo ChatGPT, chiquito arriba) ── */
 .dash-hero {
   display: block !important;
   padding: 10px 16px !important;
   margin-bottom: 10px !important;
 }
 .dash-hero-subtitle { display: none !important; }
+
+/* ── HERO CARDS de cada sección (el cartel de arriba con título) ── */
+.hero-card {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.hero-card h2,
+.hero-card h3 { color: var(--c-text) !important; }
+.av-subtitle { color: var(--c-text3) !important; }
+.av-logo {
+  background: none !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  color: #1a1a1a !important;
+}
+
+/* ── INPUTS / TEXTAREAS / SELECTS (lo azul oscuro → blanco) ── */
+.input, .textarea, .select,
+input[type="text"], input[type="email"], input[type="password"],
+input[type="number"], input[type="search"], textarea, select {
+  background: var(--c-surface) !important;
+  background-color: var(--c-surface) !important;
+  background-image: none !important;
+  color: var(--c-text) !important;
+  border: 1px solid var(--c-border2) !important;
+}
+.input:focus, .textarea:focus, .select:focus,
+input:focus, textarea:focus, select:focus {
+  border-color: var(--c-gold) !important;
+  background: #ffffff !important;
+}
+.input::placeholder, .textarea::placeholder,
+input::placeholder, textarea::placeholder {
+  color: var(--c-text3) !important;
+  opacity: 1 !important;
+}
+.select option, select option {
+  background: var(--c-surface) !important;
+  color: var(--c-text) !important;
+}
+.label { color: var(--c-text3) !important; }
+
+/* ── CARDS (las tarjetas en general) ── */
+.card {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04) !important;
+  color: var(--c-text) !important;
+}
+/* cards de colores: las suavizamos a blanco con borde sutil de color */
+.card-gold, .card-purple, .card-green, .card-blue, .card-orange {
+  background: var(--c-surface) !important;
+}
+.card h2, .card h3, .card h4, .card p, .card span, .card div, .card li {
+  color: var(--c-text) !important;
+}
+.card .text-muted, .text-muted { color: var(--c-text3) !important; }
+
+/* ── TÍTULOS sueltos (h2/h3/h4 fuera de cards) ── */
+#main-content h2,
+#main-content h3,
+#main-content h4 { color: var(--c-text) !important; }
+
+/* ── TABS y SUBNAV ── */
+.tab-bar { border-bottom: 1px solid var(--c-border) !important; }
+.tab-btn { color: var(--c-text3) !important; background: transparent !important; }
+.tab-btn:hover { color: var(--c-text) !important; background: var(--c-gold-soft) !important; }
+.tab-btn.active {
+  background: var(--c-gold-soft) !important;
+  border-color: var(--c-gold) !important;
+  color: var(--c-gold) !important;
+}
+.subnav-btn {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border2) !important;
+  color: var(--c-text2) !important;
+}
+.subnav-btn:hover { border-color: var(--c-gold) !important; color: var(--c-text) !important; }
+.subnav-btn.active {
+  background: var(--c-gold-soft) !important;
+  border-color: var(--c-gold) !important;
+  color: var(--c-gold) !important;
+}
+
+/* ── BOTONES (los que tienen degradé dorado quedan, el resto se aclara) ── */
+.btn-ghost {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border2) !important;
+  color: var(--c-text2) !important;
+}
+.btn-ghost:hover { background: var(--c-gold-soft) !important; color: var(--c-gold) !important; }
+
+/* ── LESSON CARDS / QUIZ ── */
+.lesson-card, .lesson-content-box, .quiz-card {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+  color: var(--c-text) !important;
+}
+.lesson-title { color: var(--c-text) !important; }
+.lesson-desc { color: var(--c-text3) !important; }
+.quiz-option:hover { background: var(--c-gold-soft) !important; border-color: var(--c-gold) !important; }
+
+/* ── METRIC CHIPS / STAT PILLS ── */
+.metric-chip, .stat-pill {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.metric-val { color: var(--c-text) !important; }
+.metric-lbl, .stat-pill .sl { color: var(--c-text3) !important; }
+
+/* ── ALERTS (las dejamos con su color pero más suave sobre claro) ── */
+.alert-info {
+  background: rgba(58,124,165,.08) !important;
+  border: 1px solid rgba(58,124,165,.3) !important;
+  color: #2c5d7c !important;
+}
+.alert-success {
+  background: rgba(34,150,94,.08) !important;
+  border: 1px solid rgba(34,150,94,.3) !important;
+  color: #1a7a4a !important;
+}
+.alert-warning {
+  background: rgba(199,154,58,.10) !important;
+  border: 1px solid rgba(199,154,58,.35) !important;
+  color: #8a6d1f !important;
+}
+.alert-error {
+  background: rgba(192,57,43,.08) !important;
+  border: 1px solid rgba(192,57,43,.3) !important;
+  color: #a3342a !important;
+}
+
+/* ── PLAN CARDS (Premium) ── */
+.plan-card {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+  color: var(--c-text) !important;
+}
+.plan-card h2, .plan-card p { color: var(--c-text) !important; }
+.plan-card .plan-price { color: var(--c-gold) !important; }
+
+/* ── TABLAS (ranking, etc.) ── */
+.rank-table th { color: var(--c-text3) !important; border-bottom: 1px solid var(--c-border) !important; }
+.rank-table td { color: var(--c-text) !important; border-bottom: 1px solid var(--c-border) !important; }
+.rank-table tr:hover td { background: var(--c-gold-soft) !important; }
+.rank-num { color: var(--c-gold) !important; }
+
+/* ── MODALES (fondos #0f172a hardcodeados en JS) ── */
+[id$="-modal"] > div,
+[id*="modal"] > div {
+  background: var(--c-surface) !important;
+  color: var(--c-text) !important;
+}
+
+/* ── PROGRESS BARS ── */
+.progress-bar { background: var(--c-border) !important; }
+
+/* ── MODO-CARD (el selector de modo del Mentor, por las dudas) ── */
+.modo-card-select option { background: var(--c-surface) !important; color: var(--c-text) !important; }
