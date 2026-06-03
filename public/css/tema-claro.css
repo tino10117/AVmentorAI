@@ -310,13 +310,21 @@ button#neg-send,
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── HEADER COMPACTO (estilo ChatGPT, chiquito arriba) ── */
+/* Header tipo ChatGPT: solo el nombre, chico y centrado, sin cajita */
 .dash-hero {
   display: block !important;
-  padding: 10px 16px !important;
-  margin-bottom: 10px !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 6px 0 !important;
+  margin-bottom: 4px !important;
+  text-align: center !important;
 }
 .dash-hero-subtitle { display: none !important; }
-
+.dash-hero-logo {
+  font-size: 18px !important;
+  justify-content: center !important;
+}
 /* ── HERO CARDS de cada sección (el cartel de arriba con título) ── */
 .hero-card {
   background: var(--c-surface) !important;
