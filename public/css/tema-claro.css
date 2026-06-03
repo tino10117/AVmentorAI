@@ -250,3 +250,53 @@ button#neg-send,
 #chat-negocio .chat-msg * {
   color: #2b2a27 !important;
 }
+/* ───────────────────────────────────────────────
+   FIX: botón de sonido (TTS) — sacar el violeta
+   ─────────────────────────────────────────────── */
+.chat-msg button,
+#chat-negocio button[onclick*="speak"],
+#chat-negocio button[onclick*="tts"],
+#chat-negocio button[onclick*="audio"],
+.chat-msg [class*="tts"],
+.chat-msg [class*="voice"],
+.chat-msg [class*="speak"] {
+  background: var(--c-surface) !important;
+  background-color: var(--c-surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--c-border2) !important;
+  color: var(--c-text3) !important;
+  box-shadow: none !important;
+}
+.chat-msg button:hover,
+#chat-negocio button:hover {
+  background: var(--c-gold-soft) !important;
+  color: var(--c-gold) !important;
+}
+
+/* ───────────────────────────────────────────────
+   FIX: input "Escribí tu pregunta acá" a blanco
+   (le gana el estilo del index.html, lo forzamos acá)
+   ─────────────────────────────────────────────── */
+.chat-input-wrap,
+.chat-input-row,
+#tab-mentor .chat-input-row {
+  background: var(--c-surface) !important;
+  background-color: var(--c-surface) !important;
+  background-image: none !important;
+  border: 1.5px solid var(--c-border2) !important;
+}
+#tab-mentor .chat-input-row:focus-within,
+.chat-input-row:focus-within {
+  border-color: var(--c-gold) !important;
+}
+#neg-input,
+.chat-input-row textarea {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--c-text) !important;
+}
+#neg-input::placeholder,
+.chat-input-row textarea::placeholder {
+  color: var(--c-text3) !important;
+  opacity: 1 !important;
+}
