@@ -299,3 +299,10 @@ button#neg-send,
   color: var(--c-text3) !important;
   opacity: 1 !important;
 }
+/* ───────────────────────────────────────────────
+   Ocultar el header "AVAI / Tu mentor personal de IA"
+   (queda más limpio, estilo ChatGPT/Claude)
+   ─────────────────────────────────────────────── */
+.dash-hero {
+  display: none !important;
+}
