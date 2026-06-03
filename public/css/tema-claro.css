@@ -82,8 +82,8 @@ body {
 }
 .dash-hero-logo {
   background: none !important;
-  -webkit-text-fill-color: var(--c-gold) !important;
-  color: var(--c-gold) !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  color: #1a1a1a !important;
 }
 .dash-hero-subtitle { color: var(--c-text3) !important; }
 
