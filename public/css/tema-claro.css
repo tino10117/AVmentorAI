@@ -300,3 +300,20 @@ button#neg-send,
   color: var(--c-text3) !important;
   opacity: 1 !important;
 }
+/* ───────────────────────────────────────────────
+   RAYO MINIMALISTA — reemplaza el emoji ⚡ del chat
+   por un SVG plano en dorado (oculta el emoji y pone el SVG de fondo)
+   ─────────────────────────────────────────────── */
+.chat-msg.msg-ai::before,
+.chat-msg.msg-english::before,
+.chat-msg.msg-mate::before {
+  /* ocultamos el carácter emoji haciéndolo transparente */
+  color: transparent !important;
+  font-size: 0 !important;
+  /* y dibujamos el rayo SVG minimalista de fondo */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23c79a3a'%3E%3Cpath d='M13 2L3 14h7l-1 8 10-12h-7z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 20px 20px !important;
+  filter: none !important;
+}
