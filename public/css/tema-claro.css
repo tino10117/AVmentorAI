@@ -41,10 +41,9 @@ body {
   border-right: 1px solid var(--c-border) !important;
 }
 .sidebar-logo {
-  /* el texto AVAI del sidebar: dorado sobrio sólido (sin degradé chillón) */
   background: none !important;
-  -webkit-text-fill-color: var(--c-gold) !important;
-  color: var(--c-gold) !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  color: #1a1a1a !important;
 }
 .nav-section { color: var(--c-text3) !important; }
 .nav-btn { color: var(--c-text2) !important; }
