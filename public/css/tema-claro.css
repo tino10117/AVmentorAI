@@ -300,3 +300,57 @@ button#neg-send,
   color: var(--c-text3) !important;
   opacity: 1 !important;
 }
+/* ───────────────────────────────────────────────
+   FIX: preview de imagen adjunta — limpio estilo Claude
+   ─────────────────────────────────────────────── */
+#neg-image-preview,
+#eng-image-preview,
+#mate-image-preview,
+[id$="-image-preview"] {
+  background: var(--c-surface2) !important;
+  background-color: var(--c-surface2) !important;
+  background-image: none !important;
+  border: 1px solid var(--c-border2) !important;
+  border-radius: 12px !important;
+  padding: 6px !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: auto !important;
+  max-width: 220px !important;
+}
+
+/* La miniatura de la imagen: redondeada y contenida */
+#neg-image-preview img,
+[id$="-image-preview"] img {
+  border-radius: 8px !important;
+  max-width: 64px !important;
+  max-height: 64px !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+/* El botón de cerrar (✕): gris discreto, redondo */
+#neg-image-preview button,
+[id$="-image-preview"] button,
+#neg-image-preview [onclick*="remove"],
+[id$="-image-preview"] [onclick*="quitar"] {
+  background: rgba(0,0,0,.05) !important;
+  background-image: none !important;
+  border: none !important;
+  color: var(--c-text3) !important;
+  border-radius: 50% !important;
+  width: 22px !important;
+  height: 22px !important;
+  font-size: 13px !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+#neg-image-preview button:hover,
+[id$="-image-preview"] button:hover {
+  background: rgba(0,0,0,.12) !important;
+  color: var(--c-text) !important;
+}
