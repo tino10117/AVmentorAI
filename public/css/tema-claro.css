@@ -77,8 +77,9 @@ body {
    HEADER DEL DASHBOARD (hero + stats + nivel)
    ─────────────────────────────────────────────── */
 .dash-hero {
-  background: var(--c-surface) !important;
-  border: 1px solid var(--c-border) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 .dash-hero-logo {
   background: none !important;
