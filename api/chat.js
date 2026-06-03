@@ -209,7 +209,8 @@ async function enriquecerPromptImagen(textoUsuario, imageBase64, contextoHistori
 REGLAS CRÍTICAS:
 1. Respondé SOLO con el prompt en inglés. NO agregues explicaciones, comentarios, ni texto extra. NO uses markdown ni comillas externas envolviendo todo el prompt.
 2. Si hay imagen adjunta: analizala bien y referenciala explícitamente con "THIS exact logo/image/element" para que la IA la respete.
-3. 3. Detectá el TIPO de pedido y aplicá el template correspondiente. IMPORTANTE: el template de PUBLICIDAD es SOLO cuando el usuario pide explícitamente publicidad/flyer/afiche. Para cualquier otro pedido (animal, persona, paisaje, objeto, escena, frase, etc.) usá el template de FOTO/IMAGEN GENERAL y hacé EXACTAMENTE eso, sin agregar nada comercial:
+3. Detectá el TIPO de pedido y aplicá el template correspondiente:
+
    📢 PUBLICIDAD/FLYER/AFICHE (palabras: "publicidad", "publi", "flyer", "afiche", "promoción", "anuncio"):
    - Estilo: "professional Argentine/Latin American retail advertisement flyer, VERTICAL portrait format, vibrant, print-ready, RICH and FULLY LOADED design that fills the entire canvas — no empty spaces"
    - SI hay logo adjunto: "using THIS exact logo prominently displayed at the top, preserving original colors, typography, and brand elements"
@@ -241,7 +242,8 @@ REGLAS CRÍTICAS:
    - "Square 1:1 social media post, Instagram-ready"
    - Diseño moderno, espacios para texto, llamada a la acción visual
 
-4. 4. 🚨 REGLA DE ORO: Hacé EXACTAMENTE lo que el usuario pidió. SOLO usá el template de PUBLICIDAD/FLYER (con productos, precios, mayorista) si el usuario dijo explícitamente "publicidad", "publi", "flyer", "afiche", "promoción" o "anuncio". Si NO dijo esas palabras, NO metas NADA de supermercado, yerba, aceite, precios ni beneficios comerciales — hacé solo la imagen que pidió, tal cual (un animal, un paisaje, una frase, lo que sea). Ante la duda, imagen literal, NUNCA publicidad que no pidió.
+4. Si el pedido es ambiguo, asumí que es para uso PROFESIONAL/COMERCIAL en Argentina.
+
 5. 🔴 CRÍTICO PARA TEXTO EN IMÁGENES (REGLA MÁS IMPORTANTE):
    Si la imagen va a contener TEXTO EN ESPAÑOL (publicidad, flyer, afiche, etc.), TENÉS que listar las palabras exactas entre comillas dobles, así:
    
@@ -261,13 +263,7 @@ ${contextoHistorial ? `Historial de la conversación: ${contextoHistorial.slice(
 Ejemplo de transformación PERFECTA:
 Usuario: "Haceme una publicidad" + [logo Santa Rita mayorista]
 Output: Create a professional Argentine wholesale store advertisement flyer using THIS exact Santa Rita logo prominently displayed at the top, preserving the original blue background, red 'Santa Rita' typography, and the nun illustration. Below the logo, design a vibrant retail layout featuring: a Spanish headline with PERFECT spelling 'MAYORISTA QUE RINDE, PRECIOS QUE SORPRENDEN' in bold red and blue colors, a photorealistic shopping cart full of products (cooking oil, papel higiénico, yerba mate packages, canned goods, pasta), and a row of benefit icons. The image MUST display these Spanish words with PERFECT spelling, exactly as written: 'PRECIOS BAJOS', 'VARIEDAD DE PRODUCTOS', 'ATENCIÓN FAMILIAR', 'AHORRO'. Each letter must be rendered correctly - 'FAMILIAR' has ONE A in the middle, 'BAJOS' has ONE A. Include a store info bar at bottom with 'HORARIO CORRIDO' hours placeholder and 'Encontranos en tu barrio' text. Color palette: bright blue (#1e40af), vivid red (#dc2626), warm yellow accents, clean white background. High quality, professional graphic design, sharp details, vivid colors, no watermarks, all Spanish text perfectly spelled and grammatically correct, no misspelled words, no duplicated letters in any word.`;
-    Ejemplo 2 — CUANDO el usuario pide una imagen normal (NO publicidad). Hacela TAL CUAL, sin nada comercial:
-Usuario: "haceme un gato astronauta en el espacio"
-Output: A photorealistic image of a cute cat wearing a detailed astronaut suit, floating in outer space, with Earth and stars in the background. Cinematic lighting, sharp focus, highly detailed. NO text, NO advertisement, NO products, NO store layout.
 
-Ejemplo 3:
-Usuario: "una frase motivadora en una imagen linda"
-Output: An inspirational quote card with elegant minimalist design, a motivational phrase in beautiful Spanish typography on a soft gradient background. Spanish text perfectly spelled. NO products, NO store elements, NO prices.
     const userMessage = tieneImagen
       ? [
           { type: "text", text: `PEDIDO DEL USUARIO (en español argentino): "${textoUsuario}"\n\nAnalizá la imagen adjunta y construí el prompt profesional en inglés según las reglas. RECORDÁ: listá CADA palabra en español entre comillas simples y aclará la ortografía correcta.` },
