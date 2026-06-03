@@ -209,7 +209,7 @@ async function enriquecerPromptImagen(textoUsuario, imageBase64, contextoHistori
 REGLAS CRÍTICAS:
 1. Respondé SOLO con el prompt en inglés. NO agregues explicaciones, comentarios, ni texto extra. NO uses markdown ni comillas externas envolviendo todo el prompt.
 2. Si hay imagen adjunta: analizala bien y referenciala explícitamente con "THIS exact logo/image/element" para que la IA la respete.
-3. Detectá el TIPO de pedido y aplicá el template correspondiente. IMPORTANTE: el template de PUBLICIDAD es SOLO para cuando el usuario pide explícitamente una publicidad/flyer/afiche. Para cualquier otro pedido (un animal, una persona, un paisaje, un objeto, una escena, una frase, lo que sea), usá el template de FOTO/IMAGEN GENERAL y hacé EXACTAMENTE eso, sin agregar nada comercial:
+3. Detectá el TIPO de pedido y aplicá el template correspondiente:
 
    📢 PUBLICIDAD/FLYER/AFICHE (palabras: "publicidad", "publi", "flyer", "afiche", "promoción", "anuncio"):
    - Estilo: "professional Argentine/Latin American retail advertisement flyer, VERTICAL portrait format, vibrant, print-ready, RICH and FULLY LOADED design that fills the entire canvas — no empty spaces"
@@ -242,11 +242,7 @@ REGLAS CRÍTICAS:
    - "Square 1:1 social media post, Instagram-ready"
    - Diseño moderno, espacios para texto, llamada a la acción visual
 
-4. 🚨 REGLA DE ORO — RESPETÁ EXACTAMENTE LO QUE PIDE EL USUARIO:
-   - Hacé EXACTAMENTE lo que el usuario pidió. Si pide "un gato astronauta", hacé un gato astronauta. Si pide "un paisaje de montaña", hacé eso. Si pide "una frase motivadora en una imagen", hacé eso.
-   - SOLO usá el template de PUBLICIDAD/FLYER (con productos, precios, beneficios de mayorista) si el usuario MENCIONÓ explícitamente que quiere una publicidad, flyer, afiche, promoción o anuncio. Las palabras que lo activan son SOLO: "publicidad", "publi", "flyer", "afiche", "promoción", "anuncio", "placa promocional", "banner de oferta".
-   - Si el pedido NO tiene esas palabras, NO METAS NADA de supermercado, mayorista, yerba, aceite, precios, ni beneficios comerciales. Eso estaría MAL. Hacé solo la imagen que pidió, tal cual.
-   - Ante la duda, hacé la imagen LITERAL que pidió el usuario — NUNCA la transformes en una publicidad que no pidió.
+4. Si el pedido es ambiguo, asumí que es para uso PROFESIONAL/COMERCIAL en Argentina.
 
 5. 🔴 CRÍTICO PARA TEXTO EN IMÁGENES (REGLA MÁS IMPORTANTE):
    Si la imagen va a contener TEXTO EN ESPAÑOL (publicidad, flyer, afiche, etc.), TENÉS que listar las palabras exactas entre comillas dobles, así:
@@ -264,17 +260,9 @@ REGLAS CRÍTICAS:
 CONTEXTO ADICIONAL (si hay):
 ${contextoHistorial ? `Historial de la conversación: ${contextoHistorial.slice(0, 500)}` : "Sin contexto previo."}
 
-Ejemplo 1 — CUANDO el usuario pide EXPLÍCITAMENTE una publicidad (SOLO en ese caso usá este estilo cargado):
+Ejemplo de transformación PERFECTA:
 Usuario: "Haceme una publicidad" + [logo Santa Rita mayorista]
-Output: Create a professional Argentine wholesale store advertisement flyer using THIS exact Santa Rita logo prominently displayed at the top, preserving the original blue background, red 'Santa Rita' typography, and the nun illustration. Below the logo, design a vibrant retail layout featuring: a Spanish headline with PERFECT spelling 'MAYORISTA QUE RINDE, PRECIOS QUE SORPRENDEN' in bold red and blue colors, a photorealistic shopping cart full of products (cooking oil, papel higiénico, yerba mate packages, canned goods, pasta), and a row of benefit icons. The image MUST display these Spanish words with PERFECT spelling, exactly as written: 'PRECIOS BAJOS', 'VARIEDAD DE PRODUCTOS', 'ATENCIÓN FAMILIAR', 'AHORRO'. Each letter must be rendered correctly - 'FAMILIAR' has ONE A in the middle, 'BAJOS' has ONE A. Include a store info bar at bottom with 'HORARIO CORRIDO' hours placeholder and 'Encontranos en tu barrio' text. Color palette: bright blue (#1e40af), vivid red (#dc2626), warm yellow accents, clean white background. High quality, professional graphic design, sharp details, vivid colors, no watermarks, all Spanish text perfectly spelled and grammatically correct, no misspelled words, no duplicated letters in any word.
-
-Ejemplo 2 — CUANDO el usuario pide una imagen normal (NO publicidad). Respetala TAL CUAL, sin meter nada comercial:
-Usuario: "haceme un gato astronauta flotando en el espacio"
-Output: A photorealistic image of a cute cat wearing a detailed astronaut suit, floating weightlessly in outer space, with the Earth and stars visible in the background. Cinematic lighting, sharp focus, vivid colors, highly detailed. NO text, NO advertisement elements, NO products, NO store layout.
-
-Ejemplo 3 — Otra imagen normal:
-Usuario: "una frase motivadora en una imagen linda"
-Output: An inspirational quote card with elegant minimalist design, a motivational phrase in beautiful Spanish typography centered on a soft gradient background, modern and clean aesthetic. The Spanish text must be perfectly spelled. NO products, NO store elements, NO advertisement layout, NO prices.\`;
+Output: Create a professional Argentine wholesale store advertisement flyer using THIS exact Santa Rita logo prominently displayed at the top, preserving the original blue background, red 'Santa Rita' typography, and the nun illustration. Below the logo, design a vibrant retail layout featuring: a Spanish headline with PERFECT spelling 'MAYORISTA QUE RINDE, PRECIOS QUE SORPRENDEN' in bold red and blue colors, a photorealistic shopping cart full of products (cooking oil, papel higiénico, yerba mate packages, canned goods, pasta), and a row of benefit icons. The image MUST display these Spanish words with PERFECT spelling, exactly as written: 'PRECIOS BAJOS', 'VARIEDAD DE PRODUCTOS', 'ATENCIÓN FAMILIAR', 'AHORRO'. Each letter must be rendered correctly - 'FAMILIAR' has ONE A in the middle, 'BAJOS' has ONE A. Include a store info bar at bottom with 'HORARIO CORRIDO' hours placeholder and 'Encontranos en tu barrio' text. Color palette: bright blue (#1e40af), vivid red (#dc2626), warm yellow accents, clean white background. High quality, professional graphic design, sharp details, vivid colors, no watermarks, all Spanish text perfectly spelled and grammatically correct, no misspelled words, no duplicated letters in any word.`;
 
     const userMessage = tieneImagen
       ? [
