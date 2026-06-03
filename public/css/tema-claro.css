@@ -238,3 +238,15 @@ button#neg-send,
 
 /* Scrollbar más clara */
 ::-webkit-scrollbar-thumb { background: var(--c-border2) !important; }
+/* ───────────────────────────────────────────────
+   FIX TEXTO: forzar negro en el contenido de los mensajes
+   (el chat-style.js los ponía casi blancos)
+   ─────────────────────────────────────────────── */
+.chat-msg.msg-ai,
+.chat-msg.msg-english,
+.chat-msg.msg-mate,
+.chat-msg.msg-user,
+#chat-negocio .chat-msg,
+#chat-negocio .chat-msg * {
+  color: #2b2a27 !important;
+}
