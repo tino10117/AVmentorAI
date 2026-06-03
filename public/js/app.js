@@ -517,14 +517,12 @@ const Chat = {
   _showImagePreview(containerId, dataUrl) {
     const container = document.getElementById(containerId);
     if (!container) return;
-    container.innerHTML = `<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.4);padding:6px 10px;border-radius:10px;margin-bottom:6px">
-      <img src="${dataUrl}" style="width:40px;height:40px;object-fit:cover;border-radius:6px" />
-      <span style="font-size:12px;color:#e9d5ff">📎 Imagen adjunta</span>
-      <button onclick="Chat._removeImage()" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:14px;padding:0 4px" title="Quitar imagen">✕</button>
+    container.innerHTML = `<div style="position:relative;display:inline-block;margin-bottom:6px">
+      <img src="${dataUrl}" style="width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid #e7e3da;display:block" />
+      <button onclick="Chat._removeImage()" style="position:absolute;top:-7px;right:-7px;background:#2b2a27;border:2px solid #fff;color:#fff;cursor:pointer;font-size:11px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0;line-height:1" title="Quitar imagen">✕</button>
     </div>`;
     container.style.display = "block";
   },
-
   _clearImagePreview() {
     if (!this._pendingImageInputId) return;
     const container = document.getElementById(this._pendingImageInputId);
