@@ -483,3 +483,294 @@ input::placeholder, textarea::placeholder {
 
 /* ── MODO-CARD (el selector de modo del Mentor, por las dudas) ── */
 .modo-card-select option { background: var(--c-surface) !important; color: var(--c-text) !important; }
+/* ═══════════════════════════════════════════════════════════════
+   AVAI — TEMA CLARO · BLOQUE 3: LANDING + LOGIN
+   ───────────────────────────────────────────────────────────────
+   Pega esto al FINAL de tema-claro.css.
+   Pasa la landing (pantalla pública) y el login/registro al tema
+   claro cálido, manejando los degradés para que se lean sobre blanco.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ═══════════ LANDING ═══════════ */
+
+/* Fondo general claro (en vez del radial oscuro) */
+#landing-screen {
+  background: var(--c-bg) !important;
+  color: var(--c-text) !important;
+}
+
+/* NAV superior */
+.lnd-nav {
+  background: rgba(255,255,255,.85) !important;
+  border-bottom: 1px solid var(--c-border) !important;
+}
+.lnd-logo {
+  background: none !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  color: #1a1a1a !important;
+}
+.lnd-btn-link { color: var(--c-text2) !important; }
+.lnd-btn-link:hover { color: var(--c-gold) !important; background: var(--c-gold-soft) !important; }
+/* Botones dorados sólidos: el degradé queda, solo aseguramos texto oscuro */
+.lnd-btn-primary,
+.lnd-cta-big,
+.lnd-plan-btn.primary,
+.lnd-toggle-btn.active {
+  background: linear-gradient(90deg, #f0b429, #e08a1e) !important;
+  color: #1a1a1a !important;
+}
+
+/* HERO */
+.lnd-hero-badge {
+  background: var(--c-gold-soft) !important;
+  border: 1px solid rgba(199,154,58,.4) !important;
+  color: #8a6d1f !important;
+}
+/* Título principal: degradé dorado legible sobre blanco (sin celeste lavado) */
+.lnd-hero-title-main {
+  background: linear-gradient(90deg, #c79a3a, #d97a1e) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.lnd-hero-title-sub { color: var(--c-text2) !important; }
+.lnd-hero-title-sub .strike { color: var(--c-text3) !important; }
+.lnd-hero-sub { color: var(--c-text2) !important; }
+.lnd-hero-libre {
+  background: var(--c-gold-soft) !important;
+  border: 1px solid rgba(199,154,58,.3) !important;
+  color: #8a6d1f !important;
+}
+.lnd-cta-ghost {
+  background: transparent !important;
+  border: 1.5px solid rgba(199,154,58,.5) !important;
+  color: var(--c-gold) !important;
+}
+.lnd-cta-ghost:hover { background: var(--c-gold-soft) !important; }
+.lnd-hero-note { color: var(--c-text3) !important; }
+
+/* STATS BAR */
+.lnd-stat-num {
+  background: linear-gradient(90deg, #c79a3a, #d97a1e) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.lnd-stat-label { color: var(--c-text3) !important; }
+
+/* MOCKUP (la "demo" embebida) — la dejamos oscura adentro, como una captura */
+.lnd-mockup-wrap {
+  background: var(--c-surface2) !important;
+  border: 1px solid var(--c-border) !important;
+  box-shadow: 0 20px 50px rgba(0,0,0,.10) !important;
+}
+/* el interior del mockup queda oscuro a propósito (es una "pantalla") */
+
+/* SECCIONES (títulos y subtítulos) */
+.lnd-section-title { color: var(--c-text) !important; }
+.lnd-section-title .grad {
+  background: linear-gradient(90deg, #c79a3a, #d97a1e) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.lnd-section-sub { color: var(--c-text3) !important; }
+
+/* VS CARDS (comparación chats genéricos vs AVAI) */
+.lnd-vs-card {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.lnd-vs-card.good {
+  border-color: rgba(199,154,58,.4) !important;
+  background: var(--c-surface) !important;
+}
+.lnd-vs-card.bad { opacity: .75 !important; }
+.lnd-vs-card.bad .lnd-vs-title { color: var(--c-text3) !important; }
+.lnd-vs-card.good .lnd-vs-title { color: var(--c-gold) !important; }
+.lnd-vs-list li { color: var(--c-text2) !important; }
+
+/* FEATURES */
+.lnd-feature {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.lnd-feature:hover { border-color: rgba(199,154,58,.4) !important; }
+.lnd-feature h3 { color: var(--c-text) !important; }
+.lnd-feature p { color: var(--c-text2) !important; }
+/* Las variantes de color de feature: el título toma un tono sobrio sobre claro */
+.lnd-feature.gold h3 { color: var(--c-gold) !important; }
+.lnd-feature.purple h3 { color: #7c5bbf !important; }
+.lnd-feature.green h3 { color: #2a8a52 !important; }
+.lnd-feature.blue h3 { color: #2c6f9c !important; }
+.lnd-feature.orange h3 { color: #c2691e !important; }
+
+/* ALL-IN-ONE */
+.lnd-allinone {
+  background: var(--c-surface2) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.lnd-allinone-icon {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border2) !important;
+  color: var(--c-text2) !important;
+}
+
+/* HOW (los 3 pasos) */
+.lnd-how-step {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.lnd-how-num {
+  background: linear-gradient(90deg, #c79a3a, #d97a1e) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.lnd-how-step h3 { color: var(--c-text) !important; }
+.lnd-how-step p { color: var(--c-text2) !important; }
+
+/* PLANES */
+.lnd-plans-toggle {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border2) !important;
+}
+.lnd-toggle-btn { color: var(--c-text3) !important; }
+.lnd-toggle-badge { background: rgba(34,150,94,.15) !important; color: #2a8a52 !important; }
+.lnd-plan {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.lnd-plan.featured {
+  border-color: var(--c-gold) !important;
+  background: var(--c-surface) !important;
+  box-shadow: 0 20px 50px rgba(199,154,58,.12) !important;
+}
+.lnd-plan-pop {
+  background: linear-gradient(90deg, #f0b429, #e08a1e) !important;
+  color: #1a1a1a !important;
+}
+.lnd-plan h3 { color: var(--c-text) !important; }
+.lnd-plan-desc { color: var(--c-text3) !important; }
+.lnd-plan-price { color: var(--c-gold) !important; }
+.lnd-plan-price .currency { color: var(--c-text3) !important; }
+.lnd-plan-cycle { color: var(--c-text3) !important; }
+.lnd-plan-feat li { color: var(--c-text2) !important; }
+.lnd-plan-btn.ghost {
+  background: transparent !important;
+  border: 1.5px solid rgba(199,154,58,.4) !important;
+  color: var(--c-text2) !important;
+}
+.lnd-plan-btn.ghost:hover { background: var(--c-gold-soft) !important; color: var(--c-gold) !important; }
+
+/* FAQ */
+.lnd-faq-item {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.lnd-faq-q { color: var(--c-text) !important; }
+.lnd-faq-q::after { color: var(--c-gold) !important; }
+.lnd-faq-a { color: var(--c-text2) !important; }
+
+/* FINAL CTA */
+.lnd-final {
+  background: var(--c-surface2) !important;
+  border: 1px solid rgba(199,154,58,.3) !important;
+}
+.lnd-final h2 { color: var(--c-text) !important; }
+.lnd-final h2 .grad {
+  background: linear-gradient(90deg, #c79a3a, #d97a1e) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.lnd-final p { color: var(--c-text2) !important; }
+
+/* FOOTER */
+.lnd-footer { border-top: 1px solid var(--c-border) !important; }
+.lnd-footer h4 { color: var(--c-gold) !important; }
+.lnd-footer a { color: var(--c-text3) !important; }
+.lnd-footer a:hover { color: var(--c-gold) !important; }
+.lnd-footer-about p { color: var(--c-text3) !important; }
+.lnd-footer-bottom { border-top: 1px solid var(--c-border) !important; color: var(--c-text3) !important; }
+.lnd-footer-bottom .f960 {
+  background: var(--c-surface) !important;
+  border: 1px dashed var(--c-border2) !important;
+  color: var(--c-text3) !important;
+}
+
+/* ═══════════ LOGIN / REGISTRO ═══════════ */
+
+#login-screen {
+  background: var(--c-bg) !important;
+  color: var(--c-text) !important;
+}
+.login-v2-back { color: var(--c-text3) !important; }
+.login-v2-back:hover { color: var(--c-gold) !important; }
+.login-v2-logo {
+  background: none !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  color: #1a1a1a !important;
+}
+.login-v2-title { color: var(--c-text) !important; }
+.login-v2-subtitle { color: var(--c-text3) !important; }
+.login-v2-card {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+  box-shadow: 0 20px 50px rgba(0,0,0,.08) !important;
+}
+.login-v2-tabs {
+  background: var(--c-surface2) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.login-v2-tab { color: var(--c-text3) !important; }
+.login-v2-tab.active {
+  background: linear-gradient(90deg, #f0b429, #e08a1e) !important;
+  color: #1a1a1a !important;
+}
+.login-v2-label { color: var(--c-text2) !important; }
+.login-v2-input {
+  background: var(--c-surface) !important;
+  border: 1.5px solid var(--c-border2) !important;
+  color: var(--c-text) !important;
+}
+.login-v2-input::placeholder { color: var(--c-text3) !important; }
+.login-v2-input:focus {
+  border-color: var(--c-gold) !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px var(--c-gold-soft) !important;
+}
+.login-v2-cta {
+  background: linear-gradient(90deg, #f0b429, #e08a1e) !important;
+  color: #1a1a1a !important;
+}
+.login-v2-cta-ghost {
+  background: transparent !important;
+  border: 1.5px solid var(--c-border2) !important;
+  color: var(--c-text2) !important;
+}
+.login-v2-cta-ghost:hover { border-color: var(--c-gold) !important; color: var(--c-gold) !important; }
+.login-v2-divider { color: var(--c-text3) !important; }
+.login-v2-benefits li { color: var(--c-text2) !important; }
+.login-v2-footer { color: var(--c-text3) !important; }
+.login-v2-footer a { color: var(--c-text2) !important; }
+.login-v2-footer a:hover { color: var(--c-gold) !important; }
+.login-v2-forgot-link { color: var(--c-text3) !important; }
+.login-v2-forgot-link:hover { color: var(--c-gold) !important; }
+
+/* Mensajes info/success en login: suavizados sobre claro */
+.login-v2-info {
+  background: rgba(124,91,191,.08) !important;
+  border: 1px solid rgba(124,91,191,.3) !important;
+  color: #5e459a !important;
+}
+.login-v2-success {
+  background: rgba(34,150,94,.08) !important;
+  border: 1px solid rgba(34,150,94,.3) !important;
+  color: #1a7a4a !important;
+}
+.login-v2-error {
+  background: rgba(192,57,43,.08) !important;
+  border: 1px solid rgba(192,57,43,.3) !important;
+  color: #a3342a !important;
+}
