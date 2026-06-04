@@ -993,8 +993,23 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Faltan parámetros" });
   }
 
-  // Validación: imágenes solo para Premium/Empresarial
-  if (image && user.plan === "Gratis") {
+  // ═══════════════════════════════════════════════════════════════
+  // PASO 0 — PLAN REAL DESDE LA BASE (no confiar en el front)
+  // El plan que viene en req.body.user lo manda el navegador y se puede
+  // falsificar. Leemos el plan verdadero desde KV con el email del token
+  // JWT (decoded.email), que NO se puede falsificar, y pisamos user.plan.
+  // Todo lo de abajo sigue igual, pero ahora con el plan correcto.
+  // ═══════════════════════════════════════════════════════════════
+  try {
+    const kvPlan = await getKV();
+    const dbUser = await kvPlan.get(`user:${decoded.email}`);
+    user.plan = (dbUser && dbUser.plan) ? dbUser.plan : "Gratis";
+  } catch (e) {
+    console.warn("[PLAN] No se pudo leer el plan desde KV:", e?.message);
+    user.plan = "Gratis"; // ante la duda, lo más restrictivo
+  }
+
+  // Validación: imágenes solo para Premium/Empresarial  if (image && user.plan === "Gratis") {
     return res.status(403).json({ error: "Subir imágenes es una función Premium. Actualizá tu plan para usarla." });
   }
 
