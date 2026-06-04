@@ -3,6 +3,7 @@
 // ✨ IDENTIDAD AVAI compartida por todas las herramientas
 // ✨ MODELO DE CHAT: GPT-5.5 Instant (configurable en CHAT_MODEL)
 // ✨ REINTENTO automático del web search ante server_error de OpenAI
+// ✨ PASO 0 SEGURIDAD: el plan del usuario se lee desde la base (KV), no del front
 
 import OpenAI from "openai";
 import jwt from "jsonwebtoken";
@@ -1001,15 +1002,15 @@ export default async function handler(req, res) {
   // Todo lo de abajo sigue igual, pero ahora con el plan correcto.
   // ═══════════════════════════════════════════════════════════════
   try {
-    const kvPlan = await getKV();
-    const dbUser = await kvPlan.get(`user:${decoded.email}`);
+    const dbUser = await kvForIP.get(`user:${decoded.email}`);
     user.plan = (dbUser && dbUser.plan) ? dbUser.plan : "Gratis";
   } catch (e) {
     console.warn("[PLAN] No se pudo leer el plan desde KV:", e?.message);
     user.plan = "Gratis"; // ante la duda, lo más restrictivo
   }
 
-  // Validación: imágenes solo para Premium/Empresarial  if (image && user.plan === "Gratis") {
+  // Validación: imágenes solo para Premium/Empresarial
+  if (image && user.plan === "Gratis") {
     return res.status(403).json({ error: "Subir imágenes es una función Premium. Actualizá tu plan para usarla." });
   }
 
