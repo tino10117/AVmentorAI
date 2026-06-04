@@ -18,7 +18,7 @@ const IMAGE_LIMITS = { Gratis: 1, Premium: 30, Empresarial: 100 };
 // ✨ MODELO DEL CHAT PRINCIPAL — configurable en un solo lugar
 // Para volver a gpt-4o, cambiá esta línea por:  const CHAT_MODEL = "gpt-4o";
 // ═══════════════════════════════════════════════════════════════
-const CHAT_MODEL = "gpt-5.5-chat-latest";
+const CHAT_MODEL = "gpt-5.3-chat-latest";
 
 // ¿El modelo es de la familia GPT-5.x? (manejan parámetros distinto a gpt-4o)
 function esModeloGPT5(modelName) {
