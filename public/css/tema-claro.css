@@ -863,3 +863,19 @@ input::placeholder, textarea::placeholder {
   color: #8a6d1f !important;
   box-shadow: 0 4px 16px rgba(199,154,58,.15) !important;
 }
+/* ═══════════════════════════════════════════════
+   FIX: texto de Alex (Inglés) y Bruno (Mate) ilegible
+   El fix anterior solo cubría #chat-negocio (Mentor);
+   este cubre los mensajes en CUALQUIER chat, incluidos
+   sus elementos internos (que quedaban blancos).
+   ═══════════════════════════════════════════════ */
+.chat-msg.msg-english,
+.chat-msg.msg-english *,
+.chat-msg.msg-mate,
+.chat-msg.msg-mate *,
+.chat-msg.msg-ai,
+.chat-msg.msg-ai *,
+.chat-msg.user,
+.chat-msg.user * {
+  color: #2b2a27 !important;
+}
