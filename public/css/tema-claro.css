@@ -879,3 +879,23 @@ input::placeholder, textarea::placeholder {
 .chat-msg.user * {
   color: #2b2a27 !important;
 }
+/* ═══════════════════════════════════════════════
+   TIPOGRAFÍA DEL CHAT estilo Claude/ChatGPT:
+   letra más grande y aire entre líneas, en todos
+   los chats (Mentor, Alex, Bruno).
+   ═══════════════════════════════════════════════ */
+.chat-msg {
+  font-size: 16px !important;
+  line-height: 1.65 !important;
+}
+/* El nombrecito de arriba (AVAI / Alex / Bruno) queda chico */
+.chat-msg .chat-msg-header,
+.chat-msg .chat-name {
+  font-size: 13px !important;
+}
+/* Que el input acompañe el mismo tamaño */
+.chat-input-row textarea,
+#neg-input {
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+}
