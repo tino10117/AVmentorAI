@@ -1140,7 +1140,25 @@ function updateAdminVisibility() {
   section.style.display = Admin.esAdmin() ? "block" : "none";
 }
 setInterval(updateAdminVisibility, 1500);
-
+// ═══════════════════════════════════════════════
+// AVISO DE TRIAL — días restantes de Premium de regalo
+// Se muestra 1 vez por día mientras dura la prueba.
+// ═══════════════════════════════════════════════
+function avisoTrial() {
+  const u = App.user;
+  if (!u || !u.es_trial || u.plan !== "Premium" || !u.premium_vence) return;
+  const ms = new Date(u.premium_vence).getTime() - Date.now();
+  if (isNaN(ms) || ms <= 0) return;
+  const dias = Math.ceil(ms / 86400000);
+  const key = "avai_trial_aviso_" + today();
+  if (localStorage.getItem(key)) return; // solo 1 vez por día
+  localStorage.setItem(key, "1");
+  const texto = dias >= 10
+    ? `🎁 ¡Bienvenido! Te regalamos ${dias} días de Premium para que pruebes todo AVAI.`
+    : `🎁 Te quedan ${dias} día${dias === 1 ? "" : "s"} de Premium de regalo. ¡Aprovechalo!`;
+  Toast.show(texto, "info", 7000);
+}
+setInterval(avisoTrial, 4000);
 
 // Helper global para descargar imágenes generadas
 function downloadImage(imgId, filename) {
