@@ -19,7 +19,7 @@ const JWT_SECRET = "av-mentorai-fixed-secret-2024";
 // 🧪 PARA PROBAR el barrido: poné TRIAL_DIAS = -1 (la cuenta nace Premium
 // pero ya vencida), registrá una cuenta de prueba, mandá un mensaje y
 // verificá que baja a Gratis. Después volvé a dejarlo en 10.
-const TRIAL_DIAS = 10;
+const TRIAL_DIAS = -1;
 // ─── KV ──────────────────────────────────────────────────
 async function getKV() {
   const { Redis } = await import("@upstash/redis");
