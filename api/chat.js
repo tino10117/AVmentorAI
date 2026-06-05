@@ -995,20 +995,36 @@ export default async function handler(req, res) {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // PASO 0 — PLAN REAL DESDE LA BASE (no confiar en el front)
-  // El plan que viene en req.body.user lo manda el navegador y se puede
-  // falsificar. Leemos el plan verdadero desde KV con el email del token
-  // JWT (decoded.email), que NO se puede falsificar, y pisamos user.plan.
-  // Todo lo de abajo sigue igual, pero ahora con el plan correcto.
+  // PASO 0 + PASO 1 — PLAN REAL DESDE LA BASE + BARRIDO DE VENCIDOS
+  // Paso 0: el plan que viene en req.body.user lo manda el navegador y se
+  // puede falsificar. Leemos el plan verdadero desde KV con el email del
+  // token JWT (decoded.email), que NO se puede falsificar.
+  // Paso 1: si el usuario es Premium con fecha de vencimiento (premium_vence)
+  // y esa fecha ya pasó, lo bajamos a Gratis y lo guardamos en la base.
+  // Un Premium SIN premium_vence (ej: otorgado por admin) no se toca.
   // ═══════════════════════════════════════════════════════════════
   try {
     const dbUser = await kvForIP.get(`user:${decoded.email}`);
-    user.plan = (dbUser && dbUser.plan) ? dbUser.plan : "Gratis";
+    let planReal = (dbUser && dbUser.plan) ? dbUser.plan : "Gratis";
+
+    if (planReal === "Premium" && dbUser?.premium_vence) {
+      const vence = new Date(dbUser.premium_vence).getTime();
+      if (!isNaN(vence) && vence < Date.now()) {
+        dbUser.plan = "Gratis";
+        dbUser.plan_anterior = "Premium";
+        dbUser.plan_modificado_en = new Date().toISOString();
+        dbUser.plan_modificado_por = "sistema (premium vencido)";
+        await kvForIP.set(`user:${decoded.email}`, dbUser);
+        planReal = "Gratis";
+        console.log(`[PLAN] Premium vencido para ${decoded.email}, bajado a Gratis`);
+      }
+    }
+
+    user.plan = planReal;
   } catch (e) {
     console.warn("[PLAN] No se pudo leer el plan desde KV:", e?.message);
     user.plan = "Gratis"; // ante la duda, lo más restrictivo
   }
-
   // Validación: imágenes solo para Premium/Empresarial
   if (image && user.plan === "Gratis") {
     return res.status(403).json({ error: "Subir imágenes es una función Premium. Actualizá tu plan para usarla." });
