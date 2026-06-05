@@ -1,0 +1,901 @@
+/* ═══════════════════════════════════════════════════════════════
+   AVAI — TEMA CLARO (estilo Claude: blanco cálido + beige suave)
+   ───────────────────────────────────────────────────────────────
+   Capa de OVERRIDE. Se carga DESPUÉS de styles.css y pisa los
+   colores oscuros con una paleta clara y minimalista.
+   Alcance de esta versión: SIDEBAR + HEADER DASHBOARD + CHAT (Mentor).
+   El dorado queda solo como ACENTO en pocos lugares.
+
+   Para desactivar el tema claro: borrar la línea que carga este
+   archivo en index.html y vuelve todo al tema oscuro original.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Paleta clara cálida (estilo Claude) */
+  --c-bg:        #f5f4ef;   /* fondo general: blanco hueso cálido */
+  --c-surface:   #ffffff;   /* tarjetas / superficies */
+  --c-surface2:  #faf9f5;   /* superficie alternativa suave */
+  --c-border:    #e7e3da;   /* bordes finos cálidos */
+  --c-border2:   #d8d3c7;   /* borde un poco más marcado */
+  --c-text:      #2b2a27;   /* texto principal: gris tinta cálido */
+  --c-text2:     #56544e;   /* texto secundario */
+  --c-text3:     #87837a;   /* texto terciario / muted */
+  --c-gold:      #c79a3a;   /* dorado de ACENTO (más sobrio que el #facc15) */
+  --c-gold-soft: rgba(199,154,58,.12);
+  --c-user-bub:  #f0ece0;   /* globo del usuario: beige suave */
+}
+
+/* ───────────────────────────────────────────────
+   FONDO GENERAL
+   ─────────────────────────────────────────────── */
+body {
+  background: var(--c-bg) !important;
+  color: var(--c-text) !important;
+}
+
+/* ───────────────────────────────────────────────
+   SIDEBAR
+   ─────────────────────────────────────────────── */
+#sidebar {
+  background: var(--c-surface) !important;
+  border-right: 1px solid var(--c-border) !important;
+}
+.sidebar-logo {
+  background: none !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  color: #1a1a1a !important;
+}
+.nav-section { color: var(--c-text3) !important; }
+.nav-btn { color: var(--c-text2) !important; }
+.nav-btn:hover {
+  background: var(--c-gold-soft) !important;
+  color: var(--c-text) !important;
+}
+.nav-btn.active {
+  background: var(--c-gold-soft) !important;
+  color: var(--c-gold) !important;
+  border-left: 3px solid var(--c-gold) !important;
+}
+.nav-btn .nav-icon svg.lucide { color: var(--c-text3) !important; }
+.nav-btn.active .nav-icon svg.lucide { color: var(--c-gold) !important; }
+/* Cerrar sesión queda rojo, pero un poco más suave */
+.nav-btn[onclick*="doLogout"] { color: #c0392b !important; }
+.sidebar-footer { border-top: 1px solid var(--c-border) !important; }
+.sidebar-footer a { color: var(--c-text3) !important; }
+.sidebar-footer a:hover { color: var(--c-text) !important; }
+.sidebar-footer .copy { color: var(--c-text3) !important; }
+
+/* Hamburguesa y overlay (mobile) */
+#hamburger {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border2) !important;
+  color: var(--c-gold) !important;
+}
+#overlay { background: rgba(0,0,0,.25) !important; }
+
+/* ───────────────────────────────────────────────
+   HEADER DEL DASHBOARD (hero + stats + nivel)
+   ─────────────────────────────────────────────── */
+.dash-hero {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.dash-hero-logo {
+  background: none !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  color: #1a1a1a !important;
+}
+.dash-hero-subtitle { color: var(--c-text3) !important; }
+
+.dash-stats {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.dash-stat-col { border-right: 1px solid var(--c-border) !important; }
+.dash-stat-col:hover { background: var(--c-surface2) !important; }
+.dash-stat-val { color: var(--c-text) !important; }
+.dash-stat-val.gold   { color: var(--c-gold) !important; }
+.dash-stat-val.orange { color: var(--c-gold) !important; }   /* unificamos a dorado sobrio */
+.dash-stat-val.red    { color: #c0392b !important; }
+.dash-stat-val.sky    { color: #3a7ca5 !important; }         /* azul apagado, no celeste neón */
+.dash-stat-lbl { color: var(--c-text3) !important; }
+
+.dash-nivel {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.dash-nivel-name { color: var(--c-text2) !important; }
+.dash-nivel-pct  { color: var(--c-gold) !important; }
+.dash-nivel-bar  { background: var(--c-border) !important; }
+.dash-nivel-fill {
+  background: var(--c-gold) !important;   /* barra dorada sobria, sin degradé naranja */
+}
+
+/* ───────────────────────────────────────────────
+   TARJETA DE MODO (selector "Conversación Libre")
+   ─────────────────────────────────────────────── */
+.modo-card {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.modo-card:hover { border-color: var(--c-gold) !important; }
+.modo-card-label { color: var(--c-text3) !important; }
+.modo-card-select {
+  background-color: var(--c-surface2) !important;
+  color: var(--c-text) !important;
+  border: 1px solid var(--c-border2) !important;
+}
+.modo-card-select:hover, .modo-card-select:focus {
+  border-color: var(--c-gold) !important;
+}
+.modo-card-select option { background: var(--c-surface) !important; color: var(--c-text) !important; }
+.modo-card-hint { color: var(--c-text3) !important; }
+
+/* ───────────────────────────────────────────────
+   QUICK BUTTONS (los botones de acceso rápido)
+   Pasan a fondo claro con borde sutil; el dorado solo en hover.
+   Pisa también el chat-style.js que los pone todos amarillos.
+   ─────────────────────────────────────────────── */
+.qbtn,
+.qbtn-gold, .qbtn-green, .qbtn-indigo, .qbtn-red, .qbtn-purple, .qbtn-sky, .qbtn-blue,
+[class*="qbtn-"] {
+  background: var(--c-surface) !important;
+  background-color: var(--c-surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--c-border2) !important;
+  color: var(--c-text2) !important;
+  box-shadow: none !important;
+}
+.qbtn:hover,
+[class*="qbtn-"]:hover {
+  background: var(--c-gold-soft) !important;
+  background-color: var(--c-gold-soft) !important;
+  border-color: var(--c-gold) !important;
+  color: var(--c-gold) !important;
+}
+
+/* ───────────────────────────────────────────────
+   ÁREA DE CHAT
+   ─────────────────────────────────────────────── */
+#chat-negocio { background: transparent !important; }
+
+/* Mensajes de AVAI: texto oscuro sobre fondo claro, ⚡ dorado al lado */
+.chat-msg.msg-ai,
+.chat-msg.msg-english,
+.chat-msg.msg-mate {
+  background: transparent !important;
+  color: var(--c-text) !important;
+}
+.chat-msg.msg-ai::before,
+.chat-msg.msg-english::before,
+.chat-msg.msg-mate::before {
+  color: var(--c-gold) !important;   /* el ⚡ en dorado sobrio */
+  filter: none !important;
+}
+
+/* Globo del usuario: beige suave con texto oscuro (en vez de dorado fuerte) */
+.chat-msg.msg-user,
+.chat-msg:not(.msg-ai):not(.msg-english):not(.msg-mate):not(.typing-indicator) {
+  background: var(--c-user-bub) !important;
+  background-image: none !important;
+  border: 1px solid var(--c-border2) !important;
+  color: var(--c-text) !important;
+}
+
+/* ───────────────────────────────────────────────
+   INPUT DEL CHAT
+   ─────────────────────────────────────────────── */
+.chat-input-wrap {
+  background: transparent !important;
+  border: none !important;
+}
+.chat-input-row {
+  background: var(--c-surface) !important;
+  border: 1.5px solid var(--c-border2) !important;
+}
+.chat-input-row:focus-within {
+  border-color: var(--c-gold) !important;
+}
+.chat-input-row textarea,
+#neg-input {
+  background: transparent !important;
+  color: var(--c-text) !important;
+}
+.chat-input-row textarea::placeholder,
+#neg-input::placeholder {
+  color: var(--c-text3) !important;
+  opacity: 1 !important;
+}
+
+/* Botones del input (adjuntar / mic / etc.): gris, hover dorado */
+.chat-input-row > button,
+.chat-input-row button {
+  background: transparent !important;
+  color: var(--c-text3) !important;
+  border: none !important;
+}
+.chat-input-row > button:hover,
+.chat-input-row button:hover {
+  background: var(--c-gold-soft) !important;
+  color: var(--c-gold) !important;
+}
+
+/* Botón enviar: dorado sobrio sólido con texto blanco */
+.chat-send-btn#neg-send,
+button#neg-send,
+#neg-send {
+  background: var(--c-gold) !important;
+  background-image: none !important;
+  border: none !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+#neg-send:hover {
+  background: #b5882f !important;   /* dorado un poco más oscuro al pasar */
+  color: #ffffff !important;
+}
+
+/* Scrollbar más clara */
+::-webkit-scrollbar-thumb { background: var(--c-border2) !important; }
+/* ───────────────────────────────────────────────
+   FIX TEXTO: forzar negro en el contenido de los mensajes
+   (el chat-style.js los ponía casi blancos)
+   ─────────────────────────────────────────────── */
+.chat-msg.msg-ai,
+.chat-msg.msg-english,
+.chat-msg.msg-mate,
+.chat-msg.msg-user,
+#chat-negocio .chat-msg,
+#chat-negocio .chat-msg * {
+  color: #2b2a27 !important;
+}
+/* ───────────────────────────────────────────────
+   FIX: botón de sonido (TTS) — sacar el violeta
+   ─────────────────────────────────────────────── */
+.chat-msg button,
+#chat-negocio button[onclick*="speak"],
+#chat-negocio button[onclick*="tts"],
+#chat-negocio button[onclick*="audio"],
+.chat-msg [class*="tts"],
+.chat-msg [class*="voice"],
+.chat-msg [class*="speak"] {
+  background: var(--c-surface) !important;
+  background-color: var(--c-surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--c-border2) !important;
+  color: var(--c-text3) !important;
+  box-shadow: none !important;
+}
+.chat-msg button:hover,
+#chat-negocio button:hover {
+  background: var(--c-gold-soft) !important;
+  color: var(--c-gold) !important;
+}
+
+/* ───────────────────────────────────────────────
+   FIX: input "Escribí tu pregunta acá" a blanco
+   (le gana el estilo del index.html, lo forzamos acá)
+   ─────────────────────────────────────────────── */
+.chat-input-wrap,
+.chat-input-row,
+#tab-mentor .chat-input-row {
+  background: var(--c-surface) !important;
+  background-color: var(--c-surface) !important;
+  background-image: none !important;
+  border: 1.5px solid var(--c-border2) !important;
+}
+#tab-mentor .chat-input-row:focus-within,
+.chat-input-row:focus-within {
+  border-color: var(--c-gold) !important;
+}
+#neg-input,
+.chat-input-row textarea {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--c-text) !important;
+}
+#neg-input::placeholder,
+.chat-input-row textarea::placeholder {
+  color: var(--c-text3) !important;
+  opacity: 1 !important;
+}
+/* ═══════════════════════════════════════════════════════════════
+   AVAI — TEMA CLARO · BLOQUE 2: resto de las secciones
+   ───────────────────────────────────────────────────────────────
+   Pega esto al FINAL de tema-claro.css.
+   Vuelve claros (blanco + texto negro) los componentes que seguían
+   oscuros: inputs, selects, textareas, cards, tabs, subnav, alerts,
+   badges, lesson cards, plan cards, modals, tablas, etc.
+   Apunta a las clases globales, así cubre TODAS las secciones.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── HEADER COMPACTO (estilo ChatGPT, chiquito arriba) ── */
+/* Header tipo ChatGPT: solo el nombre, chico y centrado, sin cajita */
+.dash-hero {
+  display: block !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 6px 0 !important;
+  margin-bottom: 4px !important;
+  text-align: center !important;
+}
+.dash-hero-subtitle { display: none !important; }
+.dash-hero-logo {
+  font-size: 18px !important;
+  justify-content: center !important;
+}
+/* ── HERO CARDS de cada sección (el cartel de arriba con título) ── */
+.hero-card {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.hero-card h2,
+.hero-card h3 { color: var(--c-text) !important; }
+.av-subtitle { color: var(--c-text3) !important; }
+.av-logo {
+  background: none !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  color: #1a1a1a !important;
+}
+
+/* ── INPUTS / TEXTAREAS / SELECTS (lo azul oscuro → blanco) ── */
+.input, .textarea, .select,
+input[type="text"], input[type="email"], input[type="password"],
+input[type="number"], input[type="search"], textarea, select {
+  background: var(--c-surface) !important;
+  background-color: var(--c-surface) !important;
+  background-image: none !important;
+  color: var(--c-text) !important;
+  border: 1px solid var(--c-border2) !important;
+}
+.input:focus, .textarea:focus, .select:focus,
+input:focus, textarea:focus, select:focus {
+  border-color: var(--c-gold) !important;
+  background: #ffffff !important;
+}
+.input::placeholder, .textarea::placeholder,
+input::placeholder, textarea::placeholder {
+  color: var(--c-text3) !important;
+  opacity: 1 !important;
+}
+.select option, select option {
+  background: var(--c-surface) !important;
+  color: var(--c-text) !important;
+}
+.label { color: var(--c-text3) !important; }
+
+/* ── CARDS (las tarjetas en general) ── */
+.card {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04) !important;
+  color: var(--c-text) !important;
+}
+/* cards de colores: las suavizamos a blanco con borde sutil de color */
+.card-gold, .card-purple, .card-green, .card-blue, .card-orange {
+  background: var(--c-surface) !important;
+}
+.card h2, .card h3, .card h4, .card p, .card span, .card div, .card li {
+  color: var(--c-text) !important;
+}
+.card .text-muted, .text-muted { color: var(--c-text3) !important; }
+
+/* ── TÍTULOS sueltos (h2/h3/h4 fuera de cards) ── */
+#main-content h2,
+#main-content h3,
+#main-content h4 { color: var(--c-text) !important; }
+
+/* ── TABS y SUBNAV ── */
+.tab-bar { border-bottom: 1px solid var(--c-border) !important; }
+.tab-btn { color: var(--c-text3) !important; background: transparent !important; }
+.tab-btn:hover { color: var(--c-text) !important; background: var(--c-gold-soft) !important; }
+.tab-btn.active {
+  background: var(--c-gold-soft) !important;
+  border-color: var(--c-gold) !important;
+  color: var(--c-gold) !important;
+}
+.subnav-btn {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border2) !important;
+  color: var(--c-text2) !important;
+}
+.subnav-btn:hover { border-color: var(--c-gold) !important; color: var(--c-text) !important; }
+.subnav-btn.active {
+  background: var(--c-gold-soft) !important;
+  border-color: var(--c-gold) !important;
+  color: var(--c-gold) !important;
+}
+
+/* ── BOTONES (los que tienen degradé dorado quedan, el resto se aclara) ── */
+.btn-ghost {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border2) !important;
+  color: var(--c-text2) !important;
+}
+.btn-ghost:hover { background: var(--c-gold-soft) !important; color: var(--c-gold) !important; }
+
+/* ── LESSON CARDS / QUIZ ── */
+.lesson-card, .lesson-content-box, .quiz-card {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+  color: var(--c-text) !important;
+}
+.lesson-title { color: var(--c-text) !important; }
+.lesson-desc { color: var(--c-text3) !important; }
+.quiz-option:hover { background: var(--c-gold-soft) !important; border-color: var(--c-gold) !important; }
+
+/* ── METRIC CHIPS / STAT PILLS ── */
+.metric-chip, .stat-pill {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.metric-val { color: var(--c-text) !important; }
+.metric-lbl, .stat-pill .sl { color: var(--c-text3) !important; }
+
+/* ── ALERTS (las dejamos con su color pero más suave sobre claro) ── */
+.alert-info {
+  background: rgba(58,124,165,.08) !important;
+  border: 1px solid rgba(58,124,165,.3) !important;
+  color: #2c5d7c !important;
+}
+.alert-success {
+  background: rgba(34,150,94,.08) !important;
+  border: 1px solid rgba(34,150,94,.3) !important;
+  color: #1a7a4a !important;
+}
+.alert-warning {
+  background: rgba(199,154,58,.10) !important;
+  border: 1px solid rgba(199,154,58,.35) !important;
+  color: #8a6d1f !important;
+}
+.alert-error {
+  background: rgba(192,57,43,.08) !important;
+  border: 1px solid rgba(192,57,43,.3) !important;
+  color: #a3342a !important;
+}
+
+/* ── PLAN CARDS (Premium) ── */
+.plan-card {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+  color: var(--c-text) !important;
+}
+.plan-card h2, .plan-card p { color: var(--c-text) !important; }
+.plan-card .plan-price { color: var(--c-gold) !important; }
+
+/* ── TABLAS (ranking, etc.) ── */
+.rank-table th { color: var(--c-text3) !important; border-bottom: 1px solid var(--c-border) !important; }
+.rank-table td { color: var(--c-text) !important; border-bottom: 1px solid var(--c-border) !important; }
+.rank-table tr:hover td { background: var(--c-gold-soft) !important; }
+.rank-num { color: var(--c-gold) !important; }
+
+/* ── MODALES (fondos #0f172a hardcodeados en JS) ── */
+[id$="-modal"] > div,
+[id*="modal"] > div {
+  background: var(--c-surface) !important;
+  color: var(--c-text) !important;
+}
+
+/* ── PROGRESS BARS ── */
+.progress-bar { background: var(--c-border) !important; }
+
+/* ── MODO-CARD (el selector de modo del Mentor, por las dudas) ── */
+.modo-card-select option { background: var(--c-surface) !important; color: var(--c-text) !important; }
+/* ═══════════════════════════════════════════════════════════════
+   AVAI — TEMA CLARO · BLOQUE 3: LANDING + LOGIN
+   ───────────────────────────────────────────────────────────────
+   Pega esto al FINAL de tema-claro.css.
+   Pasa la landing (pantalla pública) y el login/registro al tema
+   claro cálido, manejando los degradés para que se lean sobre blanco.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ═══════════ LANDING ═══════════ */
+
+/* Fondo general claro (en vez del radial oscuro) */
+#landing-screen {
+  background: var(--c-bg) !important;
+  color: var(--c-text) !important;
+}
+
+/* NAV superior */
+.lnd-nav {
+  background: rgba(255,255,255,.85) !important;
+  border-bottom: 1px solid var(--c-border) !important;
+}
+.lnd-logo {
+  background: none !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  color: #1a1a1a !important;
+}
+.lnd-btn-link { color: var(--c-text2) !important; }
+.lnd-btn-link:hover { color: var(--c-gold) !important; background: var(--c-gold-soft) !important; }
+/* Botones dorados sólidos: el degradé queda, solo aseguramos texto oscuro */
+.lnd-btn-primary,
+.lnd-cta-big,
+.lnd-plan-btn.primary,
+.lnd-toggle-btn.active {
+  background: linear-gradient(90deg, #f0b429, #e08a1e) !important;
+  color: #1a1a1a !important;
+}
+
+/* HERO */
+.lnd-hero-badge {
+  background: var(--c-gold-soft) !important;
+  border: 1px solid rgba(199,154,58,.4) !important;
+  color: #8a6d1f !important;
+}
+/* Título principal: degradé dorado legible sobre blanco (sin celeste lavado) */
+.lnd-hero-title-main {
+  background: linear-gradient(90deg, #c79a3a, #d97a1e) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.lnd-hero-title-sub { color: var(--c-text2) !important; }
+.lnd-hero-title-sub .strike { color: var(--c-text3) !important; }
+.lnd-hero-sub { color: var(--c-text2) !important; }
+.lnd-hero-libre {
+  background: var(--c-gold-soft) !important;
+  border: 1px solid rgba(199,154,58,.3) !important;
+  color: #8a6d1f !important;
+}
+.lnd-cta-ghost {
+  background: transparent !important;
+  border: 1.5px solid rgba(199,154,58,.5) !important;
+  color: var(--c-gold) !important;
+}
+.lnd-cta-ghost:hover { background: var(--c-gold-soft) !important; }
+.lnd-hero-note { color: var(--c-text3) !important; }
+
+/* STATS BAR */
+.lnd-stat-num {
+  background: linear-gradient(90deg, #c79a3a, #d97a1e) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.lnd-stat-label { color: var(--c-text3) !important; }
+
+/* MOCKUP (la "demo" embebida) — la dejamos oscura adentro, como una captura */
+.lnd-mockup-wrap {
+  background: var(--c-surface2) !important;
+  border: 1px solid var(--c-border) !important;
+  box-shadow: 0 20px 50px rgba(0,0,0,.10) !important;
+}
+/* el interior del mockup queda oscuro a propósito (es una "pantalla") */
+
+/* SECCIONES (títulos y subtítulos) */
+.lnd-section-title { color: var(--c-text) !important; }
+.lnd-section-title .grad {
+  background: linear-gradient(90deg, #c79a3a, #d97a1e) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.lnd-section-sub { color: var(--c-text3) !important; }
+
+/* VS CARDS (comparación chats genéricos vs AVAI) */
+.lnd-vs-card {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.lnd-vs-card.good {
+  border-color: rgba(199,154,58,.4) !important;
+  background: var(--c-surface) !important;
+}
+.lnd-vs-card.bad { opacity: .75 !important; }
+.lnd-vs-card.bad .lnd-vs-title { color: var(--c-text3) !important; }
+.lnd-vs-card.good .lnd-vs-title { color: var(--c-gold) !important; }
+.lnd-vs-list li { color: var(--c-text2) !important; }
+
+/* FEATURES */
+.lnd-feature {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.lnd-feature:hover { border-color: rgba(199,154,58,.4) !important; }
+.lnd-feature h3 { color: var(--c-text) !important; }
+.lnd-feature p { color: var(--c-text2) !important; }
+/* Las variantes de color de feature: el título toma un tono sobrio sobre claro */
+.lnd-feature.gold h3 { color: var(--c-gold) !important; }
+.lnd-feature.purple h3 { color: #7c5bbf !important; }
+.lnd-feature.green h3 { color: #2a8a52 !important; }
+.lnd-feature.blue h3 { color: #2c6f9c !important; }
+.lnd-feature.orange h3 { color: #c2691e !important; }
+
+/* ALL-IN-ONE */
+.lnd-allinone {
+  background: var(--c-surface2) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.lnd-allinone-icon {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border2) !important;
+  color: var(--c-text2) !important;
+}
+
+/* HOW (los 3 pasos) */
+.lnd-how-step {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.lnd-how-num {
+  background: linear-gradient(90deg, #c79a3a, #d97a1e) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.lnd-how-step h3 { color: var(--c-text) !important; }
+.lnd-how-step p { color: var(--c-text2) !important; }
+
+/* PLANES */
+.lnd-plans-toggle {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border2) !important;
+}
+.lnd-toggle-btn { color: var(--c-text3) !important; }
+.lnd-toggle-badge { background: rgba(34,150,94,.15) !important; color: #2a8a52 !important; }
+.lnd-plan {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.lnd-plan.featured {
+  border-color: var(--c-gold) !important;
+  background: var(--c-surface) !important;
+  box-shadow: 0 20px 50px rgba(199,154,58,.12) !important;
+}
+.lnd-plan-pop {
+  background: linear-gradient(90deg, #f0b429, #e08a1e) !important;
+  color: #1a1a1a !important;
+}
+.lnd-plan h3 { color: var(--c-text) !important; }
+.lnd-plan-desc { color: var(--c-text3) !important; }
+.lnd-plan-price { color: var(--c-gold) !important; }
+.lnd-plan-price .currency { color: var(--c-text3) !important; }
+.lnd-plan-cycle { color: var(--c-text3) !important; }
+.lnd-plan-feat li { color: var(--c-text2) !important; }
+.lnd-plan-btn.ghost {
+  background: transparent !important;
+  border: 1.5px solid rgba(199,154,58,.4) !important;
+  color: var(--c-text2) !important;
+}
+.lnd-plan-btn.ghost:hover { background: var(--c-gold-soft) !important; color: var(--c-gold) !important; }
+
+/* FAQ */
+.lnd-faq-item {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.lnd-faq-q { color: var(--c-text) !important; }
+.lnd-faq-q::after { color: var(--c-gold) !important; }
+.lnd-faq-a { color: var(--c-text2) !important; }
+
+/* FINAL CTA */
+.lnd-final {
+  background: var(--c-surface2) !important;
+  border: 1px solid rgba(199,154,58,.3) !important;
+}
+.lnd-final h2 { color: var(--c-text) !important; }
+.lnd-final h2 .grad {
+  background: linear-gradient(90deg, #c79a3a, #d97a1e) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.lnd-final p { color: var(--c-text2) !important; }
+
+/* FOOTER */
+.lnd-footer { border-top: 1px solid var(--c-border) !important; }
+.lnd-footer h4 { color: var(--c-gold) !important; }
+.lnd-footer a { color: var(--c-text3) !important; }
+.lnd-footer a:hover { color: var(--c-gold) !important; }
+.lnd-footer-about p { color: var(--c-text3) !important; }
+.lnd-footer-bottom { border-top: 1px solid var(--c-border) !important; color: var(--c-text3) !important; }
+.lnd-footer-bottom .f960 {
+  background: var(--c-surface) !important;
+  border: 1px dashed var(--c-border2) !important;
+  color: var(--c-text3) !important;
+}
+
+/* ═══════════ LOGIN / REGISTRO ═══════════ */
+
+#login-screen {
+  background: var(--c-bg) !important;
+  color: var(--c-text) !important;
+}
+.login-v2-back { color: var(--c-text3) !important; }
+.login-v2-back:hover { color: var(--c-gold) !important; }
+.login-v2-logo {
+  background: none !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  color: #1a1a1a !important;
+}
+.login-v2-title { color: var(--c-text) !important; }
+.login-v2-subtitle { color: var(--c-text3) !important; }
+.login-v2-card {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+  box-shadow: 0 20px 50px rgba(0,0,0,.08) !important;
+}
+.login-v2-tabs {
+  background: var(--c-surface2) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.login-v2-tab { color: var(--c-text3) !important; }
+.login-v2-tab.active {
+  background: linear-gradient(90deg, #f0b429, #e08a1e) !important;
+  color: #1a1a1a !important;
+}
+.login-v2-label { color: var(--c-text2) !important; }
+.login-v2-input {
+  background: var(--c-surface) !important;
+  border: 1.5px solid var(--c-border2) !important;
+  color: var(--c-text) !important;
+}
+.login-v2-input::placeholder { color: var(--c-text3) !important; }
+.login-v2-input:focus {
+  border-color: var(--c-gold) !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px var(--c-gold-soft) !important;
+}
+.login-v2-cta {
+  background: linear-gradient(90deg, #f0b429, #e08a1e) !important;
+  color: #1a1a1a !important;
+}
+.login-v2-cta-ghost {
+  background: transparent !important;
+  border: 1.5px solid var(--c-border2) !important;
+  color: var(--c-text2) !important;
+}
+.login-v2-cta-ghost:hover { border-color: var(--c-gold) !important; color: var(--c-gold) !important; }
+.login-v2-divider { color: var(--c-text3) !important; }
+.login-v2-benefits li { color: var(--c-text2) !important; }
+.login-v2-footer { color: var(--c-text3) !important; }
+.login-v2-footer a { color: var(--c-text2) !important; }
+.login-v2-footer a:hover { color: var(--c-gold) !important; }
+.login-v2-forgot-link { color: var(--c-text3) !important; }
+.login-v2-forgot-link:hover { color: var(--c-gold) !important; }
+
+/* Mensajes info/success en login: suavizados sobre claro */
+.login-v2-info {
+  background: rgba(124,91,191,.08) !important;
+  border: 1px solid rgba(124,91,191,.3) !important;
+  color: #5e459a !important;
+}
+.login-v2-success {
+  background: rgba(34,150,94,.08) !important;
+  border: 1px solid rgba(34,150,94,.3) !important;
+  color: #1a7a4a !important;
+}
+.login-v2-error {
+  background: rgba(192,57,43,.08) !important;
+  border: 1px solid rgba(192,57,43,.3) !important;
+  color: #a3342a !important;
+}
+/* Título principal del hero en negro (en vez del degradé dorado) */
+.lnd-hero-title-main {
+  background: none !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  color: #1a1a1a !important;
+}
+/* ═══════════════════════════════════════════════════════════════
+   AVAI — TEMA CLARO · BLOQUE 4: MOCKUP de la landing a claro
+   ───────────────────────────────────────────────────────────────
+   Pega al FINAL de tema-claro.css.
+   Pasa el "mockup / demo en vivo" de la landing al tema claro para
+   que matchee el chat nuevo (claro, sin globos oscuros).
+   Todo por CSS, sin tocar el HTML del index.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Marco del mockup (la "pantalla") */
+.lnd-mockup {
+  background: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+}
+
+/* Barra superior del navegador simulado */
+.lnd-mockup-bar {
+  background: var(--c-surface2) !important;
+  border-bottom: 1px solid var(--c-border) !important;
+}
+.lnd-mockup-url { color: var(--c-text3) !important; }
+
+/* Sidebar del mockup */
+.lnd-mockup-sidebar {
+  background: var(--c-surface2) !important;
+  border-right: 1px solid var(--c-border) !important;
+}
+.lnd-mockup-side-logo {
+  background: none !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  color: #1a1a1a !important;
+}
+.lnd-mockup-section { color: var(--c-text3) !important; }
+.lnd-mockup-item { color: var(--c-text2) !important; }
+.lnd-mockup-item.active {
+  background: var(--c-gold-soft) !important;
+  color: var(--c-gold) !important;
+  border-left: 2px solid var(--c-gold) !important;
+}
+
+/* Área principal del mockup */
+.lnd-mockup-main {
+  background: var(--c-surface) !important;
+}
+
+/* Header "AVAI" dentro del mockup */
+.lnd-mockup-hero-card {
+  background: var(--c-surface2) !important;
+  border: 1px solid var(--c-border) !important;
+}
+.lnd-mockup-hero-card .av {
+  background: none !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  color: #1a1a1a !important;
+}
+.lnd-mockup-hero-card .sub { color: var(--c-text3) !important; }
+
+/* Mensajes del chat en el mockup */
+/* Mensaje de AVAI: sin globo oscuro, solo texto sobre claro */
+.lnd-mockup-chat-msg {
+  background: transparent !important;
+  border-left: none !important;
+  color: var(--c-text) !important;
+}
+.lnd-mockup-chat-msg .name { color: var(--c-gold) !important; }
+
+/* Mensaje del usuario: globo beige a la derecha (como el chat real) */
+.lnd-mockup-chat-msg.user {
+  background: var(--c-user-bub) !important;
+  border-left: none !important;
+  border: 1px solid var(--c-border2) !important;
+  border-radius: 14px !important;
+  color: var(--c-text) !important;
+}
+.lnd-mockup-chat-msg.user .name { color: var(--c-text2) !important; }
+
+/* Badge flotante "Demo en vivo": lo suavizamos a dorado sobre claro */
+.lnd-mockup-floating {
+  background: var(--c-gold-soft) !important;
+  border: 1px solid rgba(199,154,58,.4) !important;
+  color: #8a6d1f !important;
+  box-shadow: 0 4px 16px rgba(199,154,58,.15) !important;
+}
+/* ═══════════════════════════════════════════════
+   FIX: texto de Alex (Inglés) y Bruno (Mate) ilegible
+   El fix anterior solo cubría #chat-negocio (Mentor);
+   este cubre los mensajes en CUALQUIER chat, incluidos
+   sus elementos internos (que quedaban blancos).
+   ═══════════════════════════════════════════════ */
+.chat-msg.msg-english,
+.chat-msg.msg-english *,
+.chat-msg.msg-mate,
+.chat-msg.msg-mate *,
+.chat-msg.msg-ai,
+.chat-msg.msg-ai *,
+.chat-msg.user,
+.chat-msg.user * {
+  color: #2b2a27 !important;
+}
+/* ═══════════════════════════════════════════════
+   TIPOGRAFÍA DEL CHAT estilo Claude/ChatGPT:
+   letra más grande y aire entre líneas, en todos
+   los chats (Mentor, Alex, Bruno).
+   ═══════════════════════════════════════════════ */
+.chat-msg {
+  font-size: 16px !important;
+  line-height: 1.65 !important;
+}
+/* El nombrecito de arriba (AVAI / Alex / Bruno) queda chico */
+.chat-msg .chat-msg-header,
+.chat-msg .chat-name {
+  font-size: 13px !important;
+}
+/* Que el input acompañe el mismo tamaño */
+.chat-input-row textarea,
+#neg-input {
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+}
