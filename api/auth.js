@@ -13,7 +13,13 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = "av-mentorai-fixed-secret-2024";
-
+// ═══ TRIAL DE PREMIUM (Paso 2) ═══
+// Días de Premium gratis para toda cuenta nueva. Al vencerse, el barrido
+// de api/chat.js (Paso 1) la baja a Gratis automáticamente.
+// 🧪 PARA PROBAR el barrido: poné TRIAL_DIAS = -1 (la cuenta nace Premium
+// pero ya vencida), registrá una cuenta de prueba, mandá un mensaje y
+// verificá que baja a Gratis. Después volvé a dejarlo en 10.
+const TRIAL_DIAS = 10;
 // ─── KV ──────────────────────────────────────────────────
 async function getKV() {
   const { Redis } = await import("@upstash/redis");
@@ -177,10 +183,13 @@ export default async function handler(req, res) {
       const hash = await bcrypt.hash(password, 10);
       const user = {
         ...defaultUser(nombre || "Usuario", emailNorm, { fecha_nacimiento, ciudad }),
-        password_hash: hash
+        password_hash: hash,
+        // PASO 2 — TRIAL: toda cuenta nueva nace con Premium de prueba
+        plan: "Premium",
+        es_trial: true,
+        premium_vence: new Date(Date.now() + TRIAL_DIAS * 24 * 60 * 60 * 1000).toISOString(),
       };
       await saveUser(user);
-
       // ✨ NUEVO: enviar código de verificación automáticamente
       let codigoInfo = { enviado: { ok: false } };
       try {
