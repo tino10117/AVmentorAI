@@ -358,7 +358,78 @@ function setSubnav(section, value) {
     p.style.display = p.dataset.value === value ? "block" : "none";
   });
 }
+// ═══════════════════════════════════════════════
+// MENTOR CHATS — historial de conversaciones del Mentor
+// (Paso 1: backend de datos. Sin UI todavía.)
+// ═══════════════════════════════════════════════
+const MentorChats = {
+  MAX_CHATS: 40,
+  MAX_MSGS: 40,
 
+  _lista() {
+    const u = App.user;
+    if (!u) return [];
+    if (!Array.isArray(u.mentor_chats)) {
+      // Arranque limpio: ignoramos cualquier user.messages viejo.
+      u.mentor_chats = [];
+      u.mentor_chat_activo = null;
+    }
+    return u.mentor_chats;
+  },
+
+  _nuevoId() {
+    return "mc_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+  },
+
+  _tituloDesde(mensajes) {
+    const primerUser = (mensajes || []).find(m => m.role === "user");
+    if (!primerUser || !primerUser.content) return "Charla nueva";
+    const palabras = String(primerUser.content).trim().split(/\s+/).slice(0, 6).join(" ");
+    return palabras.length > 0 ? palabras : "Charla nueva";
+  },
+
+  getActivo() {
+    const lista = this._lista();
+    const u = App.user;
+    let chat = lista.find(c => c.id === u.mentor_chat_activo);
+    if (!chat) {
+      chat = { id: this._nuevoId(), titulo: "Charla nueva", mensajes: [], actualizado: new Date().toISOString() };
+      lista.unshift(chat);
+      u.mentor_chat_activo = chat.id;
+    }
+    return chat;
+  },
+
+  mensajesActivos() {
+    return this.getActivo().mensajes || [];
+  },
+
+  guardarActivo(mensajes) {
+    const u = App.user;
+    if (!u) return;
+    const lista = this._lista();
+    const chat = this.getActivo();
+    chat.mensajes = (mensajes || []).slice(-this.MAX_MSGS);
+    chat.actualizado = new Date().toISOString();
+    if (!chat.titulo || chat.titulo === "Charla nueva") {
+      chat.titulo = this._tituloDesde(chat.mensajes);
+    }
+    const idx = lista.indexOf(chat);
+    if (idx > 0) { lista.splice(idx, 1); lista.unshift(chat); }
+    if (lista.length > this.MAX_CHATS) lista.length = this.MAX_CHATS;
+    Store.save();
+    API.saveUser({ mentor_chats: u.mentor_chats, mentor_chat_activo: u.mentor_chat_activo }).catch(() => {});
+  },
+
+  vaciarActivo() {
+    const chat = this.getActivo();
+    chat.mensajes = [];
+    chat.titulo = "Charla nueva";
+    chat.actualizado = new Date().toISOString();
+    Store.save();
+    API.saveUser({ mentor_chats: App.user.mentor_chats, mentor_chat_activo: App.user.mentor_chat_activo }).catch(() => {});
+  },
+};
 // ═══════════════════════════════════════════════
 // CHAT ENGINE
 // ═══════════════════════════════════════════════
