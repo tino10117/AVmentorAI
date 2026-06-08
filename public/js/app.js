@@ -501,8 +501,12 @@ const Chat = {
       App.chatMessages[messagesKey].push({ role: "assistant", content: reply });
       UserHelper.accion("chat_message");
 
-      const userKey = messagesKey === "negocio" ? "messages" : messagesKey === "english" ? "english_messages" : messagesKey === "englishRoleplay" ? "english_roleplay_messages" : "mate_messages";
-      if (!App.user[userKey]) App.user[userKey] = [];
+      let userKey = messagesKey === "negocio" ? "messages" : messagesKey === "english" ? "english_messages" : messagesKey === "englishRoleplay" ? "english_roleplay_messages" : "mate_messages";
+    if (messagesKey === "negocio") {
+      App.chatMessages.negocio = MentorChats.mensajesActivos();
+    } else {
+      App.chatMessages[messagesKey] = (App.user?.[userKey] || []);
+    }
       App.user[userKey] = App.chatMessages[messagesKey].slice(-40);
       Store.save();
       API.saveUser({ [userKey]: App.user[userKey] }).catch(() => {});
