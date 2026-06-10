@@ -358,6 +358,7 @@ function setSubnav(section, value) {
     p.style.display = p.dataset.value === value ? "block" : "none";
   });
 }
+
 // ═══════════════════════════════════════════════
 // MENTOR CHATS — historial de conversaciones del Mentor
 // (Paso 1: backend de datos. Sin UI todavía.)
@@ -430,6 +431,7 @@ const MentorChats = {
     API.saveUser({ mentor_chats: App.user.mentor_chats, mentor_chat_activo: App.user.mentor_chat_activo }).catch(() => {});
   },
 };
+
 // ═══════════════════════════════════════════════
 // CHAT ENGINE
 // ═══════════════════════════════════════════════
@@ -501,15 +503,15 @@ const Chat = {
       App.chatMessages[messagesKey].push({ role: "assistant", content: reply });
       UserHelper.accion("chat_message");
 
-      let userKey = messagesKey === "negocio" ? "messages" : messagesKey === "english" ? "english_messages" : messagesKey === "englishRoleplay" ? "english_roleplay_messages" : "mate_messages";
-    if (messagesKey === "negocio") {
-      App.chatMessages.negocio = MentorChats.mensajesActivos();
-    } else {
-      App.chatMessages[messagesKey] = (App.user?.[userKey] || []);
-    }
-      App.user[userKey] = App.chatMessages[messagesKey].slice(-40);
-      Store.save();
-      API.saveUser({ [userKey]: App.user[userKey] }).catch(() => {});
+      if (messagesKey === "negocio") {
+        MentorChats.guardarActivo(App.chatMessages.negocio);
+      } else {
+        const userKey = messagesKey === "english" ? "english_messages" : messagesKey === "englishRoleplay" ? "english_roleplay_messages" : "mate_messages";
+        if (!App.user[userKey]) App.user[userKey] = [];
+        App.user[userKey] = App.chatMessages[messagesKey].slice(-40);
+        Store.save();
+        API.saveUser({ [userKey]: App.user[userKey] }).catch(() => {});
+      }
     } catch (err) {
       removeSpinner();
       if (streamingDiv) streamingDiv.remove();
@@ -659,8 +661,12 @@ const Chat = {
     const sendBtn = document.getElementById(sendBtnId);
     if (!container || !input || !sendBtn) return;
 
-    const userKey = messagesKey === "negocio" ? "messages" : messagesKey === "english" ? "english_messages" : messagesKey === "englishRoleplay" ? "english_roleplay_messages" : "mate_messages";
-    App.chatMessages[messagesKey] = (App.user?.[userKey] || []);
+    let userKey = messagesKey === "negocio" ? "messages" : messagesKey === "english" ? "english_messages" : messagesKey === "englishRoleplay" ? "english_roleplay_messages" : "mate_messages";
+    if (messagesKey === "negocio") {
+      App.chatMessages.negocio = MentorChats.mensajesActivos();
+    } else {
+      App.chatMessages[messagesKey] = (App.user?.[userKey] || []);
+    }
     container.innerHTML = "";
     App.chatMessages[messagesKey].forEach(m => {
       const cls = m.role === "user" ? "user" : type === "english" || type === "englishRoleplay" ? "msg-english" : type === "mate" ? "msg-mate" : "msg-ai";
