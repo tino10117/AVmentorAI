@@ -430,8 +430,36 @@ const MentorChats = {
     Store.save();
     API.saveUser({ mentor_chats: App.user.mentor_chats, mentor_chat_activo: App.user.mentor_chat_activo }).catch(() => {});
   },
-};
 
+  listarTodos() {
+    return this._lista().slice();
+  },
+
+  cambiarActivo(id) {
+    const lista = this._lista();
+    const existe = lista.find(c => c.id === id);
+    if (!existe) return false;
+    App.user.mentor_chat_activo = id;
+    Store.save();
+    API.saveUser({ mentor_chat_activo: id }).catch(() => {});
+    return true;
+  },
+
+  crearNuevo() {
+    const lista = this._lista();
+    const activo = lista.find(c => c.id === App.user.mentor_chat_activo);
+    if (activo && (!activo.mensajes || activo.mensajes.length === 0)) {
+      return activo;
+    }
+    const chat = { id: this._nuevoId(), titulo: "Charla nueva", mensajes: [], actualizado: new Date().toISOString() };
+    lista.unshift(chat);
+    App.user.mentor_chat_activo = chat.id;
+    if (lista.length > this.MAX_CHATS) lista.length = this.MAX_CHATS;
+    Store.save();
+    API.saveUser({ mentor_chats: App.user.mentor_chats, mentor_chat_activo: App.user.mentor_chat_activo }).catch(() => {});
+    return chat;
+  },
+};
 // ═══════════════════════════════════════════════
 // CHAT ENGINE
 // ═══════════════════════════════════════════════
