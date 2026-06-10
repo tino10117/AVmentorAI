@@ -269,12 +269,9 @@ function sendWebSearch(tipo){
       App.chatMessages.negocio.push({role:"assistant",content:d.reply});
       Chat.appendMsg(c,d.reply,"msg-ai","AVAI","⚡","linear-gradient(135deg,#38bdf8,#6366f1)","#38bdf8");
       UserHelper.accion("chat_message");
-      if(!App.user.messages)App.user.messages=[];
-      App.user.messages=App.chatMessages.negocio.slice(-40);
-      Store.save();API.saveUser({messages:App.user.messages}).catch(()=>{});
+      MentorChats.guardarActivo(App.chatMessages.negocio);
     }).catch(e=>{removeSpinner();Toast.error(e.message);});
 }
-
 // ── INGLÉS: LECCIONES ───────────────────────────
 function renderEnglishLecciones(){
   const c=document.getElementById("english-lecciones");
@@ -702,17 +699,15 @@ function seguirConBruno(){
 function seguirConMentor(ctxKey){
   const ctx = window[ctxKey];
   if(!ctx){Toast.error("No hay contexto previo.");return;}
-  if(!App.user.messages) App.user.messages = [];
-  App.user.messages.push({role:"user", content:ctx.prompt});
-  App.user.messages.push({role:"assistant", content:ctx.reply});
-  App.chatMessages.negocio = App.user.messages.slice(-40);
-  Store.save();
-  API.saveUser({messages: App.user.messages}).catch(()=>{});
+  const msgs = MentorChats.mensajesActivos();
+  msgs.push({role:"user", content:ctx.prompt});
+  msgs.push({role:"assistant", content:ctx.reply});
+  App.chatMessages.negocio = msgs;
+  MentorChats.guardarActivo(App.chatMessages.negocio);
   navigateTo("mentor");
   initMentorTab();
   Toast.info("Seguí la conversación con el Mentor acá.");
 }
-
 function seguirConAlex(ctxKey){
   const ctx = window[ctxKey];
   if(!ctx){Toast.error("No hay contexto previo.");return;}
@@ -1370,8 +1365,8 @@ function saveConfig(){
   refreshHeader();Toast.success("Cambios guardados. ✅");
 }
 function clearMentorChat(){
-  App.user.messages=[];App.chatMessages.negocio=[];Store.save();
-  API.saveUser({messages:[]}).catch(()=>{});
+  MentorChats.vaciarActivo();
+  App.chatMessages.negocio=[];
   const c=document.getElementById("chat-negocio");c.innerHTML="";Chat.appendWelcome(c,"negocio");
   Toast.info("Conversación borrada.");
 }
