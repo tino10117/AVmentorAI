@@ -243,6 +243,7 @@ function initMentorTab(){
   Chat.init("chat-negocio","neg-input","neg-send","negocio","negocio");
   document.getElementById("btn-desafio").onclick=()=>
     sendQuickNeg(`Quiero hacer este desafío: ${App.desafio}. Guiame paso a paso.`);
+}
   // ── HISTORIAL DE CHATS DEL MENTOR ────────────────
 function toggleHistorialMentor() {
   const panel = document.getElementById("mentor-historial-panel");
