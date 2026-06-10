@@ -243,7 +243,68 @@ function initMentorTab(){
   Chat.init("chat-negocio","neg-input","neg-send","negocio","negocio");
   document.getElementById("btn-desafio").onclick=()=>
     sendQuickNeg(`Quiero hacer este desafío: ${App.desafio}. Guiame paso a paso.`);
+  // ── HISTORIAL DE CHATS DEL MENTOR ────────────────
+function toggleHistorialMentor() {
+  const panel = document.getElementById("mentor-historial-panel");
+  if (!panel) return;
+  const abierto = panel.style.display === "block";
+  if (abierto) { panel.style.display = "none"; return; }
+  renderHistorialMentor();
+  panel.style.display = "block";
 }
+
+function renderHistorialMentor() {
+  const panel = document.getElementById("mentor-historial-panel");
+  if (!panel) return;
+  const chats = MentorChats.listarTodos();
+  const activoId = App.user?.mentor_chat_activo;
+  if (chats.length === 0) {
+    panel.innerHTML = `<div style="padding:14px;font-size:13px;color:#64748b;text-align:center">Todavía no tenés chats guardados. Empezá a escribir y se guardan solos.</div>`;
+    return;
+  }
+  panel.innerHTML = chats.map(c => {
+    const esActivo = c.id === activoId;
+    const fecha = fechaCortaMentor(c.actualizado);
+    return `<div onclick="abrirChatMentor('${esc(c.id)}')" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;cursor:pointer;margin-bottom:4px;border:1px solid ${esActivo ? 'rgba(250,204,21,.4)' : 'rgba(148,163,184,.12)'};background:${esActivo ? 'rgba(250,204,21,.08)' : 'transparent'}">
+      <div style="min-width:0;flex:1">
+        <div style="font-size:13px;font-weight:600;color:${esActivo ? '#facc15' : '#cbd5e1'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.titulo || 'Charla nueva')}</div>
+        <div style="font-size:11px;color:#64748b">${fecha}</div>
+      </div>
+      ${esActivo ? '<span style="font-size:10px;color:#facc15;flex-shrink:0">● activo</span>' : ''}
+    </div>`;
+  }).join("");
+}
+
+function fechaCortaMentor(iso) {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    const diffMin = Math.floor((Date.now() - d) / 60000);
+    if (diffMin < 1) return "Ahora";
+    if (diffMin < 60) return `Hace ${diffMin}m`;
+    const diffHs = Math.floor(diffMin / 60);
+    if (diffHs < 24) return `Hace ${diffHs}h`;
+    const diffDias = Math.floor(diffHs / 24);
+    if (diffDias < 7) return `Hace ${diffDias}d`;
+    return d.toLocaleDateString("es-AR");
+  } catch { return "—"; }
+}
+
+function abrirChatMentor(id) {
+  if (!MentorChats.cambiarActivo(id)) return;
+  const panel = document.getElementById("mentor-historial-panel");
+  if (panel) panel.style.display = "none";
+  initMentorTab();
+}
+
+function nuevoChatMentor() {
+  MentorChats.crearNuevo();
+  const panel = document.getElementById("mentor-historial-panel");
+  if (panel) panel.style.display = "none";
+  initMentorTab();
+  Toast.info("Empezá una charla nueva.");
+}
+
 function sendQuickNeg(text){
   const i=document.getElementById("neg-input");i.value=text;
   document.getElementById("neg-send").click();
