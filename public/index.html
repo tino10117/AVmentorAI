@@ -955,6 +955,11 @@
         <div class="qbtn qbtn-sky" style="font-size:11px" onclick="sendWebSearch('competencia')">🔍 Info de competencia</div>
         <div class="qbtn qbtn-green" style="font-size:11px" onclick="sendWebSearch('precios')">💹 Precios del mercado</div>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <button onclick="toggleHistorialMentor()" style="background:rgba(15,23,42,.5);border:1px solid rgba(148,163,184,.2);color:#cbd5e1;font-size:12px;font-weight:600;padding:7px 12px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px">🕘 Historial</button>
+        <button onclick="nuevoChatMentor()" style="background:rgba(15,23,42,.5);border:1px solid rgba(148,163,184,.2);color:#cbd5e1;font-size:12px;font-weight:600;padding:7px 12px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;margin-left:auto">＋ Nuevo</button>
+      </div>
+      <div id="mentor-historial-panel" style="display:none;background:rgba(15,23,42,.6);border:1px solid rgba(148,163,184,.15);border-radius:12px;padding:8px;margin-bottom:10px;max-height:240px;overflow-y:auto"></div>      
       <div id="chat-negocio" class="chat-wrap" style="min-height:200px;max-height:60vh;overflow-y:auto"></div>
       <div id="neg-image-preview" style="display:none"></div>
       <div class="chat-input-wrap">
