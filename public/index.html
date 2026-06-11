@@ -955,9 +955,15 @@
         <div class="qbtn qbtn-sky" style="font-size:11px" onclick="sendWebSearch('competencia')">🔍 Info de competencia</div>
         <div class="qbtn qbtn-green" style="font-size:11px" onclick="sendWebSearch('precios')">💹 Precios del mercado</div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <button onclick="toggleHistorialMentor()" style="background:rgba(15,23,42,.5);border:1px solid rgba(148,163,184,.2);color:#cbd5e1;font-size:12px;font-weight:600;padding:7px 12px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px">🕘 Historial</button>
-        <button onclick="nuevoChatMentor()" style="background:rgba(15,23,42,.5);border:1px solid rgba(148,163,184,.2);color:#cbd5e1;font-size:12px;font-weight:600;padding:7px 12px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;margin-left:auto">＋ Nuevo</button>
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:10px">
+        <button onclick="toggleHistorialMentor()" style="background:none;border:none;color:#64748b;font-size:13px;font-weight:500;padding:6px 8px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:color .15s,background .15s" onmouseover="this.style.background='rgba(0,0,0,.04)';this.style.color='#1e293b'" onmouseout="this.style.background='none';this.style.color='#64748b'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+          Historial
+        </button>
+        <button onclick="nuevoChatMentor()" style="background:none;border:none;color:#64748b;font-size:13px;font-weight:500;padding:6px 8px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px;margin-left:auto;transition:color .15s,background .15s" onmouseover="this.style.background='rgba(0,0,0,.04)';this.style.color='#1e293b'" onmouseout="this.style.background='none';this.style.color='#64748b'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          Nuevo
+        </button>
       </div>
       <div id="mentor-historial-panel" style="display:none;background:rgba(15,23,42,.6);border:1px solid rgba(148,163,184,.15);border-radius:12px;padding:8px;margin-bottom:10px;max-height:240px;overflow-y:auto"></div>      
       <div id="chat-negocio" class="chat-wrap" style="min-height:200px;max-height:60vh;overflow-y:auto"></div>
