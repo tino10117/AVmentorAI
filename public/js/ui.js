@@ -260,22 +260,21 @@ function renderHistorialMentor() {
   const chats = MentorChats.listarTodos();
   const activoId = App.user?.mentor_chat_activo;
   if (chats.length === 0) {
-    panel.innerHTML = `<div style="padding:14px;font-size:13px;color:#64748b;text-align:center">Todavía no tenés chats guardados. Empezá a escribir y se guardan solos.</div>`;
+    panel.innerHTML = `<div style="padding:18px 14px;font-size:13px;color:#94a3b8;text-align:center">Todavía no tenés chats guardados.<br>Empezá a escribir y se guardan solos.</div>`;
     return;
   }
   panel.innerHTML = chats.map(c => {
     const esActivo = c.id === activoId;
     const fecha = fechaCortaMentor(c.actualizado);
-    return `<div onclick="abrirChatMentor('${esc(c.id)}')" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;cursor:pointer;margin-bottom:4px;border:1px solid ${esActivo ? 'rgba(250,204,21,.4)' : 'rgba(148,163,184,.12)'};background:${esActivo ? 'rgba(250,204,21,.08)' : 'transparent'}">
-      <div style="min-width:0;flex:1">
-        <div style="font-size:13px;font-weight:600;color:${esActivo ? '#facc15' : '#cbd5e1'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.titulo || 'Charla nueva')}</div>
-        <div style="font-size:11px;color:#64748b">${fecha}</div>
+    return `<div onclick="abrirChatMentor('${esc(c.id)}')" style="padding:12px 14px;border-radius:12px;cursor:pointer;margin-bottom:6px;transition:background .15s;background:${esActivo ? 'rgba(250,204,21,.10)' : 'transparent'};border:1px solid ${esActivo ? 'rgba(250,204,21,.35)' : 'rgba(0,0,0,.06)'}" onmouseover="this.style.background='${esActivo ? 'rgba(250,204,21,.14)' : 'rgba(0,0,0,.03)'}'" onmouseout="this.style.background='${esActivo ? 'rgba(250,204,21,.10)' : 'transparent'}'">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div style="font-size:14px;font-weight:600;color:${esActivo ? '#b45309' : '#1e293b'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0">${esc(c.titulo || 'Charla nueva')}</div>
+        ${esActivo ? '<span style="font-size:10px;font-weight:700;color:#b45309;background:rgba(250,204,21,.2);padding:2px 8px;border-radius:20px;flex-shrink:0">activo</span>' : ''}
       </div>
-      ${esActivo ? '<span style="font-size:10px;color:#facc15;flex-shrink:0">● activo</span>' : ''}
+      <div style="font-size:11px;color:#94a3b8;margin-top:3px">${fecha}</div>
     </div>`;
   }).join("");
 }
-
 function fechaCortaMentor(iso) {
   if (!iso) return "—";
   try {
