@@ -776,7 +776,25 @@ PROHIBIDO:
 
 Cerrá siempre con: "¿Querés que profundicemos en alguno de estos puntos?"`;
 }
-
+// ═══════════════════════════════════════════════════════════════
+// DETECTOR DE MENSAJE DE CIERRE / AGRADECIMIENTO
+// Si el usuario solo agradece o cierra, NO usamos búsqueda web
+// (el modelo de búsqueda ignora la regla de cerrar corto).
+// ═══════════════════════════════════════════════════════════════
+function esMensajeDeCierre(texto) {
+  const t = (texto || "").toLowerCase().trim();
+  if (t.length > 40) return false;
+  if (t.includes("?") || t.includes("¿")) return false;
+  if (/\b(c[oó]mo|qu[eé]|cu[aá]l|cu[aá]nto|d[oó]nde|por\s*qu[eé]|explicame|dame|hace[mr]e|decime|y\s+ahora|pero)\b/.test(t)) return false;
+  const patrones = [
+    /^(ok\s+)?gracias/, /^muchas\s+gracias/, /^dale\s+gracias/, /^gracias\s+(rey|capo|crack|genio|maestro|loco|bro)/,
+    /^(buen[ií]simo|joya|genial|perfecto|de\s+una|listo|ok\s+dale|ok|dale)\s*(gracias|rey|capo|crack)?[\s!.]*$/,
+    /^(ok|listo|perfecto|buen[ií]simo|joya|genial)[\s!.]*$/,
+    /^(saludos|chau|nos\s+vemos|hasta\s+luego|abrazo)/,
+    /^gracias[\s!.]*$/,
+  ];
+  return patrones.some(p => p.test(t));
+}
 // ─────────────────────────────────────────────────────────────
 
 // ✨ CONFIG DE VERCEL — CRÍTICO PARA IMÁGENES
