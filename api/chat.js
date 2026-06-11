@@ -1353,8 +1353,14 @@ FEEDBACK SOBRE LA PROPIA PERSONA (importante):
     }
 
     // Si hay imagen, NUNCA usar el modelo de búsqueda web (no ve imágenes).
-    const effectiveWebSearch = useWebSearch && !imagenParaChat;
-
+    // Si el usuario solo agradece o cierra, tampoco: el modelo de búsqueda
+    // ignora la regla de cerrar corto y se pone a buscar igual.
+    const ultimoMsgUser = [...finalMessages].reverse().find(m => m.role === "user");
+    const textoUltimoUser = typeof ultimoMsgUser?.content === "string"
+      ? ultimoMsgUser.content
+      : (ultimoMsgUser?.content?.find?.(c => c.type === "text")?.text || "");
+    const esCierre = esMensajeDeCierre(textoUltimoUser);
+    const effectiveWebSearch = useWebSearch && !imagenParaChat && !esCierre;
     let openaiParams;
     if (effectiveWebSearch) {
       // Búsqueda web: modelo aparte, NO es GPT-5.
