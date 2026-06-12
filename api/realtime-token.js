@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "av-mentorai-fixed-secret-2024";
 
 // Modelo de voz realtime y voz por defecto
 const REALTIME_MODEL = "gpt-realtime";
-const DEFAULT_VOICE = "nova";
+const DEFAULT_VOICE = "marin";
 
 function verifyToken(req) {
   const auth = req.headers.authorization || "";
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
   }
 
   // 5) Voz elegida (validada)
-  const voicesValidas = ["alloy", "echo", "fable", "onyx", "nova", "shimmer", "marin", "cedar"];
+  const voicesValidas = ["alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse", "marin", "cedar"];
   const voice = voicesValidas.includes(req.body?.voice) ? req.body.voice : DEFAULT_VOICE;
 
   // 6) Pedir el token efímero a OpenAI (endpoint GA: client_secrets)
