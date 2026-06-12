@@ -1,4 +1,4 @@
-/* ── AV MentorAI — Main Styles ── */
+/* ── AVAI — Main Styles ── */
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -357,7 +357,42 @@ body {
 .nav-btn:hover { background: rgba(250,204,21,.08); color: var(--text); }
 .nav-btn.active { background: rgba(250,204,21,.14); color: var(--gold); border-left: 3px solid var(--gold); }
 .nav-btn .nav-icon { font-size: 17px; flex-shrink: 0; }
-#hamburger { display: none; position: fixed; top: 14px; left: 14px; z-index: 300; background: rgba(250,204,21,.15); border: 1px solid var(--gold-border); border-radius: 10px; padding: 8px; cursor: pointer; font-size: 20px; }
+/* ═══════════════════════════════════════════════════════════════ */
+/* ☰ HAMBURGUESA FUTURISTA — glassmorphism translúcido con blur     */
+/* Mismo lenguaje visual que los botones flotantes Historial/Voz/   */
+/* Nuevo: pastilla redondeada, fondo translúcido, blur y sombra     */
+/* suave. Se mueve a la DERECHA para no competir nunca con la barra */
+/* de botones del mentor (que vive a la izquierda).                 */
+/* ═══════════════════════════════════════════════════════════════ */
+#hamburger {
+  display: none;               /* oculto en desktop; se activa en móvil */
+  position: fixed;
+  top: 12px;
+  right: 14px;                 /* ← a la derecha: no choca con Historial */
+  z-index: 350;                /* por encima de todo el contenido */
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  cursor: pointer;
+  font-size: 19px;
+  color: var(--gold);
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(250,204,21,.30);
+  border-radius: 999px;        /* pastilla / círculo perfecto */
+  background: rgba(15,23,42,.55);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: 0 4px 18px rgba(0,0,0,.35), 0 0 0 1px rgba(250,204,21,.08) inset;
+  transition: transform .15s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
+}
+#hamburger:hover {
+  transform: translateY(-1px) scale(1.04);
+  background: rgba(250,204,21,.16);
+  border-color: rgba(250,204,21,.5);
+  box-shadow: 0 6px 22px rgba(250,204,21,.25), 0 0 0 1px rgba(250,204,21,.12) inset;
+}
+#hamburger:active { transform: translateY(0) scale(.97); }
 #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 199; }
 #main-content { margin-left: var(--sidebar-w); padding: 24px 28px; max-width: 900px; }
 
@@ -417,7 +452,7 @@ body {
   :root { --sidebar-w: 0px; }
   #sidebar { transform: translateX(-100%); width: 240px; }
   #sidebar.open { transform: translateX(0); }
-  #hamburger { display: block; }
+  #hamburger { display: flex; }
   #overlay.show { display: block; }
   #main-content { margin-left: 0; padding: 60px 14px 20px; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
@@ -425,6 +460,19 @@ body {
   .quick-btns { grid-template-columns: repeat(3, 1fr); }
   .av-logo { font-size: 26px; }
   .tab-btn { font-size: 12px; padding: 6px 10px; }
+
+  /* ═══════════════════════════════════════════════════════════ */
+  /* ✨ FIX HAMBURGUESA vs BARRA DE BOTONES (Historial/Voz/Nuevo) */
+  /* El ☰ ahora vive arriba a la DERECHA (top:12 right:14). La    */
+  /* barra de botones del mentor arranca a la izquierda con        */
+  /* "Historial", así que ya NO se tapan. Lo único: el botón       */
+  /* "Nuevo" usa margin-left:auto (queda pegado a la derecha), así */
+  /* que le damos a la barra un respiro a la derecha para que      */
+  /* "Nuevo" no quede justo debajo del ☰.                          */
+  /* ═══════════════════════════════════════════════════════════ */
+  #tab-mentor > div[style*="sticky"] {
+    padding-right: 50px;       /* deja lugar al ☰ que está a la derecha */
+  }
 }
 @media (max-width: 480px) {
   .quick-btns { grid-template-columns: repeat(2, 1fr); }
