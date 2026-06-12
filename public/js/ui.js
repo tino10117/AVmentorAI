@@ -244,6 +244,67 @@ function initMentorTab(){
   document.getElementById("btn-desafio").onclick=()=>
     sendQuickNeg(`Quiero hacer este desafío: ${App.desafio}. Guiame paso a paso.`);
 }
+  // ── HISTORIAL DE CHATS DEL MENTOR ────────────────
+function toggleHistorialMentor() {
+  const panel = document.getElementById("mentor-historial-panel");
+  if (!panel) return;
+  const abierto = panel.style.display === "block";
+  if (abierto) { panel.style.display = "none"; return; }
+  renderHistorialMentor();
+  panel.style.display = "block";
+}
+
+function renderHistorialMentor() {
+  const panel = document.getElementById("mentor-historial-panel");
+  if (!panel) return;
+  const chats = MentorChats.listarTodos();
+  const activoId = App.user?.mentor_chat_activo;
+  if (chats.length === 0) {
+    panel.innerHTML = `<div style="padding:18px 14px;font-size:13px;color:#94a3b8;text-align:center">Todavía no tenés chats guardados.<br>Empezá a escribir y se guardan solos.</div>`;
+    return;
+  }
+  panel.innerHTML = chats.map(c => {
+    const esActivo = c.id === activoId;
+    const fecha = fechaCortaMentor(c.actualizado);
+    return `<div onclick="abrirChatMentor('${esc(c.id)}')" style="padding:12px 14px;border-radius:12px;cursor:pointer;margin-bottom:6px;transition:background .15s;background:${esActivo ? 'rgba(250,204,21,.10)' : 'transparent'};border:1px solid ${esActivo ? 'rgba(250,204,21,.35)' : 'rgba(0,0,0,.06)'}" onmouseover="this.style.background='${esActivo ? 'rgba(250,204,21,.14)' : 'rgba(0,0,0,.03)'}'" onmouseout="this.style.background='${esActivo ? 'rgba(250,204,21,.10)' : 'transparent'}'">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div style="font-size:14px;font-weight:600;color:${esActivo ? '#b45309' : '#1e293b'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0">${esc(c.titulo || 'Charla nueva')}</div>
+        ${esActivo ? '<span style="font-size:10px;font-weight:700;color:#b45309;background:rgba(250,204,21,.2);padding:2px 8px;border-radius:20px;flex-shrink:0">activo</span>' : ''}
+      </div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:3px">${fecha}</div>
+    </div>`;
+  }).join("");
+}
+function fechaCortaMentor(iso) {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    const diffMin = Math.floor((Date.now() - d) / 60000);
+    if (diffMin < 1) return "Ahora";
+    if (diffMin < 60) return `Hace ${diffMin}m`;
+    const diffHs = Math.floor(diffMin / 60);
+    if (diffHs < 24) return `Hace ${diffHs}h`;
+    const diffDias = Math.floor(diffHs / 24);
+    if (diffDias < 7) return `Hace ${diffDias}d`;
+    return d.toLocaleDateString("es-AR");
+  } catch { return "—"; }
+}
+
+function abrirChatMentor(id) {
+  if (!MentorChats.cambiarActivo(id)) return;
+  const panel = document.getElementById("mentor-historial-panel");
+  if (panel) panel.style.display = "none";
+  initMentorTab();
+}
+
+function nuevoChatMentor() {
+  MentorChats.crearNuevo();
+  const panel = document.getElementById("mentor-historial-panel");
+  if (panel) panel.style.display = "none";
+  initMentorTab();
+  Toast.info("Empezá una charla nueva.");
+}
+
 function sendQuickNeg(text){
   const i=document.getElementById("neg-input");i.value=text;
   document.getElementById("neg-send").click();
@@ -269,12 +330,9 @@ function sendWebSearch(tipo){
       App.chatMessages.negocio.push({role:"assistant",content:d.reply});
       Chat.appendMsg(c,d.reply,"msg-ai","AVAI","⚡","linear-gradient(135deg,#38bdf8,#6366f1)","#38bdf8");
       UserHelper.accion("chat_message");
-      if(!App.user.messages)App.user.messages=[];
-      App.user.messages=App.chatMessages.negocio.slice(-40);
-      Store.save();API.saveUser({messages:App.user.messages}).catch(()=>{});
+      MentorChats.guardarActivo(App.chatMessages.negocio);
     }).catch(e=>{removeSpinner();Toast.error(e.message);});
 }
-
 // ── INGLÉS: LECCIONES ───────────────────────────
 function renderEnglishLecciones(){
   const c=document.getElementById("english-lecciones");
@@ -702,17 +760,15 @@ function seguirConBruno(){
 function seguirConMentor(ctxKey){
   const ctx = window[ctxKey];
   if(!ctx){Toast.error("No hay contexto previo.");return;}
-  if(!App.user.messages) App.user.messages = [];
-  App.user.messages.push({role:"user", content:ctx.prompt});
-  App.user.messages.push({role:"assistant", content:ctx.reply});
-  App.chatMessages.negocio = App.user.messages.slice(-40);
-  Store.save();
-  API.saveUser({messages: App.user.messages}).catch(()=>{});
+  const msgs = MentorChats.mensajesActivos();
+  msgs.push({role:"user", content:ctx.prompt});
+  msgs.push({role:"assistant", content:ctx.reply});
+  App.chatMessages.negocio = msgs;
+  MentorChats.guardarActivo(App.chatMessages.negocio);
   navigateTo("mentor");
   initMentorTab();
   Toast.info("Seguí la conversación con el Mentor acá.");
 }
-
 function seguirConAlex(ctxKey){
   const ctx = window[ctxKey];
   if(!ctx){Toast.error("No hay contexto previo.");return;}
@@ -1370,8 +1426,8 @@ function saveConfig(){
   refreshHeader();Toast.success("Cambios guardados. ✅");
 }
 function clearMentorChat(){
-  App.user.messages=[];App.chatMessages.negocio=[];Store.save();
-  API.saveUser({messages:[]}).catch(()=>{});
+  MentorChats.vaciarActivo();
+  App.chatMessages.negocio=[];
   const c=document.getElementById("chat-negocio");c.innerHTML="";Chat.appendWelcome(c,"negocio");
   Toast.info("Conversación borrada.");
 }

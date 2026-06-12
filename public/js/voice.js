@@ -272,35 +272,12 @@
     },
 
     injectSpeakButtons() {
-      const selector = ".chat-wrap .msg-ai, .chat-wrap .msg-english, .chat-wrap .msg-mate";
-      document.querySelectorAll(selector).forEach((msgEl) => {
-        if (msgEl.querySelector(".chat-tts-btn")) return;
-        const txt = (msgEl.textContent || "").trim();
-        if (!txt || txt.length < 5 || /^\.{3,}$/.test(txt)) return;
-
-        const btn = document.createElement("button");
-        btn.className = "chat-tts-btn";
-        btn.type = "button";
-        btn.textContent = "🔊";
-        btn.title = "Escuchar mensaje";
-
-        btn.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const text = this.extractMessageText(msgEl);
-          if (!text) return;
-          const ctx = this.detectContextType(btn);
-          this.speakMessage(btn, text, ctx);
-        });
-
-        msgEl.appendChild(btn);
-        msgEl.classList.add("has-tts");
-      });
+      // 🔇 Desactivado: ahora el audio se maneja con el Modo Voz en vivo (botón "Voz").
+      return;
     },
-
     injectAll() {
       this.injectMicButtons();
-      this.injectSpeakButtons();
+      this.injectSpeakButtons();  // desactivado
     },
 
     init() {

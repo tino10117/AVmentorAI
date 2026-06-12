@@ -561,6 +561,11 @@ ACTITUD GENERAL:
 - Hacés preguntas cortas tipo: "¿Qué te frena posta?", "¿Qué probaste?", "Largá, contame".
 - NO sos coach motivacional vacío de Instagram. Sos práctico, das pasos concretos.
 
+CÓMO CERRAR UNA CONVERSACIÓN (MUY IMPORTANTE):
+- Si el usuario te agradece, se despide o da una señal de cierre ("gracias", "dale gracias", "buenísimo gracias", "listo", "perfecto", "de una", "joya", "ok dale", "saludos"), NO repitas información que ya diste ni vuelvas a recomendar lo mismo.
+- En ese caso respondé CORTO y cálido: una o dos líneas máximo. Un "De nada, capo, cualquier cosa estoy acá" alcanza. NO agregues un párrafo nuevo, NO repitas el video/recomendación anterior, NO arranques un tema nuevo salvo que el usuario lo pida.
+- Leé la intención real: si el mensaje es solo un agradecimiento o un cierre, es para cerrar, no para seguir desarrollando.
+
 LO QUE AVAI NUNCA HACE:
 - Hablar como robot ("Como inteligencia artificial...", "Como asistente...")
 - Usar "tú" o "ustedes" (sos argentino: usás "vos" y "ustedes")
@@ -568,6 +573,7 @@ LO QUE AVAI NUNCA HACE:
 - Ser políticamente correcto al extremo
 - Dar consejos genéricos sin contexto
 - Saturar de emojis (1-2 por mensaje máximo: 🔥 💪 🚀 ⚡ 💎 🎯)
+- Saturar de signos de exclamación. Regla: máximo 1 o 2 "¡...!" por mensaje, y SOLO cuando hay un entusiasmo real que lo justifique (un logro, una felicitación). Por defecto escribí en tono natural y tranquilo, con frases que terminan en punto. NO abras y cierres exclamaciones en cada frase — eso suena exagerado y poco natural. Una conversación real tiene pocas exclamaciones.
 - Putear con palabras fuertes (forro, mierda, carajo, pelotudo, etc.)
 - Ser arrogante o tratar mal al usuario
 - Usar "boludo/a" en cada mensaje (es ocasional, no muletilla constante)
@@ -770,7 +776,25 @@ PROHIBIDO:
 
 Cerrá siempre con: "¿Querés que profundicemos en alguno de estos puntos?"`;
 }
-
+// ═══════════════════════════════════════════════════════════════
+// DETECTOR DE MENSAJE DE CIERRE / AGRADECIMIENTO
+// Si el usuario solo agradece o cierra, NO usamos búsqueda web
+// (el modelo de búsqueda ignora la regla de cerrar corto).
+// ═══════════════════════════════════════════════════════════════
+function esMensajeDeCierre(texto) {
+  const t = (texto || "").toLowerCase().trim();
+  if (t.length > 40) return false;
+  if (t.includes("?") || t.includes("¿")) return false;
+  if (/\b(c[oó]mo|qu[eé]|cu[aá]l|cu[aá]nto|d[oó]nde|por\s*qu[eé]|explicame|dame|hace[mr]e|decime|y\s+ahora|pero)\b/.test(t)) return false;
+  const patrones = [
+    /^(ok\s+)?gracias/, /^muchas\s+gracias/, /^dale\s+gracias/, /^gracias\s+(rey|capo|crack|genio|maestro|loco|bro)/,
+    /^(buen[ií]simo|joya|genial|perfecto|de\s+una|listo|ok\s+dale|ok|dale)\s*(gracias|rey|capo|crack)?[\s!.]*$/,
+    /^(ok|listo|perfecto|buen[ií]simo|joya|genial)[\s!.]*$/,
+    /^(saludos|chau|nos\s+vemos|hasta\s+luego|abrazo)/,
+    /^gracias[\s!.]*$/,
+  ];
+  return patrones.some(p => p.test(t));
+}
 // ─────────────────────────────────────────────────────────────
 
 // ✨ CONFIG DE VERCEL — CRÍTICO PARA IMÁGENES
@@ -1329,8 +1353,14 @@ FEEDBACK SOBRE LA PROPIA PERSONA (importante):
     }
 
     // Si hay imagen, NUNCA usar el modelo de búsqueda web (no ve imágenes).
-    const effectiveWebSearch = useWebSearch && !imagenParaChat;
-
+    // Si el usuario solo agradece o cierra, tampoco: el modelo de búsqueda
+    // ignora la regla de cerrar corto y se pone a buscar igual.
+    const ultimoMsgUser = [...finalMessages].reverse().find(m => m.role === "user");
+    const textoUltimoUser = typeof ultimoMsgUser?.content === "string"
+      ? ultimoMsgUser.content
+      : (ultimoMsgUser?.content?.find?.(c => c.type === "text")?.text || "");
+    const esCierre = esMensajeDeCierre(textoUltimoUser);
+    const effectiveWebSearch = useWebSearch && !imagenParaChat && !esCierre;
     let openaiParams;
     if (effectiveWebSearch) {
       // Búsqueda web: modelo aparte, NO es GPT-5.

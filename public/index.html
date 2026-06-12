@@ -955,6 +955,22 @@
         <div class="qbtn qbtn-sky" style="font-size:11px" onclick="sendWebSearch('competencia')">🔍 Info de competencia</div>
         <div class="qbtn qbtn-green" style="font-size:11px" onclick="sendWebSearch('precios')">💹 Precios del mercado</div>
       </div>
+      <div style="position:sticky;top:8px;z-index:30;display:flex;align-items:center;gap:8px;margin-bottom:10px;pointer-events:none">
+        <button onclick="toggleHistorialMentor()" style="pointer-events:auto;background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:none;color:#475569;font-size:13px;font-weight:600;padding:9px 15px;border-radius:999px;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 2px 10px rgba(0,0,0,.10),0 0 0 1px rgba(0,0,0,.04);transition:transform .12s,box-shadow .15s" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+          Historial
+        </button>
+        <button onclick="RealtimeVoice.toggle()" style="pointer-events:auto;background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:none;color:#475569;font-size:13px;font-weight:600;padding:9px 15px;border-radius:999px;cursor:pointer;display:flex;align-items:center;gap:7px;margin-left:8px;box-shadow:0 2px 10px rgba(0,0,0,.10),0 0 0 1px rgba(0,0,0,.04);transition:transform .12s,box-shadow .15s" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg>
+          Voz
+        </button>
+        <button onclick="nuevoChatMentor()" style="pointer-events:auto;background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:none;color:#475569;font-size:13px;font-weight:600;padding:9px 15px;border-radius:999px;cursor:pointer;display:flex;align-items:center;gap:7px;margin-left:auto;box-shadow:0 2px 10px rgba(0,0,0,.10),0 0 0 1px rgba(0,0,0,.04);transition:transform .12s,box-shadow .15s" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          Nuevo
+        </button>
+        <div id="mentor-historial-panel" style="display:none;position:absolute;top:calc(100% + 6px);left:0;width:300px;max-width:85vw;z-index:50;pointer-events:auto;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;padding:8px;max-height:340px;overflow-y:auto;box-shadow:0 8px 28px rgba(0,0,0,.16)"></div>
+      </div>
+      <div id="mentor-historial-panel" style="display:none;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;padding:8px;margin-bottom:12px;max-height:280px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.06)"></div>     
       <div id="chat-negocio" class="chat-wrap" style="min-height:200px;max-height:60vh;overflow-y:auto"></div>
       <div id="neg-image-preview" style="display:none"></div>
       <div class="chat-input-wrap">
@@ -1427,6 +1443,7 @@
 <script src="js/app.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/voice.js"></script>
+<script src="js/realtime-voice.js"></script>
 <script src="js/mercadopago-ui.js"></script>
 <script src="js/auth-extra.js"></script>
 <script src="js/admin-extra.js"></script>
