@@ -8,7 +8,11 @@
 import OpenAI from "openai";
 import jwt from "jsonwebtoken";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  timeout: 290 * 1000, // 290s — gpt-image-2 en alta calidad puede tardar 145-280s
+  maxRetries: 0,        // los reintentos los manejamos nosotros (con fallback a gpt-image-1)
+});
 const JWT_SECRET = process.env.JWT_SECRET || "av-mentorai-fixed-secret-2024";
 
 const RATE_LIMITS = { Gratis: 10, Premium: 200, Empresarial: 500 };
@@ -1122,6 +1126,7 @@ export default async function handler(req, res) {
           let result;
           let usedQuality = "medium";
           let usedCost = COST_PER_OP.image_generate;
+          let usedModel = "gpt-image-2";
 
           const SIZES_A_INTENTAR = ["1024x1536", "1024x1024"];
 
@@ -1143,58 +1148,82 @@ export default async function handler(req, res) {
               usedQuality = "high";
               usedCost = COST_PER_OP.image_edit;
 
+              // Intentamos primero con gpt-image-2 (máxima calidad). Si falla por
+              // timeout/conexión/acceso, caemos automáticamente a gpt-image-1.
+              const MODELOS_IMG = ["gpt-image-2", "gpt-image-1"];
               let lastErr = null;
-              for (const sz of SIZES_A_INTENTAR) {
-                try {
-                  const fileLike = (typeof File !== "undefined")
-                    ? new File([buffer], `input.${ext}`, { type: mime })
-                    : (() => { const b = new Blob([buffer], { type: mime }); b.name = `input.${ext}`; return b; })();
-                  result = await openai.images.edit({
-                    model: "gpt-image-2",
-                    image: fileLike,
-                    prompt: promptEnriquecido,
-                    size: sz,
-                    quality: "high",
-                  });
-                  console.log(`[IMG] edit OK con tamaño ${sz}`);
-                  lastErr = null;
-                  break;
-                } catch (e) {
-                  lastErr = e;
-                  if (esErrorDeTamano(e)) {
-                    console.warn(`[IMG] tamaño ${sz} rechazado en edit, reintento con el siguiente. Detalle:`, e?.message);
-                    continue;
+              let generado = false;
+              for (const modeloImg of MODELOS_IMG) {
+                for (const sz of SIZES_A_INTENTAR) {
+                  try {
+                    const fileLike = (typeof File !== "undefined")
+                      ? new File([buffer], `input.${ext}`, { type: mime })
+                      : (() => { const b = new Blob([buffer], { type: mime }); b.name = `input.${ext}`; return b; })();
+                    result = await openai.images.edit({
+                      model: modeloImg,
+                      image: fileLike,
+                      prompt: promptEnriquecido,
+                      size: sz,
+                      quality: "high",
+                    });
+                    console.log(`[IMG] edit OK con modelo ${modeloImg} y tamaño ${sz}`);
+                    usedModel = modeloImg;
+                    lastErr = null;
+                    generado = true;
+                    break;
+                  } catch (e) {
+                    lastErr = e;
+                    if (esErrorDeTamano(e)) {
+                      console.warn(`[IMG] tamaño ${sz} rechazado en edit (${modeloImg}), reintento con el siguiente. Detalle:`, e?.message);
+                      continue;
+                    }
+                    // Error que no es de tamaño (timeout, conexión, acceso): cortamos
+                    // los tamaños y probamos el siguiente modelo.
+                    console.warn(`[IMG] edit falló con ${modeloImg}, probando modelo de respaldo. Detalle:`, e?.message);
+                    break;
                   }
-                  throw e;
                 }
+                if (generado) break;
               }
-              if (lastErr) throw lastErr;
+              if (!generado && lastErr) throw lastErr;
             } else {
               usedQuality = "high";
               usedCost = COST_PER_OP.image_generate_high;
 
+              // Intentamos primero con gpt-image-2 (máxima calidad). Si falla por
+              // timeout/conexión/acceso, caemos automáticamente a gpt-image-1.
+              const MODELOS_IMG = ["gpt-image-2", "gpt-image-1"];
               let lastErr = null;
-              for (const sz of SIZES_A_INTENTAR) {
-                try {
-                  result = await openai.images.generate({
-                    model: "gpt-image-2",
-                    prompt: promptEnriquecido,
-                    size: sz,
-                    quality: "high",
-                  });
-                  console.log(`[IMG] generate OK con tamaño ${sz}`);
-                  lastErr = null;
-                  break;
-                } catch (e) {
-                  lastErr = e;
-                  if (esErrorDeTamano(e)) {
-                    console.warn(`[IMG] tamaño ${sz} rechazado en generate, reintento con el siguiente. Detalle:`, e?.message);
-                    continue;
+              let generado = false;
+              for (const modeloImg of MODELOS_IMG) {
+                for (const sz of SIZES_A_INTENTAR) {
+                  try {
+                    result = await openai.images.generate({
+                      model: modeloImg,
+                      prompt: promptEnriquecido,
+                      size: sz,
+                      quality: "high",
+                    });
+                    console.log(`[IMG] generate OK con modelo ${modeloImg} y tamaño ${sz}`);
+                    usedModel = modeloImg;
+                    lastErr = null;
+                    generado = true;
+                    break;
+                  } catch (e) {
+                    lastErr = e;
+                    if (esErrorDeTamano(e)) {
+                      console.warn(`[IMG] tamaño ${sz} rechazado en generate (${modeloImg}), reintento con el siguiente. Detalle:`, e?.message);
+                      continue;
+                    }
+                    // Error que no es de tamaño (timeout, conexión, acceso): cortamos
+                    // los tamaños y probamos el siguiente modelo.
+                    console.warn(`[IMG] generate falló con ${modeloImg}, probando modelo de respaldo. Detalle:`, e?.message);
+                    break;
                   }
-                  throw e;
                 }
+                if (generado) break;
               }
-              if (lastErr) throw lastErr;
+              if (!generado && lastErr) throw lastErr;
             }
           } catch (errGen) {
             console.error("Error generando imagen:", errGen);
@@ -1242,6 +1271,7 @@ export default async function handler(req, res) {
             limit: imgLimit,
             _debug: {
               quality: usedQuality,
+              model: usedModel,
               usandoMemoria,
               prompt_length: promptEnriquecido.length,
             },
