@@ -1,4 +1,4 @@
-/* ── AV MentorAI — Main Styles ── */
+/* ── AVAI — Main Styles ── */
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -425,6 +425,24 @@ body {
   .quick-btns { grid-template-columns: repeat(3, 1fr); }
   .av-logo { font-size: 26px; }
   .tab-btn { font-size: 12px; padding: 6px 10px; }
+
+  /* ═══════════════════════════════════════════════════════════ */
+  /* ✨ FIX HAMBURGUESA vs BARRA DE BOTONES (Historial/Voz/Nuevo) */
+  /* En móvil, el botón ☰ es position:fixed arriba a la izquierda */
+  /* (top:14 left:14). La barra sticky de botones del mentor       */
+  /* arrancaba pegada a la izquierda y quedaba TAPADA por el ☰.     */
+  /* Solución: corremos esa barra hacia la derecha dejándole un     */
+  /* hueco al hamburguesa, y la bajamos un toque.                   */
+  /* ═══════════════════════════════════════════════════════════ */
+  #tab-mentor > div[style*="sticky"] {
+    padding-left: 52px;      /* deja lugar para el ☰ a la izquierda */
+    top: 14px !important;    /* alinea verticalmente con el ☰        */
+  }
+  /* El panel desplegable de historial NO debe heredar ese padding, */
+  /* porque está anclado con position:absolute dentro de la barra.  */
+  #mentor-historial-panel {
+    left: 52px !important;
+  }
 }
 @media (max-width: 480px) {
   .quick-btns { grid-template-columns: repeat(2, 1fr); }
