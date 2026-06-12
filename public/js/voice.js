@@ -277,7 +277,7 @@
     },
     injectAll() {
       this.injectMicButtons();
-      this.injectSpeakButtons();
+      this.injectSpeakButtons();  // desactivado
     },
 
     init() {
