@@ -1,6 +1,6 @@
 // js/realtime-voice.js — Modo VOZ EN VIVO de AVAI (Realtime API de OpenAI vía WebRTC)
 // Independiente del voice.js viejo (por turnos). Este es conversación en tiempo real.
-// Flujo: pide token efímero a /api/realtime-token → WebRTC directo a OpenAI → audio en vivo.
+// Incluye la pantalla completa estilo ChatGPT (orbe con ondas).
 (function () {
   "use strict";
 
@@ -14,21 +14,21 @@
   }
 
   const RealtimeVoice = {
-    pc: null,            // RTCPeerConnection
-    dc: null,            // data channel "oai-events"
-    micStream: null,     // MediaStream del micrófono
-    audioEl: null,       // <audio> donde suena AVAI
-    estado: "idle",      // idle | conectando | escuchando | hablando | error
-    onEstado: null,      // callback para que la UI reaccione a cambios de estado
+    pc: null,
+    dc: null,
+    micStream: null,
+    audioEl: null,
+    estado: "idle",
+    onEstado: null,
 
     setEstado(nuevo) {
       this.estado = nuevo;
+      this.pintarEstado(nuevo);
       if (typeof this.onEstado === "function") {
         try { this.onEstado(nuevo); } catch (e) {}
       }
     },
 
-    // Construye las instrucciones de personalidad de AVAI para la voz
     construirInstrucciones() {
       const u = getUser();
       const nombre = u.nombre || "capo";
@@ -55,16 +55,167 @@ CÓMO HABLÁS (es conversación por VOZ, en vivo):
 Respondé siempre en español argentino.`;
     },
 
-    // Inicia la sesión de voz en vivo
+    // ────────────────────────────────────────────────
+    // UI: pantalla completa estilo ChatGPT (orbe + ondas)
+    // ────────────────────────────────────────────────
+    inyectarEstilos() {
+      if (document.getElementById("avai-voz-estilos")) return;
+      const st = document.createElement("style");
+      st.id = "avai-voz-estilos";
+      st.textContent = `
+        #avai-voz-overlay {
+          position: fixed; inset: 0; z-index: 9999;
+          display: flex; align-items: center; justify-content: center;
+          opacity: 0; pointer-events: none; transition: opacity .35s ease;
+        }
+        #avai-voz-overlay.abierto { opacity: 1; pointer-events: auto; }
+        .avoz-bg {
+          position: absolute; inset: 0;
+          background: radial-gradient(circle at 50% 38%, #1a1a2e 0%, #0d0d16 55%, #060609 100%);
+        }
+        .avoz-content {
+          position: relative; z-index: 2;
+          display: flex; flex-direction: column; align-items: center;
+          width: 100%; max-width: 480px; padding: 24px; text-align: center;
+        }
+        .avoz-orbe {
+          position: relative; width: 220px; height: 220px;
+          display: flex; align-items: center; justify-content: center;
+          margin-bottom: 48px;
+        }
+        .avoz-core {
+          width: 120px; height: 120px; border-radius: 50%;
+          background: radial-gradient(circle at 35% 30%, #fde68a, #f59e0b 60%, #b45309 100%);
+          box-shadow: 0 0 60px rgba(245,158,11,.55), 0 0 120px rgba(245,158,11,.25);
+          transition: transform .25s ease;
+        }
+        .avoz-ring {
+          position: absolute; border-radius: 50%;
+          border: 2px solid rgba(245,158,11,.35);
+          opacity: 0;
+        }
+        .avoz-ring1 { width: 150px; height: 150px; }
+        .avoz-ring2 { width: 185px; height: 185px; }
+        .avoz-ring3 { width: 220px; height: 220px; }
+        /* Estado: escuchando — ondas suaves expandiéndose */
+        #avai-voz-overlay[data-estado="escuchando"] .avoz-ring {
+          animation: avoz-pulse 2.4s ease-out infinite;
+        }
+        #avai-voz-overlay[data-estado="escuchando"] .avoz-ring2 { animation-delay: .5s; }
+        #avai-voz-overlay[data-estado="escuchando"] .avoz-ring3 { animation-delay: 1s; }
+        /* Estado: hablando — el core late más fuerte y rápido */
+        #avai-voz-overlay[data-estado="hablando"] .avoz-core {
+          animation: avoz-talk .55s ease-in-out infinite;
+        }
+        #avai-voz-overlay[data-estado="hablando"] .avoz-ring {
+          animation: avoz-pulse 1.1s ease-out infinite;
+        }
+        #avai-voz-overlay[data-estado="hablando"] .avoz-ring2 { animation-delay: .25s; }
+        #avai-voz-overlay[data-estado="hablando"] .avoz-ring3 { animation-delay: .5s; }
+        /* Estado: conectando — el core respira lento */
+        #avai-voz-overlay[data-estado="conectando"] .avoz-core {
+          animation: avoz-breathe 1.8s ease-in-out infinite;
+        }
+        @keyframes avoz-pulse {
+          0% { transform: scale(.7); opacity: .6; }
+          100% { transform: scale(1.05); opacity: 0; }
+        }
+        @keyframes avoz-talk {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.18); }
+        }
+        @keyframes avoz-breathe {
+          0%, 100% { transform: scale(1); opacity: .8; }
+          50% { transform: scale(1.08); opacity: 1; }
+        }
+        .avoz-estado {
+          color: #fff; font-size: 22px; font-weight: 600;
+          letter-spacing: -.01em; margin-bottom: 8px;
+        }
+        .avoz-sub {
+          color: rgba(255,255,255,.5); font-size: 14px; margin-bottom: 40px;
+          min-height: 20px;
+        }
+        .avoz-cerrar {
+          width: 60px; height: 60px; border-radius: 50%;
+          background: rgba(255,255,255,.1);
+          border: 1px solid rgba(255,255,255,.2);
+          color: #fff; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+          transition: background .2s, transform .15s;
+        }
+        .avoz-cerrar:hover { background: rgba(239,68,68,.85); transform: scale(1.05); }
+        .avoz-cerrar:active { transform: scale(.95); }
+      `;
+      document.head.appendChild(st);
+    },
+
+    crearUI() {
+      if (document.getElementById("avai-voz-overlay")) return;
+      this.inyectarEstilos();
+      const overlay = document.createElement("div");
+      overlay.id = "avai-voz-overlay";
+      overlay.setAttribute("data-estado", "conectando");
+      overlay.innerHTML = `
+        <div class="avoz-bg"></div>
+        <div class="avoz-content">
+          <div class="avoz-orbe">
+            <div class="avoz-ring avoz-ring1"></div>
+            <div class="avoz-ring avoz-ring2"></div>
+            <div class="avoz-ring avoz-ring3"></div>
+            <div class="avoz-core"></div>
+          </div>
+          <div class="avoz-estado" id="avoz-estado-txt">Conectando…</div>
+          <div class="avoz-sub" id="avoz-sub-txt">Esperá un toque</div>
+          <button class="avoz-cerrar" id="avoz-cerrar-btn" title="Terminar">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      overlay.querySelector("#avoz-cerrar-btn").addEventListener("click", () => this.cerrar());
+      // forzar reflow y abrir con transición
+      requestAnimationFrame(() => overlay.classList.add("abierto"));
+    },
+
+    pintarEstado(estado) {
+      const overlay = document.getElementById("avai-voz-overlay");
+      if (!overlay) return;
+      overlay.setAttribute("data-estado", estado);
+      const txt = document.getElementById("avoz-estado-txt");
+      const sub = document.getElementById("avoz-sub-txt");
+      const mapa = {
+        conectando: ["Conectando…", "Dale un segundo"],
+        escuchando: ["Te escucho", "Hablá tranquilo, te escucho"],
+        hablando: ["AVAI hablando", ""],
+        error: ["Hubo un problema", "Cerrá y probá de nuevo"],
+        idle: ["", ""],
+      };
+      const [t, s] = mapa[estado] || ["", ""];
+      if (txt) txt.textContent = t;
+      if (sub) sub.textContent = s;
+    },
+
+    quitarUI() {
+      const overlay = document.getElementById("avai-voz-overlay");
+      if (!overlay) return;
+      overlay.classList.remove("abierto");
+      setTimeout(() => { try { overlay.remove(); } catch (e) {} }, 350);
+    },
+
+    // ────────────────────────────────────────────────
+    // Iniciar la sesión de voz en vivo
+    // ────────────────────────────────────────────────
     async iniciar() {
       if (this.estado !== "idle" && this.estado !== "error") {
         console.warn("[RealtimeVoice] ya hay una sesión activa");
         return;
       }
+      this.crearUI();
       this.setEstado("conectando");
 
       try {
-        // 1) Pedir el token efímero a nuestro backend
         const tokenResp = await fetch("/api/realtime-token", {
           method: "POST",
           headers: {
@@ -81,28 +232,21 @@ Respondé siempre en español argentino.`;
         const MODEL = tokenData.model || "gpt-realtime";
         if (!EPHEMERAL) throw new Error("No se recibió el token de voz");
 
-        // 2) Crear la conexión WebRTC
         const pc = new RTCPeerConnection();
         this.pc = pc;
 
-        // 3) Reproducir el audio que manda AVAI
         const audioEl = document.createElement("audio");
         audioEl.autoplay = true;
         this.audioEl = audioEl;
-        pc.ontrack = (e) => {
-          audioEl.srcObject = e.streams[0];
-        };
+        pc.ontrack = (e) => { audioEl.srcObject = e.streams[0]; };
 
-        // 4) Capturar el micrófono y mandarlo
         const ms = await navigator.mediaDevices.getUserMedia({ audio: true });
         this.micStream = ms;
         ms.getTracks().forEach((t) => pc.addTrack(t, ms));
 
-        // 5) Data channel para eventos (configuración, estados)
         const dc = pc.createDataChannel("oai-events");
         this.dc = dc;
         dc.onopen = () => {
-          // Apenas abre, inyectamos la personalidad de AVAI
           this.enviarEvento({
             type: "session.update",
             session: {
@@ -126,14 +270,12 @@ Respondé siempre en español argentino.`;
         };
         dc.onmessage = (e) => this.manejarEvento(e);
 
-        // 6) Esperar a que la conexión esté "connected" (evita bug de timing)
         pc.onconnectionstatechange = () => {
           if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
             this.setEstado("error");
           }
         };
 
-        // 7) Handshake SDP: crear oferta y mandarla a OpenAI
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
 
@@ -153,35 +295,28 @@ Respondé siempre en español argentino.`;
 
         const answerSdp = await sdpResponse.text();
         await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
-
-        // Listo: el dc.onopen va a pasar a "escuchando"
       } catch (err) {
         console.error("[RealtimeVoice] error al iniciar:", err);
         this.setEstado("error");
-        this.cerrar();
+        setTimeout(() => this.cerrar(), 1800);
         throw err;
       }
     },
 
-    // Maneja eventos que llegan de OpenAI por el data channel
     manejarEvento(e) {
       let ev;
       try { ev = JSON.parse(e.data); } catch (_) { return; }
-
       switch (ev.type) {
         case "input_audio_buffer.speech_started":
-          // El usuario empezó a hablar
           this.setEstado("escuchando");
           break;
         case "response.output_audio.delta":
         case "response.audio.delta":
-          // AVAI está hablando
           if (this.estado !== "hablando") this.setEstado("hablando");
           break;
         case "response.done":
         case "response.output_audio.done":
         case "response.audio.done":
-          // AVAI terminó de hablar, vuelve a escuchar
           this.setEstado("escuchando");
           break;
         case "error":
@@ -196,22 +331,29 @@ Respondé siempre en español argentino.`;
       }
     },
 
-    // Corta la sesión y libera todo
     cerrar() {
       try { if (this.micStream) this.micStream.getTracks().forEach((t) => t.stop()); } catch (e) {}
       try { if (this.dc) this.dc.close(); } catch (e) {}
       try { if (this.pc) this.pc.close(); } catch (e) {}
       try {
-        if (this.audioEl) {
-          this.audioEl.srcObject = null;
-          this.audioEl.remove();
-        }
+        if (this.audioEl) { this.audioEl.srcObject = null; this.audioEl.remove(); }
       } catch (e) {}
       this.micStream = null;
       this.dc = null;
       this.pc = null;
       this.audioEl = null;
-      this.setEstado("idle");
+      this.estado = "idle";
+      if (typeof this.onEstado === "function") { try { this.onEstado("idle"); } catch (e) {} }
+      this.quitarUI();
+    },
+
+    // Punto de entrada para el botón
+    toggle() {
+      if (this.estado === "idle" || this.estado === "error") {
+        this.iniciar().catch(() => {});
+      } else {
+        this.cerrar();
+      }
     },
   };
 
