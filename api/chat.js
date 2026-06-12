@@ -205,7 +205,7 @@ async function enriquecerPromptImagen(textoUsuario, imageBase64, contextoHistori
   try {
     const tieneImagen = !!imageBase64;
 
-    const systemEnriquecedor = `Sos un experto en escribir prompts profesionales para generación de imágenes con gpt-image-1 (similar a DALL-E 3). Tu trabajo es convertir un pedido casual del usuario en un prompt detallado y profesional EN INGLÉS que produzca resultados de calidad de agencia publicitaria.
+    const systemEnriquecedor = `Sos un experto en escribir prompts profesionales para generación de imágenes con gpt-image-2 (el modelo de imagen más avanzado de OpenAI, con fotorrealismo extremo y texto casi perfecto). Tu trabajo es convertir un pedido casual del usuario en un prompt detallado y profesional EN INGLÉS que produzca resultados de calidad de agencia publicitaria.
 
 REGLAS CRÍTICAS:
 1. Respondé SOLO con el prompt en inglés. NO agregues explicaciones, comentarios, ni texto extra. NO uses markdown ni comillas externas envolviendo todo el prompt.
@@ -254,7 +254,7 @@ REGLAS CRÍTICAS:
 
 6. NUNCA copies texto del usuario tal cual: SIEMPRE traducí y expandí a inglés profesional.
 
-7. SIEMPRE terminá el prompt con esta línea EXACTA: "High quality, professional graphic design, sharp details, vivid colors, no watermarks, all Spanish text perfectly spelled and grammatically correct, no misspelled words, no duplicated letters in any word."
+7. SIEMPRE terminá el prompt con esta línea EXACTA: "ULTRA photorealistic, ultra high resolution, professional studio quality, sharp crisp details, perfect realistic lighting and shadows, vivid accurate colors, flawless professional graphic design, no watermarks. CRITICAL: before finalizing, mentally verify the image is perfect — every Spanish word must be spelled perfectly and be grammatically correct, with no misspelled words, no duplicated or missing letters, no distorted text. The result must look like a real professional photograph or a top-tier agency design, indistinguishable from human professional work."
 
 8. Máximo 300 palabras. Conciso pero rico en detalles visuales y muy específico con los textos.
 
@@ -1150,7 +1150,7 @@ export default async function handler(req, res) {
                     ? new File([buffer], `input.${ext}`, { type: mime })
                     : (() => { const b = new Blob([buffer], { type: mime }); b.name = `input.${ext}`; return b; })();
                   result = await openai.images.edit({
-                    model: "gpt-image-1",
+                    model: "gpt-image-2",
                     image: fileLike,
                     prompt: promptEnriquecido,
                     size: sz,
@@ -1170,17 +1170,17 @@ export default async function handler(req, res) {
               }
               if (lastErr) throw lastErr;
             } else {
-              usedQuality = "medium";
-              usedCost = COST_PER_OP.image_generate;
+              usedQuality = "high";
+              usedCost = COST_PER_OP.image_generate_high;
 
               let lastErr = null;
               for (const sz of SIZES_A_INTENTAR) {
                 try {
                   result = await openai.images.generate({
-                    model: "gpt-image-1",
+                    model: "gpt-image-2",
                     prompt: promptEnriquecido,
                     size: sz,
-                    quality: "medium",
+                    quality: "high",
                   });
                   console.log(`[IMG] generate OK con tamaño ${sz}`);
                   lastErr = null;
