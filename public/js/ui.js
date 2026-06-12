@@ -1,5 +1,19 @@
 // ui.js — All UI rendering and interactions
-
+// ── KATEX: renderiza fórmulas LaTeX dentro de un elemento ──
+function renderKatexEn(el) {
+  if (!el || typeof window.renderMathInElement !== "function") return;
+  try {
+    window.renderMathInElement(el, {
+      delimiters: [
+        { left: "$$", right: "$$", display: true },
+        { left: "\\[", right: "\\]", display: true },
+        { left: "\\(", right: "\\)", display: false },
+      ],
+      throwOnError: false,
+      ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code", "option"],
+    });
+  } catch (e) { console.warn("KaTeX:", e?.message); }
+}
 // ═══════════════════════════════════════════════
 // INICIALIZACIÓN ROBUSTA — Garantiza que SIEMPRE se muestre algo
 // ═══════════════════════════════════════════════
@@ -3832,3 +3846,22 @@ async function adminActivarRapido(email, plan) {
     Toast.error(e.message);
   }
 }
+// ── Auto-render de KaTeX en mensajes del chat ──
+(function initKatexAutoRender() {
+  let pendiente = null;
+  function renderTodo() {
+    // Renderiza en los contenedores de chat y outputs de la IA
+    document.querySelectorAll(".chat-wrap, .md-output, #hist-narrativa, #emp-narrativa").forEach(renderKatexEn);
+  }
+  const obs = new MutationObserver(() => {
+    // Debounce: esperamos a que el stream pare de escribir antes de renderizar
+    clearTimeout(pendiente);
+    pendiente = setTimeout(renderTodo, 350);
+  });
+  function arrancar() {
+    obs.observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", arrancar);
+  } else { arrancar(); }
+})();

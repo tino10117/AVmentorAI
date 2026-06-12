@@ -8,7 +8,11 @@
 import OpenAI from "openai";
 import jwt from "jsonwebtoken";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  timeout: 290 * 1000, // 290s — gpt-image-2 en alta calidad puede tardar 145-280s
+  maxRetries: 0,        // los reintentos los manejamos nosotros (con fallback a gpt-image-1)
+});
 const JWT_SECRET = process.env.JWT_SECRET || "av-mentorai-fixed-secret-2024";
 
 const RATE_LIMITS = { Gratis: 10, Premium: 200, Empresarial: 500 };
@@ -205,7 +209,7 @@ async function enriquecerPromptImagen(textoUsuario, imageBase64, contextoHistori
   try {
     const tieneImagen = !!imageBase64;
 
-    const systemEnriquecedor = `Sos un experto en escribir prompts profesionales para generación de imágenes con gpt-image-1 (similar a DALL-E 3). Tu trabajo es convertir un pedido casual del usuario en un prompt detallado y profesional EN INGLÉS que produzca resultados de calidad de agencia publicitaria.
+    const systemEnriquecedor = `Sos un experto en escribir prompts profesionales para generación de imágenes con gpt-image-2 (el modelo de imagen más avanzado de OpenAI, con fotorrealismo extremo y texto casi perfecto). Tu trabajo es convertir un pedido casual del usuario en un prompt detallado y profesional EN INGLÉS que produzca resultados de calidad de agencia publicitaria.
 
 REGLAS CRÍTICAS:
 1. Respondé SOLO con el prompt en inglés. NO agregues explicaciones, comentarios, ni texto extra. NO uses markdown ni comillas externas envolviendo todo el prompt.
@@ -254,7 +258,7 @@ REGLAS CRÍTICAS:
 
 6. NUNCA copies texto del usuario tal cual: SIEMPRE traducí y expandí a inglés profesional.
 
-7. SIEMPRE terminá el prompt con esta línea EXACTA: "High quality, professional graphic design, sharp details, vivid colors, no watermarks, all Spanish text perfectly spelled and grammatically correct, no misspelled words, no duplicated letters in any word."
+7. SIEMPRE terminá el prompt con esta línea EXACTA: "ULTRA photorealistic, ultra high resolution, professional studio quality, sharp crisp details, perfect realistic lighting and shadows, vivid accurate colors, flawless professional graphic design, no watermarks. CRITICAL: before finalizing, mentally verify the image is perfect — every Spanish word must be spelled perfectly and be grammatically correct, with no misspelled words, no duplicated or missing letters, no distorted text. The result must look like a real professional photograph or a top-tier agency design, indistinguishable from human professional work."
 
 8. Máximo 300 palabras. Conciso pero rico en detalles visuales y muy específico con los textos.
 
@@ -629,10 +633,20 @@ function systemMate(user, leccion, modo) {
 Estudiante: ${user.nombre} | Nivel: ${nivel} | Lecciones completadas: ${loks}${lec}
 Explicás en español simple. Ejemplos de negocios, precios, ventas, ganancias.
 NUNCA hablás como robot ("como IA", "como asistente"): sos Bruno, una persona real que explica fácil. Tenés sentido del humor y hacés que los números no asusten, pero cuando el alumno no entiende, lo explicás de nuevo con paciencia y sin joda.
-Nunca usás jerga matemática innecesaria. Terminás con "¿Lo entendiste? ¿Querés que practiquemos más?" 🔢
+Nunca usás jerga matemática innecesaria.
+
+🎯 CÓMO RESOLVÉS PROBLEMAS DE MATEMÁTICA (CRÍTICO — esto te hace confiable, NO te saltees ningún paso):
+1. LEÉ BIEN PRIMERO: antes de resolver, identificá con precisión qué pide el problema y qué datos tenés. Si viene de una foto y algún número o símbolo no se lee claro, decílo en vez de adivinar.
+2. PLANTEÁ: escribí la operación o ecuación que vas a resolver antes de hacer las cuentas.
+3. PASO A PASO DE VERDAD: resolvé una operación por línea, mostrando cada paso. NO saltes al resultado. Nada de "haciendo los cálculos da X".
+4. VERIFICÁ SIEMPRE (lo más importante): cuando llegues al resultado, COMPROBALO. Reemplazá la respuesta en el problema original o rehacé la cuenta por otro camino para confirmar que da bien. Si no da, rehacelo: NO entregues un resultado sin verificar.
+5. SÉ HONESTO CON LA CONFIANZA: si un problema es ambiguo, le faltan datos o no estás seguro, decílo claro. Es mil veces mejor decir "che, este dato no me cierra, ¿lo podés revisar?" que tirar un número inventado. NUNCA inventes un resultado para quedar bien.
+6. FORMATO DE FÓRMULAS (OBLIGATORIO): escribí TODA la matemática en LaTeX encerrada en delimitadores. Fórmulas en línea con \\( ... \\) y fórmulas centradas o importantes con \\[ ... \\]. Ejemplos: una fracción es \\( \\frac{a}{b} \\), una raíz es \\( \\sqrt{x} \\), un exponente es \\( x^2 \\). NUNCA escribas LaTeX suelto sin delimitadores. NO uses bloques de código para las fórmulas.
+Tu fuerte es que resolvés BIEN y el alumno puede confiar en tu respuesta. Preferí ser correcto antes que rápido.
+
+Terminás con "¿Lo entendiste? ¿Querés que practiquemos más?" 🔢
 Frases: "Los números no mienten:", "Esto en tu negocio significa:", "¡Muy bien! 💪"${extra}`;
 }
-
 function systemContent(user) {
   return identidadAVAI(user) + `Para esta tarea actuás como el mejor copywriter de LATAM con 10+ años escribiendo para marcas reales en Argentina. Tu contenido vende, engancha y genera acción. Conocés el mercado argentino, el lenguaje de la gente joven y cómo hablar de forma auténtica en cada plataforma.
 
@@ -1112,6 +1126,7 @@ export default async function handler(req, res) {
           let result;
           let usedQuality = "medium";
           let usedCost = COST_PER_OP.image_generate;
+          let usedModel = "gpt-image-2";
 
           const SIZES_A_INTENTAR = ["1024x1536", "1024x1024"];
 
@@ -1133,58 +1148,82 @@ export default async function handler(req, res) {
               usedQuality = "high";
               usedCost = COST_PER_OP.image_edit;
 
+              // Intentamos primero con gpt-image-2 (máxima calidad). Si falla por
+              // timeout/conexión/acceso, caemos automáticamente a gpt-image-1.
+              const MODELOS_IMG = ["gpt-image-2", "gpt-image-1"];
               let lastErr = null;
-              for (const sz of SIZES_A_INTENTAR) {
-                try {
-                  const fileLike = (typeof File !== "undefined")
-                    ? new File([buffer], `input.${ext}`, { type: mime })
-                    : (() => { const b = new Blob([buffer], { type: mime }); b.name = `input.${ext}`; return b; })();
-                  result = await openai.images.edit({
-                    model: "gpt-image-1",
-                    image: fileLike,
-                    prompt: promptEnriquecido,
-                    size: sz,
-                    quality: "high",
-                  });
-                  console.log(`[IMG] edit OK con tamaño ${sz}`);
-                  lastErr = null;
-                  break;
-                } catch (e) {
-                  lastErr = e;
-                  if (esErrorDeTamano(e)) {
-                    console.warn(`[IMG] tamaño ${sz} rechazado en edit, reintento con el siguiente. Detalle:`, e?.message);
-                    continue;
+              let generado = false;
+              for (const modeloImg of MODELOS_IMG) {
+                for (const sz of SIZES_A_INTENTAR) {
+                  try {
+                    const fileLike = (typeof File !== "undefined")
+                      ? new File([buffer], `input.${ext}`, { type: mime })
+                      : (() => { const b = new Blob([buffer], { type: mime }); b.name = `input.${ext}`; return b; })();
+                    result = await openai.images.edit({
+                      model: modeloImg,
+                      image: fileLike,
+                      prompt: promptEnriquecido,
+                      size: sz,
+                      quality: "high",
+                    });
+                    console.log(`[IMG] edit OK con modelo ${modeloImg} y tamaño ${sz}`);
+                    usedModel = modeloImg;
+                    lastErr = null;
+                    generado = true;
+                    break;
+                  } catch (e) {
+                    lastErr = e;
+                    if (esErrorDeTamano(e)) {
+                      console.warn(`[IMG] tamaño ${sz} rechazado en edit (${modeloImg}), reintento con el siguiente. Detalle:`, e?.message);
+                      continue;
+                    }
+                    // Error que no es de tamaño (timeout, conexión, acceso): cortamos
+                    // los tamaños y probamos el siguiente modelo.
+                    console.warn(`[IMG] edit falló con ${modeloImg}, probando modelo de respaldo. Detalle:`, e?.message);
+                    break;
                   }
-                  throw e;
                 }
+                if (generado) break;
               }
-              if (lastErr) throw lastErr;
+              if (!generado && lastErr) throw lastErr;
             } else {
-              usedQuality = "medium";
-              usedCost = COST_PER_OP.image_generate;
+              usedQuality = "high";
+              usedCost = COST_PER_OP.image_generate_high;
 
+              // Intentamos primero con gpt-image-2 (máxima calidad). Si falla por
+              // timeout/conexión/acceso, caemos automáticamente a gpt-image-1.
+              const MODELOS_IMG = ["gpt-image-2", "gpt-image-1"];
               let lastErr = null;
-              for (const sz of SIZES_A_INTENTAR) {
-                try {
-                  result = await openai.images.generate({
-                    model: "gpt-image-1",
-                    prompt: promptEnriquecido,
-                    size: sz,
-                    quality: "medium",
-                  });
-                  console.log(`[IMG] generate OK con tamaño ${sz}`);
-                  lastErr = null;
-                  break;
-                } catch (e) {
-                  lastErr = e;
-                  if (esErrorDeTamano(e)) {
-                    console.warn(`[IMG] tamaño ${sz} rechazado en generate, reintento con el siguiente. Detalle:`, e?.message);
-                    continue;
+              let generado = false;
+              for (const modeloImg of MODELOS_IMG) {
+                for (const sz of SIZES_A_INTENTAR) {
+                  try {
+                    result = await openai.images.generate({
+                      model: modeloImg,
+                      prompt: promptEnriquecido,
+                      size: sz,
+                      quality: "high",
+                    });
+                    console.log(`[IMG] generate OK con modelo ${modeloImg} y tamaño ${sz}`);
+                    usedModel = modeloImg;
+                    lastErr = null;
+                    generado = true;
+                    break;
+                  } catch (e) {
+                    lastErr = e;
+                    if (esErrorDeTamano(e)) {
+                      console.warn(`[IMG] tamaño ${sz} rechazado en generate (${modeloImg}), reintento con el siguiente. Detalle:`, e?.message);
+                      continue;
+                    }
+                    // Error que no es de tamaño (timeout, conexión, acceso): cortamos
+                    // los tamaños y probamos el siguiente modelo.
+                    console.warn(`[IMG] generate falló con ${modeloImg}, probando modelo de respaldo. Detalle:`, e?.message);
+                    break;
                   }
-                  throw e;
                 }
+                if (generado) break;
               }
-              if (lastErr) throw lastErr;
+              if (!generado && lastErr) throw lastErr;
             }
           } catch (errGen) {
             console.error("Error generando imagen:", errGen);
@@ -1232,6 +1271,7 @@ export default async function handler(req, res) {
             limit: imgLimit,
             _debug: {
               quality: usedQuality,
+              model: usedModel,
               usandoMemoria,
               prompt_length: promptEnriquecido.length,
             },
@@ -1312,7 +1352,7 @@ export default async function handler(req, res) {
 ━━━ IMAGEN COMPARTIDA POR EL USUARIO ━━━
 El usuario ${imagenEsNueva ? "adjuntó una imagen" : "se está refiriendo a una imagen que compartió antes"}. Importante:
 - Mirá la imagen y respondé EN RELACIÓN a lo que el usuario te dice o pregunta AHORA. Leé bien su mensaje actual: respondé a eso, no a lo que imaginás.
-- Si pide resolver ejercicios, problemas o exámenes: resolvelos PASO A PASO con el resultado. Es material de estudio del propio usuario; ayudalo a entender y resolver, no te niegues.
+- Si pide resolver ejercicios, problemas o exámenes (sobre todo MATEMÁTICA): seguí SIEMPRE esta disciplina para no equivocarte: (1) TRANSCRIBÍ primero lo que ves ("el ejercicio dice: ..."), y si un número o símbolo no se lee bien, decílo en vez de adivinar; (2) PLANTEÁ la operación o ecuación; (3) resolvé PASO A PASO, una operación por línea, sin saltar al resultado; (4) VERIFICÁ el resultado reemplazándolo en el problema o rehaciendo la cuenta por otro camino antes de darlo por bueno; (5) si algo no cierra o falta un dato, decílo claro, NUNCA inventes un número. Es material de estudio del propio usuario; ayudalo a entender y resolver, no te niegues. Preferí ser correcto antes que rápido.
 - Si pide leer, traducir, describir o que opines sobre la imagen, hacelo con detalle y de forma concreta (no genérica).
 - Si la foto no se llega a leer bien en alguna parte, decílo puntual y resolvé/respondé lo que sí podés.
 
