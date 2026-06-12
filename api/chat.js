@@ -1322,7 +1322,7 @@ export default async function handler(req, res) {
 ━━━ IMAGEN COMPARTIDA POR EL USUARIO ━━━
 El usuario ${imagenEsNueva ? "adjuntó una imagen" : "se está refiriendo a una imagen que compartió antes"}. Importante:
 - Mirá la imagen y respondé EN RELACIÓN a lo que el usuario te dice o pregunta AHORA. Leé bien su mensaje actual: respondé a eso, no a lo que imaginás.
-- Si pide resolver ejercicios, problemas o exámenes: resolvelos PASO A PASO con el resultado. Es material de estudio del propio usuario; ayudalo a entender y resolver, no te niegues.
+- Si pide resolver ejercicios, problemas o exámenes (sobre todo MATEMÁTICA): seguí SIEMPRE esta disciplina para no equivocarte: (1) TRANSCRIBÍ primero lo que ves ("el ejercicio dice: ..."), y si un número o símbolo no se lee bien, decílo en vez de adivinar; (2) PLANTEÁ la operación o ecuación; (3) resolvé PASO A PASO, una operación por línea, sin saltar al resultado; (4) VERIFICÁ el resultado reemplazándolo en el problema o rehaciendo la cuenta por otro camino antes de darlo por bueno; (5) si algo no cierra o falta un dato, decílo claro, NUNCA inventes un número. Es material de estudio del propio usuario; ayudalo a entender y resolver, no te niegues. Preferí ser correcto antes que rápido.
 - Si pide leer, traducir, describir o que opines sobre la imagen, hacelo con detalle y de forma concreta (no genérica).
 - Si la foto no se llega a leer bien en alguna parte, decílo puntual y resolvé/respondé lo que sí podés.
 
