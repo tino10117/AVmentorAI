@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
 const JWT_SECRET = process.env.JWT_SECRET || "av-mentorai-fixed-secret-2024";
 
 // Modelo de voz realtime y voz por defecto
-const REALTIME_MODEL = "gpt-4o-realtime-preview";
+const REALTIME_MODEL = "gpt-realtime";
 const DEFAULT_VOICE = "nova";
 
 function verifyToken(req) {
